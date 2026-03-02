@@ -1,34 +1,129 @@
-// Fetch Allocations from Database
+// Initialize Supabase Client
+const SUPABASE_URL = 'https://kgcuogyrxcbdlozgnfav.supabase.co';
+const SUPABASE_ANON_KEY = 'ImFub24iLCJpYXQiOjE3NzI0MzY0MDMsImV4cCIgncH9gzxeFhB6PYyvLQ8IwKOTuAQ3U';
+// =============================
+
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+// =============================
+// DOM Elements
+// =============================
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const authView = document.getElementById('auth-view');
+const dashboardView = document.getElementById('dashboard-view');
+const userNameDisplay = document.getElementById('user-name');
+const allocationsContainer = document.getElementById('allocations-container');
+
+// =============================
+// Google Login
+// =============================
+loginBtn.addEventListener('click', async () => {
+    await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+    });
+});
+
+// =============================
+// Logout
+// =============================
+logoutBtn.addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+});
+
+// =============================
+// Auth State Listener
+// =============================
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+
+    if (session) {
+        authView.classList.add('hidden');
+        dashboardView.classList.remove('hidden');
+
+        const userName = session.user.user_metadata.full_name || "User";
+        userNameDisplay.textContent = userName;
+
+        await loadAllocations(session.user);
+
+    } else {
+        dashboardView.classList.add('hidden');
+        authView.classList.remove('hidden');
+        userNameDisplay.textContent = '';
+    }
+});
+
+// =============================
+// Load Allocations
+// =============================
 async function loadAllocations(user) {
-    console.log("1. loadAllocations started for user:", user.id);
+
+    allocationsContainer.innerHTML =
+        `<div style="text-align:center;padding:20px;">Loading allocations...</div>`;
 
     const { data, error } = await supabaseClient
         .from('ideal_allocations')
         .select('*')
+        .eq('user_id', user.id)
         .order('percentage', { ascending: false });
 
-    console.log("2. Supabase SELECT finished. Data:", data, "Error:", error);
-
     if (error) {
-        allocationsContainer.innerHTML = `<p style="padding: 20px; color: red;">Failed to load. Error: ${error.message}</p>`;
+        console.error(error);
+        allocationsContainer.innerHTML =
+            `<div style="color:red;padding:20px;">Failed to load data</div>`;
         return;
     }
 
     if (!data || data.length === 0) {
-        console.log("3. No data found. Starting seed process...");
         await seedDefaultAllocations(user.id);
-        return; 
+        return;
     }
 
-    console.log("4. Data found! Rendering allocations...");
     renderAllocations(data);
 }
 
-// Seed Database
+// =============================
+// Render Allocations
+// =============================
+function renderAllocations(allocations) {
+
+    allocationsContainer.innerHTML = '';
+
+    allocations.forEach(alloc => {
+
+        const percentageDisplay =
+            (Number(alloc.percentage) * 100).toFixed(1) + '%';
+
+        const itemHtml = `
+            <div class="allocation-item">
+                <div class="allocation-header">
+                    <div class="allocation-info">
+                        <span class="allocation-name">${alloc.item}</span>
+                        <span class="allocation-type">${alloc.type} • ${alloc.category}</span>
+                    </div>
+                    <span class="allocation-value">${percentageDisplay}</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width:${percentageDisplay};"></div>
+                </div>
+            </div>
+        `;
+
+        allocationsContainer.insertAdjacentHTML('beforeend', itemHtml);
+    });
+}
+
+// =============================
+// Seed Default Data
+// =============================
 async function seedDefaultAllocations(userId) {
-    console.log("5. seedDefaultAllocations started");
-    allocationsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--primary-color);">Setting up defaults...</div>`;
-    
+
+    allocationsContainer.innerHTML =
+        `<div style="text-align:center;padding:20px;">Setting up your portfolio...</div>`;
+
     const defaultData = [
         { user_id: userId, item: 'Cash', type: 'Asset', category: 'Cash', percentage: 0.040 },
         { user_id: userId, item: 'FD', type: 'Asset', category: 'FD', percentage: 0.060 },
@@ -40,17 +135,16 @@ async function seedDefaultAllocations(userId) {
         { user_id: userId, item: 'Crypto', type: 'Asset', category: 'Crypto', percentage: 0.005 }
     ];
 
-    const { data, error } = await supabaseClient
+    const { error } = await supabaseClient
         .from('ideal_allocations')
-        .insert(defaultData)
-        .select(); // Added .select() to ensure it returns the inserted rows
-
-    console.log("6. Supabase INSERT finished. Data:", data, "Error:", error);
+        .insert(defaultData);
 
     if (error) {
-        allocationsContainer.innerHTML = `<p style="padding: 20px; color: red;">Failed to set up defaults: ${error.message}</p>`;
-    } else {
-        console.log("7. Seed successful. Reloading allocations...");
-        loadAllocations({ id: userId });
+        console.error("Seed error:", error);
+        allocationsContainer.innerHTML =
+            `<div style="color:red;padding:20px;">Failed to seed data</div>`;
+        return;
     }
+
+    await loadAllocations({ id: userId });
 }
