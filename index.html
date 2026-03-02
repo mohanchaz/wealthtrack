@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* CSS Variables for easy color management */
+        /* --- CSS Variables --- */
         :root {
             --bg-color: #f8fafc;
             --surface-color: #ffffff;
@@ -21,7 +21,6 @@
             --primary-color: #3b82f6;
             --primary-hover: #2563eb;
             --danger-color: #ef4444;
-            --danger-hover: #dc2626;
             --border-color: #e2e8f0;
         }
 
@@ -55,7 +54,7 @@
             background: var(--surface-color);
             padding: 40px;
             border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
             text-align: center;
             max-width: 400px;
             width: 100%;
@@ -88,17 +87,10 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         .google-btn:hover {
             background: #f8fafc;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-
-        .google-btn img {
-            width: 20px;
-            height: 20px;
         }
 
         /* --- Dashboard Styles --- */
@@ -155,10 +147,9 @@
             color: white;
         }
 
-        /* Dashboard Content Area */
         main {
             padding: 40px 32px;
-            max-width: 1200px;
+            max-width: 1000px;
             margin: 0 auto;
             width: 100%;
             flex-grow: 1;
@@ -173,10 +164,10 @@
             font-weight: 700;
         }
 
-        /* Placeholder Cards for Finance Data */
+        /* Summary Cards */
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 24px;
             margin-bottom: 40px;
         }
@@ -201,6 +192,7 @@
             font-size: 32px;
             font-weight: 700;
         }
+
         /* --- Allocation Styles --- */
         .allocations-container {
             background: var(--surface-color);
@@ -208,6 +200,7 @@
             border: 1px solid var(--border-color);
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             overflow: hidden;
+            margin-bottom: 40px;
         }
 
         .allocation-item {
@@ -250,7 +243,6 @@
             font-size: 16px;
         }
 
-        /* Progress Bar */
         .progress-track {
             width: 100%;
             height: 8px;
@@ -281,7 +273,6 @@
     </div>
 
     <div id="dashboard-view" class="hidden">
-        
         <header>
             <div class="logo">Finance Tracker</div>
             <div class="user-controls">
@@ -309,11 +300,10 @@
                     <div class="amount" id="total-expense" style="color: var(--danger-color);">$0.00</div>
                 </div>
             </div>
-        </main>
-    </div>
-    <div class="dashboard-header" style="margin-top: 40px;">
+
+            <div class="dashboard-header" style="margin-top: 40px;">
                 <h2>Ideal Allocations</h2>
-                <p style="color: var(--text-secondary); font-size: 14px;">Your target portfolio distribution</p>
+                <p style="color: var(--text-secondary); font-size: 14px;">Your target portfolio distribution based on your plan</p>
             </div>
             
             <div id="allocations-container" class="allocations-container">
@@ -321,6 +311,8 @@
                     Loading allocations...
                 </div>
                 </div>
+        </main>
+    </div>
 
     <script src="app.js"></script>
 </body>
