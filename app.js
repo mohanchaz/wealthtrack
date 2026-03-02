@@ -43,3 +43,82 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         userNameDisplay.textContent = '';
     }
 });
+// --- NEW: Allocation Logic ---
+
+const allocationsContainer = document.getElementById('allocations-container');
+
+// 1. Fetch Allocations from Supabase
+async function loadAllocations(user) {
+    const { data, error } = await supabaseClient
+        .from('ideal_allocations')
+        .select('*')
+        .order('percentage', { ascending: false }); // Show highest % first
+
+    if (error) {
+        console.error("Error fetching allocations:", error);
+        allocationsContainer.innerHTML = `<p style="padding: 20px; color: red;">Failed to load allocations.</p>`;
+        return;
+    }
+
+    // 2. Auto-seed data if the table is empty
+    if (data.length === 0) {
+        await seedDefaultAllocations(user.id);
+        return; // Seed function will recall loadAllocations when done
+    }
+
+    renderAllocations(data);
+}
+
+// 3. Render the data to the screen
+function renderAllocations(allocations) {
+    allocationsContainer.innerHTML = ''; // Clear loading text
+
+    allocations.forEach(alloc => {
+        // Convert 0.275 to 27.5%
+        const percentageDisplay = (alloc.percentage * 100).toFixed(1) + '%';
+        
+        const itemHtml = `
+            <div class="allocation-item">
+                <div class="allocation-header">
+                    <div class="allocation-info">
+                        <span class="allocation-name">${alloc.item}</span>
+                        <span class="allocation-type">${alloc.type} &bull; ${alloc.category}</span>
+                    </div>
+                    <span class="allocation-value">${percentageDisplay}</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: ${percentageDisplay};"></div>
+                </div>
+            </div>
+        `;
+        allocationsContainer.insertAdjacentHTML('beforeend', itemHtml);
+    });
+}
+
+// 4. Seed the database with your CSV data
+async function seedDefaultAllocations(userId) {
+    allocationsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--primary-color);">Setting up your default allocations...</div>`;
+    
+    // This is the exact data from your CSV file
+    const defaultData = [
+        { user_id: userId, item: 'Cash', type: 'Asset', category: 'Cash', percentage: 0.040 },
+        { user_id: userId, item: 'FD', type: 'Asset', category: 'FD', percentage: 0.060 },
+        { user_id: userId, item: 'India Equity Stocks', type: 'Asset', category: 'India Equity Stocks', percentage: 0.275 },
+        { user_id: userId, item: 'India Equity MF', type: 'Asset', category: 'India Equity MF', percentage: 0.360 },
+        { user_id: userId, item: 'Foreign Equity/ETF', type: 'Asset', category: 'Foreign Equity/ETF', percentage: 0.100 },
+        { user_id: userId, item: 'Gold', type: 'Asset', category: 'Gold', percentage: 0.100 },
+        { user_id: userId, item: 'Bonds', type: 'Asset', category: 'Bonds', percentage: 0.060 },
+        { user_id: userId, item: 'Crypto', type: 'Asset', category: 'Crypto', percentage: 0.005 }
+    ];
+
+    const { error } = await supabaseClient
+        .from('ideal_allocations')
+        .insert(defaultData);
+
+    if (error) {
+        console.error("Error seeding data:", error);
+    } else {
+        // Reload now that data is in the database
+        loadAllocations({ id: userId });
+    }
+}
