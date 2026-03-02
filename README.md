@@ -1,4 +1,4 @@
-# FinTrack — Setup Guide
+# FinTrack — Setup Guid
 
 ## Step 1 — Run the Database Schema in Supabase
 1. Go to your Supabase project
