@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        button { background: #4285F4; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #357ae8; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Finance Tracker</h1>
+        
+        <div id="logged-out-view">
+            <p>Please sign in to track your finances.</p>
+            <button id="login-btn">Sign in with Google</button>
+        </div>
+
+        <div id="logged-in-view" class="hidden">
+            <h2>Welcome, <span id="user-name"></span>!</h2>
+            <button id="logout-btn" style="background: #dc3545;">Sign Out</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

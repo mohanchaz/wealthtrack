@@ -1,7 +1,0 @@
-node_modules/
-.next/
-.vercel
-.wrangler/
-.env
-.env.local
-.DS_Store
