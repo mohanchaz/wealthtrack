@@ -1,6 +1,6 @@
 // Initialize Supabase Client
 const SUPABASE_URL = 'https://kgcuogyrxcbdlozgnfav.supabase.co';
-const SUPABASE_ANON_KEY = 'ImFub24iLCJpYXQiOjE3NzI0MzY0MDMsImV4cCIgncH9gzxeFhB6PYyvLQ8IwKOTuAQ3U';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnY3VvZ3lyeGNiZGxvemduZmF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MzY0MDMsImV4cCI6MjA4ODAxMjQwM30.kEI2A8o3rxRJAgncH9gzxeFhB6PYyvLQ8IwKOTuAQ3U';
 // =============================
 
 
