@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "pages:build": "npx @cloudflare/next-on-pages"
   },
   "dependencies": {
-    "next": "^15.1.0",
+    "next": "15.1.0",
     "react": "^18",
     "react-dom": "^18",
     "@supabase/ssr": "^0.5.1",
@@ -17,7 +18,6 @@
     "papaparse": "^5.4.1",
     "date-fns": "^3.6.0",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.4.0",
     "lucide-react": "^0.414.0"
   },
   "devDependencies": {

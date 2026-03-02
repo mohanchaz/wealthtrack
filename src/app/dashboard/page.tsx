@@ -6,7 +6,7 @@ export default function DashboardPage() {
           <span className="text-3xl font-bold text-white">F</span>
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">FinTrack</h1>
-        <p className="text-green-400 font-medium mb-1">✅ Setup complete! You're logged in.</p>
+        <p className="text-green-400 font-medium mb-1">✅ Module 1 complete — you&apos;re logged in!</p>
         <p className="text-gray-400 text-sm">Dashboard UI coming in Module 2</p>
       </div>
     </div>

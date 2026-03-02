@@ -1,23 +1,8 @@
-# Dependencies
 node_modules/
-.pnp
-.pnp.js
-
-# Next.js
 .next/
-out/
 .vercel
-
-# Cloudflare
 .wrangler/
-.worker-next/
-
-# Environment variables — NEVER commit these
 .env
 .env.local
 .env.*.local
-
-# Misc
 .DS_Store
-*.pem
-npm-debug.log*

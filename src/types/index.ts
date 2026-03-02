@@ -1,26 +1,11 @@
 export type AssetClass =
-  | "equity"
-  | "mutual_fund"
-  | "real_estate"
-  | "gold"
-  | "epf"
-  | "ppf"
-  | "nps"
-  | "fd"
-  | "crypto"
-  | "sgb"
-  | "ulip"
-  | "bonds"
-  | "savings"
-  | "other";
+  | "equity" | "mutual_fund" | "real_estate" | "gold"
+  | "epf" | "ppf" | "nps" | "fd" | "crypto" | "sgb"
+  | "ulip" | "bonds" | "savings" | "other";
 
 export type LiabilityType =
-  | "home_loan"
-  | "car_loan"
-  | "personal_loan"
-  | "credit_card"
-  | "education_loan"
-  | "other";
+  | "home_loan" | "car_loan" | "personal_loan"
+  | "credit_card" | "education_loan" | "other";
 
 export interface Asset {
   id: string;
