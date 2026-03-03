@@ -694,11 +694,12 @@ function renderAssetsTable(assets, tableName) {
 
   let html = '';
   assets.forEach(a => {
-    // Inject virtual fields for Zerodha Stocks — computed from stored ltp, qty, avg_cost
+    // Inject virtual fields for Zerodha Stocks — all computed from stored qty, avg_cost, ltp
     const row = tableName === 'zerodha_stocks'
       ? {
         ...a,
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
+        invested: (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.ltp || 0),
         pnl: (+a.qty || 0) * ((+a.ltp || 0) - (+a.avg_cost || 0)),
       }
@@ -1168,8 +1169,7 @@ async function importZerodhaStocks(allRows) {
     qty: r.qty,
     prev_qty: prevQtyMap[r.instrument] ?? 0,
     avg_cost: r.avg_cost,
-    ltp: r.ltp,        // snapshot LTP for fallback before live prices load
-    invested: r.invested,   // qty * avg_cost at import time (cost basis)
+    ltp: r.ltp,   // snapshot LTP as fallback before live prices load
     imported_at: new Date().toISOString(),
   }));
 
