@@ -884,9 +884,10 @@ async function deleteFdInvested(id) {
  */
 async function fetchLivePrices(instruments) {
   const symbols = instruments.map(i => i + '.NS').join(',');
-  const url = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,shortName`;
+  const targetUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,shortName`;
+  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
   try {
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    const res = await fetch(proxyUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     const priceMap = {};
@@ -897,7 +898,7 @@ async function fetchLivePrices(instruments) {
     return priceMap;
   } catch (err) {
     console.warn('[LivePrices] fetch failed:', err.message);
-    return null; // null signals failure (not just empty)
+    return null;
   }
 }
 
