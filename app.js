@@ -509,14 +509,15 @@ async function loadDashboardStats(userId) {
     .filter(([, t]) => t !== 'zerodha_stocks').map(([, t]) => t);
   const hasZerodha = Object.values(ASSET_TABLES).includes('zerodha_stocks');
 
-  const [assetResults, zerodhaResult, { data: fdData }] = await Promise.all([
+  const [assetResults, zerodhaResult, { data: fdData }, { data: zaiData }] = await Promise.all([
     Promise.all(nonZerodhaTables.map(table =>
       sb.from(table).select('invested, current_value').eq('user_id', userId)
     )),
     hasZerodha
       ? sb.from('zerodha_stocks').select('qty, avg_cost, ltp').eq('user_id', userId)
       : Promise.resolve({ data: [] }),
-    sb.from('fd_actual_invested').select('amount').eq('user_id', userId)
+    sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
+    sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId)
   ]);
 
   assetResults.forEach(({ data }) => {
@@ -535,8 +536,12 @@ async function loadDashboardStats(userId) {
     count++;
   });
 
-  const actualInvested = (fdData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const fdActual = (fdData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const zaiActual = (zaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const actualInvested = fdActual + zaiActual;
   const fdCount = (fdData || []).length;
+  const zaiCount = (zaiData || []).length;
+  const entryLabel = `${fdCount} FD · ${zaiCount} Zerodha entr${(fdCount + zaiCount) !== 1 ? 'ies' : 'y'}`;
 
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   set('dash-net-worth', INR(totalValue));
@@ -544,7 +549,7 @@ async function loadDashboardStats(userId) {
   set('dash-total-assets', INR(totalValue));
   set('dash-total-assets-sub', `${count} asset${count > 1 ? 's' : ''} tracked`);
   set('dash-actual-invested', INR(actualInvested));
-  set('dash-actual-invested-sub', `${fdCount} FD entr${fdCount !== 1 ? 'ies' : 'y'} tracked`);
+  set('dash-actual-invested-sub', entryLabel);
 }
 
 async function loadAssets(userId, filter = null) {
@@ -564,9 +569,11 @@ async function loadAssets(userId, filter = null) {
     if (toolbarLabel) toolbarLabel.textContent = 'Select a category from the sidebar to view assets';
     if (addBtn) addBtn.classList.add('hidden');
 
-    // Hide the Actual Invested section on overview
+    // Hide the Actual Invested sections on overview
     const monthlySec = document.getElementById('assets-monthly-summary');
+    const zerodhaSec = document.getElementById('zerodha-monthly-summary');
     if (monthlySec) monthlySec.classList.add('hidden');
+    if (zerodhaSec) zerodhaSec.classList.add('hidden');
 
     // Hide toolbar and table — only stat tiles visible
     const toolbar = document.getElementById('assets-toolbar');
@@ -631,9 +638,14 @@ async function loadAssets(userId, filter = null) {
       gainEl.style.color = gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)';
     }
 
-    // Also fetch fd_actual_invested total for the Actual Invested tile
-    const { data: fdData } = await sb.from('fd_actual_invested').select('amount').eq('user_id', userId);
-    const actualInvested = (fdData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    // Also fetch both actual_invested totals for the Actual Invested tile
+    const [{ data: fdData2 }, { data: zaiData2 }] = await Promise.all([
+      sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId)
+    ]);
+    const actualInvested =
+      (fdData2 || []).reduce((s, r) => s + (+r.amount || 0), 0) +
+      (zaiData2 || []).reduce((s, r) => s + (+r.amount || 0), 0);
     set('assets-actual-invested', INR(actualInvested));
 
     // Clear the spinner — show "select a category" prompt
@@ -798,15 +810,25 @@ function renderAssetsTable(assets, tableName) {
   });
   tbody.innerHTML = html;
 
-  // Show Actual Invested section + stat card only for Bank FD
+  // Show correct Actual Invested section; hide the other
   const actualCard = document.getElementById('assets-actual-invested-card');
+  const fdSec = document.getElementById('assets-monthly-summary');
+  const zerodhaSec = document.getElementById('zerodha-monthly-summary');
+
   if (tableName === 'bank_fd_assets') {
     if (actualCard) actualCard.classList.remove('hidden');
+    if (fdSec) fdSec.classList.remove('hidden');
+    if (zerodhaSec) zerodhaSec.classList.add('hidden');
     loadFdActualInvested(_currentUserId);
+  } else if (tableName === 'zerodha_stocks') {
+    if (actualCard) actualCard.classList.remove('hidden');
+    if (fdSec) fdSec.classList.add('hidden');
+    if (zerodhaSec) zerodhaSec.classList.remove('hidden');
+    loadZerodhaActualInvested(_currentUserId);
   } else {
     if (actualCard) actualCard.classList.add('hidden');
-    const sec = document.getElementById('assets-monthly-summary');
-    if (sec) sec.classList.add('hidden');
+    if (fdSec) fdSec.classList.add('hidden');
+    if (zerodhaSec) zerodhaSec.classList.add('hidden');
   }
 
   // Auto-fetch live prices for Zerodha Stocks
@@ -930,7 +952,145 @@ async function deleteFdInvested(id) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ZERODHA LIVE PRICES  — Yahoo Finance (NSE)
+//  ZERODHA ACTUAL INVESTED  — manual entries from zerodha_actual_invested
+// ══════════════════════════════════════════════════════════════
+
+let _editingZaiId = null;
+
+async function loadZerodhaActualInvested(userId) {
+  const section = document.getElementById('zerodha-monthly-summary');
+  if (!section) return;
+  section.classList.remove('hidden');
+
+  const body = document.getElementById('zerodha-monthly-body');
+  if (body) body.innerHTML = `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+
+  const { data, error } = await sb
+    .from('zerodha_actual_invested')
+    .select('*')
+    .eq('user_id', userId)
+    .order('entry_date', { ascending: false });
+
+  if (error) {
+    if (body) body.innerHTML = `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--danger)">${error.message}</td></tr>`;
+    return;
+  }
+  renderZerodhaActualInvested(data || []);
+}
+
+function renderZerodhaActualInvested(rows) {
+  const body = document.getElementById('zerodha-monthly-body');
+  const totalEl = document.getElementById('zerodha-monthly-total');
+  if (!body) return;
+
+  const grand = rows.reduce((s, r) => s + (+r.amount || 0), 0);
+  if (totalEl) totalEl.textContent = `Total: ${INR(grand)}`;
+
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="4" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = rows.map((r, i) => {
+    const d = new Date(r.entry_date);
+    const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
+      <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${dateStr}</td>
+      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>
+      <td style="padding:9px 14px;color:var(--muted2);font-size:12px;border-bottom:1px solid var(--border)">${r.notes || ''}</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
+        <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
+          data-zai-id="${r.id}" data-zai-date="${r.entry_date}" data-zai-amount="${r.amount}" data-zai-notes="${r.notes || ''}"
+          class="zai-edit-btn" title="Edit">✏️</button>
+        <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
+          data-zai-id="${r.id}" class="zai-delete-btn" title="Delete">🗑</button>
+      </td>
+    </tr>`;
+  }).join('') +
+    `<tr style="background:var(--surface2)">
+    <td style="padding:9px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2)">Total</td>
+    <td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">${INR(grand)}</td>
+    <td colspan="2"></td>
+  </tr>`;
+
+  body.querySelectorAll('.zai-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openZaiModal({
+      id: btn.dataset.zaiId, entry_date: btn.dataset.zaiDate,
+      amount: btn.dataset.zaiAmount, notes: btn.dataset.zaiNotes
+    }));
+  });
+  body.querySelectorAll('.zai-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this entry?')) return;
+      const { error } = await sb.from('zerodha_actual_invested').delete().eq('id', btn.dataset.zaiId);
+      if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
+      showToast('Entry deleted', 'success');
+      loadZerodhaActualInvested(_currentUserId);
+    });
+  });
+}
+
+function openZaiModal(row = null) {
+  _editingZaiId = row?.id || null;
+  const titleEl = document.getElementById('zerodha-invested-modal-title');
+  const saveBtn = document.getElementById('zerodha-invested-save-btn');
+  if (titleEl) titleEl.textContent = row ? 'Edit Entry' : 'Add Entry';
+  if (saveBtn) saveBtn.textContent = '💾 Save Entry';
+  document.getElementById('zai-date').value = row?.entry_date || '';
+  document.getElementById('zai-amount').value = row?.amount || '';
+  document.getElementById('zai-notes').value = row?.notes || '';
+  document.getElementById('zerodha-invested-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeZaiModal() {
+  document.getElementById('zerodha-invested-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+  _editingZaiId = null;
+}
+
+// Wire up Zerodha actual invested modal events
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('zerodha-invested-modal');
+  document.getElementById('zerodha-invested-add-btn')?.addEventListener('click', () => openZaiModal());
+  document.getElementById('zerodha-invested-close-btn')?.addEventListener('click', closeZaiModal);
+  document.getElementById('zerodha-invested-cancel-btn')?.addEventListener('click', closeZaiModal);
+  modal?.addEventListener('click', e => { if (e.target === modal) closeZaiModal(); });
+
+  document.getElementById('zerodha-invested-save-btn')?.addEventListener('click', async () => {
+    const date = document.getElementById('zai-date').value;
+    const amount = parseFloat(document.getElementById('zai-amount').value);
+    const notes = document.getElementById('zai-notes').value.trim() || null;
+
+    if (!date) { showToast('Date is required', 'error'); return; }
+    if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
+
+    const saveBtn = document.getElementById('zerodha-invested-save-btn');
+    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+
+    const payload = { entry_date: date, amount, notes };
+    let op;
+    if (_editingZaiId) {
+      op = sb.from('zerodha_actual_invested').update(payload).eq('id', _editingZaiId);
+    } else {
+      payload.user_id = _currentUserId;
+      op = sb.from('zerodha_actual_invested').insert(payload);
+    }
+
+    const { error } = await op;
+    saveBtn.textContent = '💾 Save Entry'; saveBtn.disabled = false;
+
+    if (error) {
+      showToast('Save failed: ' + error.message, 'error');
+    } else {
+      showToast(_editingZaiId ? 'Entry updated ✅' : 'Entry added 🎉', 'success');
+      closeZaiModal();
+      loadZerodhaActualInvested(_currentUserId);
+    }
+  });
+});
+
+
 // ══════════════════════════════════════════════════════════════
 
 /**
