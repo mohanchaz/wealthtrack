@@ -907,6 +907,9 @@ function parseZerodhaCSV(text) {
     const isStock = /^[A-Z0-9\-\.&]+$/.test(instrument);
     if (!isStock) continue;
 
+    // Skip Gold instruments (e.g. GOLDBEES, SGBMAR27, AXISGOLD)
+    if (/gold/i.test(instrument)) continue;
+
     stocks.push({
       instrument,
       qty: num(cols[iQty]),
@@ -949,11 +952,12 @@ function handleZerodhaCSV(file) {
     document.getElementById('zerodha-stock-count').textContent = count;
     document.getElementById('zerodha-import-count').textContent = count;
 
-    // Render preview table
+    // Render preview table with per-row exclude checkboxes
     const thead = document.getElementById('zerodha-preview-thead');
     const tbody = document.getElementById('zerodha-preview-body');
     const thStyle = 'padding:7px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);background:var(--surface2);border-bottom:1px solid var(--border)';
     thead.innerHTML = `<tr>
+      <th style="${thStyle};text-align:center;width:32px" title="Include in import">✓</th>
       <th style="${thStyle};text-align:left">Instrument</th>
       <th style="${thStyle}">Qty</th>
       <th style="${thStyle}">Avg Cost</th>
@@ -966,7 +970,10 @@ function handleZerodhaCSV(file) {
     const tdS = 'padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);font-size:12px';
     tbody.innerHTML = _zerodhaPreviewRows.map((r, i) => {
       const pnlColor = r.pnl >= 0 ? 'var(--green)' : 'var(--danger)';
-      return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
+      return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}" data-idx="${i}">
+        <td style="${tdS};text-align:center">
+          <input type="checkbox" class="zerodha-row-chk" data-idx="${i}" checked style="cursor:pointer;width:15px;height:15px">
+        </td>
         <td style="${tdS};text-align:left;font-weight:600">${r.instrument}</td>
         <td style="${tdS}">${r.qty}</td>
         <td style="${tdS}">${INR(r.avg_cost)}</td>
@@ -977,6 +984,17 @@ function handleZerodhaCSV(file) {
       </tr>`;
     }).join('');
 
+    // Live count update when checkboxes change
+    const updateCount = () => {
+      const checked = tbody.querySelectorAll('.zerodha-row-chk:checked').length;
+      document.getElementById('zerodha-import-count').textContent = checked;
+      document.getElementById('zerodha-stock-count').textContent = checked;
+      const btn = document.getElementById('zerodha-import-confirm-btn');
+      if (checked > 0) btn.classList.remove('hidden');
+      else btn.classList.add('hidden');
+    };
+    tbody.querySelectorAll('.zerodha-row-chk').forEach(chk => chk.addEventListener('change', updateCount));
+
     document.getElementById('zerodha-preview-section').classList.remove('hidden');
     if (count > 0) document.getElementById('zerodha-import-confirm-btn').classList.remove('hidden');
     else document.getElementById('zerodha-import-confirm-btn').classList.add('hidden');
@@ -984,7 +1002,14 @@ function handleZerodhaCSV(file) {
   reader.readAsText(file);
 }
 
-async function importZerodhaStocks(rows) {
+async function importZerodhaStocks(allRows) {
+  // Only import rows whose checkbox is still checked in the preview table
+  const checkedIdxs = new Set(
+    [...document.querySelectorAll('.zerodha-row-chk:checked')].map(c => +c.dataset.idx)
+  );
+  const rows = allRows.filter((_, i) => checkedIdxs.has(i));
+  if (!rows.length) { showToast('No stocks selected', 'error'); return; }
+
   const confirmBtn = document.getElementById('zerodha-import-confirm-btn');
   confirmBtn.textContent = 'Importing…';
   confirmBtn.disabled = true;
