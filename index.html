@@ -1085,6 +1085,226 @@
         grid-template-columns: 1fr 1fr;
       }
     }
+
+    /* ─── DONUT CHART ─────────────────────────────────────────── */
+    .alloc-chart-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 20px 0 12px;
+    }
+
+    .alloc-chart-wrap canvas {
+      max-width: 220px;
+      max-height: 220px;
+    }
+
+    .alloc-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      padding: 0 4px 8px;
+    }
+
+    .alloc-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    .alloc-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ─── EDIT MODAL ──────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(28, 25, 23, 0.38);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-card {
+      background: #fff;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      animation: fadeUp 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .modal-header h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .modal-close {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 16px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .modal-close:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: rgba(220, 38, 38, 0.05);
+    }
+
+    .modal-body {
+      padding: 18px 24px;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+
+    .modal-col-labels {
+      display: grid;
+      grid-template-columns: 1fr 110px 36px;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 0 2px;
+    }
+
+    .modal-col-label {
+      font-size: 10.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted2);
+    }
+
+    .modal-row {
+      display: grid;
+      grid-template-columns: 1fr 110px 36px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .modal-input {
+      padding: 9px 12px;
+      border-radius: 9px;
+      border: 1.5px solid var(--border2);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      background: #fff;
+      width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .modal-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 119, 204, 0.1);
+    }
+
+    .modal-input-pct {
+      text-align: right;
+    }
+
+    .modal-remove-btn {
+      width: 34px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(220, 38, 38, 0.07);
+      color: var(--danger);
+      border: 1px solid rgba(220, 38, 38, 0.15);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .modal-remove-btn:hover {
+      background: rgba(220, 38, 38, 0.15);
+      border-color: var(--danger);
+    }
+
+    .modal-add-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      background: var(--accentbg);
+      border: 1.5px dashed rgba(0, 119, 204, 0.3);
+      border-radius: 9px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      cursor: pointer;
+      width: 100%;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .modal-add-btn:hover {
+      background: rgba(0, 119, 204, 0.12);
+      border-color: var(--accent);
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .modal-total-badge {
+      font-size: 13px;
+      font-weight: 600;
+      margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .modal-total-badge.ok {
+      color: var(--green);
+    }
+
+    .modal-total-badge.warn {
+      color: var(--warn);
+    }
+
+    .modal-total-badge.err {
+      color: var(--danger);
+    }
   </style>
 </head>
 
@@ -1331,9 +1551,16 @@
           <div class="section-card anim-fadeup delay-2">
             <div class="section-card-header">
               <span class="section-card-title">Ideal Allocation</span>
-              <span class="section-card-action" id="edit-alloc-btn">Edit</span>
+              <span class="section-card-action" id="edit-alloc-btn">✏️ Edit</span>
             </div>
             <div class="section-card-body">
+              <!-- Donut chart -->
+              <div class="alloc-chart-wrap" id="alloc-chart-wrap" style="display:none">
+                <canvas id="alloc-chart" width="220" height="220"></canvas>
+              </div>
+              <!-- Legend -->
+              <div class="alloc-legend" id="alloc-legend"></div>
+              <!-- Allocation list -->
               <div id="allocations-container">
                 <div class="spinner"></div>
               </div>
@@ -1380,6 +1607,33 @@
   <!-- Toast notification -->
   <div id="toast"></div>
 
+  <!-- Edit Allocation Modal -->
+  <div id="alloc-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Edit Ideal Allocation</h3>
+        <button class="modal-close" id="modal-close-btn" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-col-labels">
+          <div class="modal-col-label">Asset / Item</div>
+          <div class="modal-col-label" style="text-align:right">% Allocation</div>
+          <div></div>
+        </div>
+        <div id="modal-rows"></div>
+        <button class="modal-add-btn" id="modal-add-row-btn">
+          <span>+</span> Add Row
+        </button>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-total-badge" id="modal-total-badge">Total: 0%</div>
+        <button class="btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="modal-save-btn">💾 Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 
