@@ -427,8 +427,46 @@ const INR = v => '₹' + Number(v || 0).toLocaleString('en-IN', { minimumFractio
 // Map asset-class name → Supabase table name
 const ASSET_TABLES = {
   'Cash': 'cash_assets',
-  // future: 'Equity': 'equity_assets', 'Gold': 'gold_assets', etc.
+  'Bank FD': 'bank_fd_assets',
 };
+
+// Per-table column definitions
+// fmt: 'inr' | 'pct' | 'date' | 'mono' | null
+const ASSET_COLUMNS = {
+  cash_assets: [
+    { key: 'category', label: 'Category', bold: true },
+    { key: 'platform', label: 'Platform' },
+    { key: 'account_number', label: 'Account No.', mono: true },
+    { key: 'sb_account_number', label: 'SB Account No.', mono: true },
+    { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
+    { key: 'current_value', label: 'Amount', align: 'right', fmt: 'inr', fw: '600' },
+  ],
+  bank_fd_assets: [
+    { key: 'category', label: 'Category', bold: true },
+    { key: 'platform', label: 'Platform' },
+    { key: 'account_number', label: 'Account No.', mono: true },
+    { key: 'sb_account_number', label: 'SB Account No.', mono: true },
+    { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
+    { key: 'invested_date', label: 'Invested Date', align: 'right', fmt: 'date' },
+    { key: 'current_value', label: 'Amount', align: 'right', fmt: 'inr', fw: '600' },
+    { key: 'interest_rate', label: 'Interest', align: 'right', fmt: 'pct' },
+    { key: 'maturity_date', label: 'Maturity Date', align: 'right', fmt: 'date' },
+    { key: 'maturity_amount', label: 'Maturity Amt', align: 'right', fmt: 'inr' },
+  ],
+};
+
+function formatCell(val, fmt) {
+  if (val === null || val === undefined || val === '') return '—';
+  switch (fmt) {
+    case 'inr': return INR(val);
+    case 'pct': return `${(+val).toFixed(2)}%`;
+    case 'date': {
+      const d = new Date(val);
+      return isNaN(d) ? val : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    default: return val;
+  }
+}
 
 let _currentAssetTable = null;
 let _currentAssetFilter = null;
@@ -547,6 +585,18 @@ async function loadAssets(userId, filter = null) {
 
 function renderAssetsTable(assets, tableName) {
   const tbody = document.getElementById('assets-table-body');
+  const thead = document.getElementById('assets-thead-row');
+
+  // Get column config (default to cash layout)
+  const cols = ASSET_COLUMNS[tableName] || ASSET_COLUMNS['cash_assets'];
+  const colCount = cols.length + 2; // +gain +delete
+
+  // Update thead dynamically
+  if (thead) {
+    thead.innerHTML =
+      cols.map(c => `<th${c.align ? ` style="text-align:${c.align}"` : ''}>${c.label}</th>`).join('') +
+      `<th style="text-align:right">Gain / Loss</th><th></th>`;
+  }
 
   // Summary stats
   const totalInvested = assets.reduce((s, a) => s + (+a.invested || 0), 0);
@@ -562,7 +612,7 @@ function renderAssetsTable(assets, tableName) {
   gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
 
   if (!assets.length) {
-    tbody.innerHTML = `<tr><td colspan="8">
+    tbody.innerHTML = `<tr><td colspan="${colCount}">
       <div class="assets-empty">
         <div class="empty-icon">🏦</div>
         No entries yet.<br/>Click <b>+ Add Asset</b> to get started.
@@ -585,14 +635,20 @@ function renderAssetsTable(assets, tableName) {
       ? `${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}`
       : '–';
 
+    const cells = cols.map(c => {
+      const raw = a[c.key];
+      const val = formatCell(raw, c.fmt);
+      let style = '';
+      if (c.align) style += `text-align:${c.align};`;
+      if (c.fw) style += `font-weight:${c.fw};`;
+      if (c.mono) style += 'font-family:monospace;font-size:12px;';
+      const inner = c.bold ? `<b>${val}</b>` : val;
+      return `<td${style ? ` style="${style}"` : ''}>${inner}</td>`;
+    }).join('');
+
     html += `
       <tr data-id="${a.id}">
-        <td><b>${a.category || '—'}</b></td>
-        <td>${a.platform || '—'}</td>
-        <td style="font-family:monospace;font-size:12px">${a.account_number || '—'}</td>
-        <td style="font-family:monospace;font-size:12px">${a.sb_account_number || '—'}</td>
-        <td style="text-align:right">${invested ? INR(invested) : '—'}</td>
-        <td style="text-align:right;font-weight:600">${current ? INR(current) : '—'}</td>
+        ${cells}
         <td style="text-align:right"><span class="gain-badge ${badgeCls}">${gainLabel}</span></td>
         <td><button class="asset-delete-btn" data-id="${a.id}" data-table="${tableName}" title="Delete">🗑</button></td>
       </tr>`;
@@ -618,11 +674,18 @@ async function deleteAsset(id, tableName) {
 const addAssetModal = document.getElementById('add-asset-modal');
 
 function openAddAssetModal() {
-  // Pre-select the current asset class if filtering
-  const assetClassEl = document.getElementById('af-asset-class');
-  if (assetClassEl && _currentAssetFilter) assetClassEl.value = _currentAssetFilter;
+  // Show/hide Bank FD extra fields
+  const fdExtra = document.getElementById('fd-extra-fields');
+  const isFD = _currentAssetFilter === 'Bank FD';
+  if (fdExtra) {
+    if (isFD) fdExtra.classList.remove('hidden');
+    else fdExtra.classList.add('hidden');
+  }
 
-  ['af-category', 'af-platform', 'af-account-number', 'af-sb-account', 'af-invested', 'af-current', 'af-notes']
+  // Clear all fields
+  ['af-category', 'af-platform', 'af-account-number', 'af-sb-account',
+    'af-invested', 'af-current', 'af-notes',
+    'af-invested-date', 'af-interest-rate', 'af-maturity-date', 'af-maturity-amount']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
   addAssetModal.classList.remove('hidden');
@@ -655,7 +718,8 @@ document.getElementById('add-asset-save-btn').addEventListener('click', async ()
   const saveBtn = document.getElementById('add-asset-save-btn');
   saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-  const { error } = await sb.from(_currentAssetTable).insert({
+  // Common payload
+  const payload = {
     user_id: _currentUserId,
     category: category,
     platform: document.getElementById('af-platform').value.trim() || null,
@@ -664,8 +728,17 @@ document.getElementById('add-asset-save-btn').addEventListener('click', async ()
     invested: parseFloat(document.getElementById('af-invested').value) || 0,
     current_value: parseFloat(document.getElementById('af-current').value) || 0,
     notes: document.getElementById('af-notes').value.trim() || null,
-  });
+  };
 
+  // Bank FD extras
+  if (_currentAssetFilter === 'Bank FD') {
+    payload.invested_date = document.getElementById('af-invested-date').value || null;
+    payload.interest_rate = parseFloat(document.getElementById('af-interest-rate').value) || null;
+    payload.maturity_date = document.getElementById('af-maturity-date').value || null;
+    payload.maturity_amount = parseFloat(document.getElementById('af-maturity-amount').value) || null;
+  }
+
+  const { error } = await sb.from(_currentAssetTable).insert(payload);
   saveBtn.textContent = '💾 Save Asset'; saveBtn.disabled = false;
 
   if (error) {

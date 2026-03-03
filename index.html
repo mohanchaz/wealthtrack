@@ -1703,6 +1703,9 @@
           <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Cash">
             <span class="sidebar-sub-icon">💵</span> Cash
           </div>
+          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Bank FD">
+            <span class="sidebar-sub-icon">🏦</span> Bank FD
+          </div>
         </div>
         <div class="sidebar-item" data-page="liabilities">
           <span class="sidebar-icon">◉</span> Liabilities
@@ -1938,13 +1941,13 @@
           <div class="assets-table-wrap">
             <table class="assets-table">
               <thead>
-                <tr>
+                <tr id="assets-thead-row">
                   <th>Category</th>
                   <th>Platform</th>
                   <th>Account No.</th>
                   <th>SB Account No.</th>
                   <th style="text-align:right">Invested</th>
-                  <th style="text-align:right">Current Value</th>
+                  <th style="text-align:right">Amount</th>
                   <th style="text-align:right">Gain / Loss</th>
                   <th></th>
                 </tr>
@@ -2056,6 +2059,33 @@
           <div class="form-group">
             <label class="form-label" for="af-current">Current Value (₹)</label>
             <input class="modal-input" id="af-current" type="number" min="0" step="0.01" placeholder="e.g. 110744" />
+          </div>
+
+          <!-- Bank FD extras (shown dynamically) -->
+          <div id="fd-extra-fields" class="hidden" style="display:contents">
+            <div class="asset-form-group-title">FD Details</div>
+
+            <div class="form-group">
+              <label class="form-label" for="af-invested-date">Invested Date</label>
+              <input class="modal-input" id="af-invested-date" type="date" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="af-interest-rate">Interest Rate (%)</label>
+              <input class="modal-input" id="af-interest-rate" type="number" min="0" max="100" step="0.01"
+                placeholder="e.g. 8.25" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="af-maturity-date">Maturity Date</label>
+              <input class="modal-input" id="af-maturity-date" type="date" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="af-maturity-amount">Maturity Amount (₹)</label>
+              <input class="modal-input" id="af-maturity-amount" type="number" min="0" step="0.01"
+                placeholder="e.g. 135089" />
+            </div>
           </div>
 
           <div class="form-group full-width">
