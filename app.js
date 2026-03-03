@@ -504,13 +504,18 @@ let _currentAssetFilter = null;
 async function loadDashboardStats(userId) {
   let totalInvested = 0, totalValue = 0, count = 0;
 
-  // Query every known asset table + fd_actual_invested in parallel
-  const [assetResults, { data: fdData }] = await Promise.all([
-    Promise.all(
-      Object.values(ASSET_TABLES).map(table =>
-        sb.from(table).select('invested, current_value').eq('user_id', userId)
-      )
-    ),
+  // zerodha_stocks doesn't store invested/current_value — must compute from qty * avg_cost / ltp
+  const nonZerodhaTables = Object.entries(ASSET_TABLES)
+    .filter(([, t]) => t !== 'zerodha_stocks').map(([, t]) => t);
+  const hasZerodha = Object.values(ASSET_TABLES).includes('zerodha_stocks');
+
+  const [assetResults, zerodhaResult, { data: fdData }] = await Promise.all([
+    Promise.all(nonZerodhaTables.map(table =>
+      sb.from(table).select('invested, current_value').eq('user_id', userId)
+    )),
+    hasZerodha
+      ? sb.from('zerodha_stocks').select('qty, avg_cost, ltp').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
     sb.from('fd_actual_invested').select('amount').eq('user_id', userId)
   ]);
 
@@ -519,8 +524,15 @@ async function loadDashboardStats(userId) {
     data.forEach(row => {
       totalInvested += +row.invested || 0;
       totalValue += +row.current_value || 0;
-      count += 1;
+      count++;
     });
+  });
+
+  (zerodhaResult.data || []).forEach(row => {
+    const qty = +row.qty || 0;
+    totalInvested += qty * (+row.avg_cost || 0);
+    totalValue += qty * (+row.ltp || 0);
+    count++;
   });
 
   const actualInvested = (fdData || []).reduce((s, r) => s + (+r.amount || 0), 0);
@@ -574,13 +586,23 @@ async function loadAssets(userId, filter = null) {
     }
 
     // Aggregate totals from all known asset tables
+    // zerodha_stocks doesn't store invested/current_value — compute from qty * avg_cost / ltp
     let totalInvested = 0, totalValue = 0, count = 0;
-    const results = await Promise.all(
-      Object.values(ASSET_TABLES).map(t =>
+
+    const nonZerodhaTables = Object.entries(ASSET_TABLES)
+      .filter(([, t]) => t !== 'zerodha_stocks').map(([, t]) => t);
+    const hasZerodha = Object.values(ASSET_TABLES).includes('zerodha_stocks');
+
+    const [otherResults, zerodhaResult] = await Promise.all([
+      Promise.all(nonZerodhaTables.map(t =>
         sb.from(t).select('invested, current_value').eq('user_id', userId)
-      )
-    );
-    results.forEach(({ data }) => {
+      )),
+      hasZerodha
+        ? sb.from('zerodha_stocks').select('qty, avg_cost, ltp').eq('user_id', userId)
+        : Promise.resolve({ data: [] })
+    ]);
+
+    otherResults.forEach(({ data }) => {
       if (!data) return;
       data.forEach(row => {
         totalInvested += +row.invested || 0;
@@ -588,7 +610,16 @@ async function loadAssets(userId, filter = null) {
         count++;
       });
     });
+
+    (zerodhaResult.data || []).forEach(row => {
+      const qty = +row.qty || 0;
+      totalInvested += qty * (+row.avg_cost || 0);
+      totalValue += qty * (+row.ltp || 0);
+      count++;
+    });
+
     const gain = totalValue - totalInvested;
+    const gainPct = totalInvested > 0 ? ` (${((gain / totalInvested) * 100).toFixed(1)}%)` : '';
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     set('assets-total-invested', INR(totalInvested));
@@ -596,7 +627,7 @@ async function loadAssets(userId, filter = null) {
     set('assets-count', count);
     const gainEl = document.getElementById('assets-total-gain');
     if (gainEl) {
-      gainEl.textContent = (gain >= 0 ? '+' : '') + INR(gain);
+      gainEl.textContent = (gain >= 0 ? '+' : '') + INR(gain) + gainPct;
       gainEl.style.color = gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)';
     }
 
@@ -634,11 +665,14 @@ async function loadAssets(userId, filter = null) {
   if (activeToolbar) activeToolbar.classList.remove('hidden');
   if (activeTableWrap) activeTableWrap.classList.remove('hidden');
 
+  const orderCol = tableName === 'zerodha_stocks' ? 'instrument' : 'created_at';
+  const orderAsc = tableName === 'zerodha_stocks';
+
   const { data, error } = await sb
     .from(tableName)
     .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order(orderCol, { ascending: orderAsc });
 
   if (error) {
     tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⚠️</div>${error.message}</div></td></tr>`;
