@@ -1960,101 +1960,112 @@
             </div>
           </div>
 
-          <!-- Table -->
-          <div class="assets-table-wrap" id="assets-table-wrap">
-            <table class="assets-table">
-              <thead>
-                <tr id="assets-thead-row">
-                  <th>Category</th>
-                  <th>Platform</th>
-                  <th>Account No.</th>
-                  <th>SB Account No.</th>
-                  <th style="text-align:right">Invested</th>
-                  <th style="text-align:right">Amount</th>
-                  <th style="text-align:right">Gain / Loss</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="assets-table-body">
-                <tr>
-                  <td colspan="8">
-                    <div class="assets-empty">
-                      <div class="empty-icon">🏦</div>
-                      Loading assets…
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <!-- Table + right-side panel row -->
+          <div style="display:flex;gap:20px;align-items:flex-start">
 
-          <!-- Actual Invested section (Bank FD — manual entries) -->
-          <div id="assets-monthly-summary" class="hidden" style="margin-top:28px;max-width:460px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-              <div>
-                <h3 style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual
-                  Invested</h3>
-                <div id="assets-monthly-total" style="font-size:12px;color:var(--muted2);margin-top:2px"></div>
+            <!-- Main table -->
+            <div style="flex:1;min-width:0">
+              <div class="assets-table-wrap" id="assets-table-wrap">
+                <table class="assets-table">
+                  <thead>
+                    <tr id="assets-thead-row">
+                      <th>Category</th>
+                      <th>Platform</th>
+                      <th>Account No.</th>
+                      <th>SB Account No.</th>
+                      <th style="text-align:right">Invested</th>
+                      <th style="text-align:right">Amount</th>
+                      <th style="text-align:right">Gain / Loss</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="assets-table-body">
+                    <tr>
+                      <td colspan="8">
+                        <div class="assets-empty">
+                          <div class="empty-icon">🏦</div>
+                          Loading assets…
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <button id="fd-invested-add-btn"
-                style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">+
-                Add Entry</button>
             </div>
-            <div
-              style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm)">
-              <table style="width:100%;border-collapse:collapse;font-size:13px">
-                <thead>
-                  <tr style="background:var(--surface2)">
-                    <th
-                      style="padding:9px 14px;text-align:left;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
-                      Date</th>
-                    <th
-                      style="padding:9px 14px;text-align:right;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
-                      Invested</th>
-                    <th
-                      style="padding:9px 14px;text-align:left;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
-                      Notes</th>
-                    <th style="border-bottom:1px solid var(--border)"></th>
-                  </tr>
-                </thead>
-                <tbody id="assets-monthly-body"></tbody>
-              </table>
-            </div>
-          </div>
 
-          <!-- Actual Invested section (Zerodha Stocks — manual entries) -->
-          <div id="zerodha-monthly-summary" class="hidden" style="margin-top:28px;max-width:460px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-              <div>
-                <h3 style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual
-                  Invested</h3>
-                <div id="zerodha-monthly-total" style="font-size:12px;color:var(--muted2);margin-top:2px"></div>
+            <!-- Right panel: one of the actual-invested sections shown at a time -->
+            <div style="width:300px;flex-shrink:0">
+
+              <!-- Bank FD Actual Invested -->
+              <div id="assets-monthly-summary" class="hidden">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <div>
+                    <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual
+                      Invested</h3>
+                    <div id="assets-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
+                  </div>
+                  <button id="fd-invested-add-btn"
+                    style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+
+                    Add</button>
+                </div>
+                <div
+                  style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm)">
+                  <table style="width:100%;border-collapse:collapse;font-size:12px">
+                    <thead>
+                      <tr style="background:var(--surface2)">
+                        <th
+                          style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
+                          Date</th>
+                        <th
+                          style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
+                          Invested</th>
+                        <th
+                          style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
+                          Notes</th>
+                        <th style="border-bottom:1px solid var(--border)"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="assets-monthly-body"></tbody>
+                  </table>
+                </div>
               </div>
-              <button id="zerodha-invested-add-btn"
-                style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">+
-                Add Entry</button>
-            </div>
-            <div
-              style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm)">
-              <table style="width:100%;border-collapse:collapse;font-size:13px">
-                <thead>
-                  <tr style="background:var(--surface2)">
-                    <th
-                      style="padding:9px 14px;text-align:left;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
-                      Date</th>
-                    <th
-                      style="padding:9px 14px;text-align:right;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
-                      Invested</th>
-                    <th
-                      style="padding:9px 14px;text-align:left;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
-                      Notes</th>
-                    <th style="border-bottom:1px solid var(--border)"></th>
-                  </tr>
-                </thead>
-                <tbody id="zerodha-monthly-body"></tbody>
-              </table>
-            </div>
-          </div>
+
+              <!-- Zerodha Actual Invested -->
+              <div id="zerodha-monthly-summary" class="hidden">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <div>
+                    <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual
+                      Invested</h3>
+                    <div id="zerodha-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
+                  </div>
+                  <button id="zerodha-invested-add-btn"
+                    style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+
+                    Add</button>
+                </div>
+                <div
+                  style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm)">
+                  <table style="width:100%;border-collapse:collapse;font-size:12px">
+                    <thead>
+                      <tr style="background:var(--surface2)">
+                        <th
+                          style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
+                          Date</th>
+                        <th
+                          style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
+                          Invested</th>
+                        <th
+                          style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
+                          Notes</th>
+                        <th style="border-bottom:1px solid var(--border)"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="zerodha-monthly-body"></tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div><!-- /right panel -->
+          </div><!-- /table+panel row -->
 
         </div><!-- /#page-assets -->
 
