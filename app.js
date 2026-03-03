@@ -688,6 +688,10 @@ function openAddAssetModal() {
     'af-invested-date', 'af-interest-rate', 'af-maturity-date', 'af-maturity-amount']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
+  // Update modal title to reflect current asset class
+  const titleEl = document.querySelector('#add-asset-modal h2');
+  if (titleEl) titleEl.textContent = `Add ${_currentAssetFilter || 'Asset'}`;
+
   addAssetModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   document.getElementById('af-category').focus();
