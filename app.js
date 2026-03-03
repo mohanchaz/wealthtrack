@@ -463,7 +463,6 @@ const ASSET_COLUMNS = {
     { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
     { key: 'current_value', label: 'Cur. Value', align: 'right', fmt: 'inr', fw: '600' },
     { key: 'pnl', label: 'P&L', align: 'right', fmt: 'inr' },
-    { key: 'net_chg', label: 'Net Chg', align: 'right' },
   ],
 };
 
@@ -695,8 +694,18 @@ function renderAssetsTable(assets, tableName) {
 
   let html = '';
   assets.forEach(a => {
-    const invested = +a.invested || 0;
-    const current = +a.current_value || 0;
+    // Inject virtual fields for Zerodha Stocks — computed from stored ltp, qty, avg_cost
+    const row = tableName === 'zerodha_stocks'
+      ? {
+        ...a,
+        _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
+        current_value: (+a.qty || 0) * (+a.ltp || 0),
+        pnl: (+a.qty || 0) * ((+a.ltp || 0) - (+a.avg_cost || 0)),
+      }
+      : a;
+
+    const invested = +row.invested || 0;
+    const current = +row.current_value || 0;
     const gain = current - invested;
     const gainPct = invested > 0 ? ((gain / invested) * 100).toFixed(1) : null;
 
@@ -707,11 +716,6 @@ function renderAssetsTable(assets, tableName) {
     const gainLabel = gain !== 0
       ? `${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}`
       : '–';
-
-    // Inject virtual _qty_diff field for Zerodha Stocks
-    const row = tableName === 'zerodha_stocks'
-      ? { ...a, _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0) }
-      : a;
 
     const cells = cols.map(c => {
       const raw = row[c.key];
@@ -1164,12 +1168,8 @@ async function importZerodhaStocks(allRows) {
     qty: r.qty,
     prev_qty: prevQtyMap[r.instrument] ?? 0,
     avg_cost: r.avg_cost,
-    ltp: r.ltp,
-    invested: r.invested,
-    current_value: r.current_value,
-    pnl: r.pnl,
-    net_chg: r.net_chg,
-    day_chg: r.day_chg,
+    ltp: r.ltp,        // snapshot LTP for fallback before live prices load
+    invested: r.invested,   // qty * avg_cost at import time (cost basis)
     imported_at: new Date().toISOString(),
   }));
 
