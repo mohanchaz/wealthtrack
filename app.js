@@ -415,40 +415,68 @@ function navigateTo(pageId, assetFilter = null) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ASSETS MODULE
+//  ASSETS MODULE  (one Supabase table per asset class)
 // ══════════════════════════════════════════════════════════════
 
 const INR = v => '₹' + Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Map asset-class name → Supabase table name
+const ASSET_TABLES = {
+  'Cash': 'cash_assets',
+  // future: 'Equity': 'equity_assets', 'Gold': 'gold_assets', etc.
+};
+
+let _currentAssetTable = null;   // which table is currently loaded
+let _currentAssetFilter = null;   // which filter label is active
+
 async function loadAssets(userId, filter = null) {
-  document.getElementById('assets-table-body').innerHTML =
-    `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
+  const tbody = document.getElementById('assets-table-body');
+  tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
 
-  // Update subtitle based on filter
+  // Update subtitle
   const subtitle = document.querySelector('#page-assets .page-subtitle');
-  if (subtitle) subtitle.textContent = filter ? `Showing: ${filter}` : 'Track all your investments and holdings';
 
-  let query = sb
-    .from('assets')
-    .select('*')
-    .eq('user_id', userId)
-    .order('asset_class')
-    .order('created_at', { ascending: false });
-
-  if (filter) query = query.eq('asset_class', filter);
-
-  const { data, error } = await query;
-
-  if (error) {
-    document.getElementById('assets-table-body').innerHTML =
-      `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⚠️</div>${error.message}</div></td></tr>`;
+  if (!filter) {
+    // No category selected — prompt user to pick one
+    _currentAssetTable = null;
+    _currentAssetFilter = null;
+    if (subtitle) subtitle.textContent = 'Select an asset category from the sidebar';
+    ['assets-total-invested', 'assets-total-value', 'assets-total-gain', 'assets-count']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="assets-empty">
+        <div class="empty-icon">👈</div>
+        Choose a category from the sidebar<br/>
+        <span style="font-size:12px;color:var(--muted2)">e.g. Assets → Cash</span>
+      </div></td></tr>`;
     return;
   }
 
-  renderAssetsTable(data || []);
+  const tableName = ASSET_TABLES[filter];
+  if (!tableName) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">🚧</div>${filter} — coming soon!</div></td></tr>`;
+    return;
+  }
+
+  _currentAssetTable = tableName;
+  _currentAssetFilter = filter;
+  if (subtitle) subtitle.textContent = `💵 ${filter}`;
+
+  const { data, error } = await sb
+    .from(tableName)
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⚠️</div>${error.message}</div></td></tr>`;
+    return;
+  }
+
+  renderAssetsTable(data || [], tableName);
 }
 
-function renderAssetsTable(assets) {
+function renderAssetsTable(assets, tableName) {
   const tbody = document.getElementById('assets-table-body');
 
   // Summary stats
@@ -468,80 +496,66 @@ function renderAssetsTable(assets) {
     tbody.innerHTML = `<tr><td colspan="8">
       <div class="assets-empty">
         <div class="empty-icon">🏦</div>
-        No assets yet.<br/>Click <b>+ Add Asset</b> to get started.
+        No entries yet.<br/>Click <b>+ Add Asset</b> to get started.
       </div></td></tr>`;
     return;
   }
 
-  // Group by asset_class
-  const groups = {};
-  assets.forEach(a => {
-    const cls = a.asset_class || 'Other';
-    if (!groups[cls]) groups[cls] = [];
-    groups[cls].push(a);
-  });
-
   let html = '';
-  for (const [cls, items] of Object.entries(groups)) {
-    html += `<tr class="asset-class-row"><td colspan="8">📂 ${cls}</td></tr>`;
-    items.forEach(a => {
-      const invested = +a.invested || 0;
-      const current = +a.current_value || 0;
-      const gain = current - invested;
-      const gainPct = invested > 0 ? ((gain / invested) * 100).toFixed(1) : null;
+  assets.forEach(a => {
+    const invested = +a.invested || 0;
+    const current = +a.current_value || 0;
+    const gain = current - invested;
+    const gainPct = invested > 0 ? ((gain / invested) * 100).toFixed(1) : null;
 
-      let badgeCls = 'zero', arrow = '–';
-      if (gain > 0) { badgeCls = 'pos'; arrow = '▲'; }
-      if (gain < 0) { badgeCls = 'neg'; arrow = '▼'; }
+    let badgeCls = 'zero', arrow = '–';
+    if (gain > 0) { badgeCls = 'pos'; arrow = '▲'; }
+    if (gain < 0) { badgeCls = 'neg'; arrow = '▼'; }
 
-      const gainLabel = gain !== 0
-        ? `${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}`
-        : '–';
+    const gainLabel = gain !== 0
+      ? `${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}`
+      : '–';
 
-      html += `
-        <tr data-id="${a.id}">
-          <td><b>${a.category || '—'}</b></td>
-          <td>${a.platform || '—'}</td>
-          <td style="font-family:monospace;font-size:12px">${a.account_number || '—'}</td>
-          <td style="font-family:monospace;font-size:12px">${a.sb_account_number || '—'}</td>
-          <td style="text-align:right">${invested ? INR(invested) : '—'}</td>
-          <td style="text-align:right;font-weight:600">${current ? INR(current) : '—'}</td>
-          <td style="text-align:right">
-            <span class="gain-badge ${badgeCls}">${gainLabel}</span>
-          </td>
-          <td>
-            <button class="asset-delete-btn" data-id="${a.id}" title="Delete">🗑</button>
-          </td>
-        </tr>`;
-    });
-  }
+    html += `
+      <tr data-id="${a.id}">
+        <td><b>${a.category || '—'}</b></td>
+        <td>${a.platform || '—'}</td>
+        <td style="font-family:monospace;font-size:12px">${a.account_number || '—'}</td>
+        <td style="font-family:monospace;font-size:12px">${a.sb_account_number || '—'}</td>
+        <td style="text-align:right">${invested ? INR(invested) : '—'}</td>
+        <td style="text-align:right;font-weight:600">${current ? INR(current) : '—'}</td>
+        <td style="text-align:right"><span class="gain-badge ${badgeCls}">${gainLabel}</span></td>
+        <td><button class="asset-delete-btn" data-id="${a.id}" data-table="${tableName}" title="Delete">🗑</button></td>
+      </tr>`;
+  });
   tbody.innerHTML = html;
 
-  // Delete handlers
   tbody.querySelectorAll('.asset-delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Delete this asset?')) return;
-      await deleteAsset(btn.dataset.id);
+      if (!confirm('Delete this entry?')) return;
+      await deleteAsset(btn.dataset.id, btn.dataset.table);
     });
   });
 }
 
-async function deleteAsset(id) {
-  const { error } = await sb.from('assets').delete().eq('id', id);
+async function deleteAsset(id, tableName) {
+  const { error } = await sb.from(tableName).delete().eq('id', id);
   if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
-  showToast('Asset deleted', 'success');
-  loadAssets(_currentUserId);
+  showToast('Entry deleted', 'success');
+  loadAssets(_currentUserId, _currentAssetFilter);
 }
 
 // ── Add Asset Modal ───────────────────────────────────────────
 const addAssetModal = document.getElementById('add-asset-modal');
 
 function openAddAssetModal() {
-  ['af-asset-class', 'af-category', 'af-platform', 'af-account-number', 'af-sb-account', 'af-invested', 'af-current', 'af-notes']
-    .forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = el.tagName === 'SELECT' ? 'Cash' : '';
-    });
+  // Pre-select the current asset class if filtering
+  const assetClassEl = document.getElementById('af-asset-class');
+  if (assetClassEl && _currentAssetFilter) assetClassEl.value = _currentAssetFilter;
+
+  ['af-category', 'af-platform', 'af-account-number', 'af-sb-account', 'af-invested', 'af-current', 'af-notes']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
   addAssetModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   document.getElementById('af-category').focus();
@@ -552,26 +566,28 @@ function closeAddAssetModal() {
   document.body.style.overflow = '';
 }
 
-document.getElementById('add-asset-btn').addEventListener('click', openAddAssetModal);
+document.getElementById('add-asset-btn').addEventListener('click', () => {
+  if (!_currentAssetFilter) {
+    showToast('Please select an asset category first (e.g. Cash)', 'info');
+    return;
+  }
+  openAddAssetModal();
+});
 document.getElementById('add-asset-close-btn').addEventListener('click', closeAddAssetModal);
 document.getElementById('add-asset-cancel-btn').addEventListener('click', closeAddAssetModal);
 addAssetModal.addEventListener('click', e => { if (e.target === addAssetModal) closeAddAssetModal(); });
 
 document.getElementById('add-asset-save-btn').addEventListener('click', async () => {
-  const assetClass = document.getElementById('af-asset-class').value.trim();
   const category = document.getElementById('af-category').value.trim();
 
-  if (!assetClass || !category) {
-    showToast('Asset Class and Category are required', 'error');
-    return;
-  }
+  if (!category) { showToast('Category / Type is required', 'error'); return; }
+  if (!_currentAssetTable) { showToast('No asset category selected', 'error'); return; }
 
   const saveBtn = document.getElementById('add-asset-save-btn');
   saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-  const { error } = await sb.from('assets').insert({
+  const { error } = await sb.from(_currentAssetTable).insert({
     user_id: _currentUserId,
-    asset_class: assetClass,
     category: category,
     platform: document.getElementById('af-platform').value.trim() || null,
     account_number: document.getElementById('af-account-number').value.trim() || null,
@@ -586,9 +602,9 @@ document.getElementById('add-asset-save-btn').addEventListener('click', async ()
   if (error) {
     showToast('Save failed: ' + error.message, 'error');
   } else {
-    showToast('Asset saved! 🎉', 'success');
+    showToast('Entry saved! 🎉', 'success');
     closeAddAssetModal();
-    loadAssets(_currentUserId);
+    loadAssets(_currentUserId, _currentAssetFilter);
   }
 });
 
