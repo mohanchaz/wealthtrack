@@ -883,31 +883,23 @@ async function deleteFdInvested(id) {
 // ══════════════════════════════════════════════════════════════
 
 /**
- * Fetch live NSE prices using Yahoo Finance v8/finance/chart (per-symbol).
- * This endpoint is auth-free unlike v7/quote which needs a crumb token.
- * All symbols fetched in parallel; failed ones are logged and skipped.
+ * Fetch live NSE prices via our own Cloudflare Pages Function (/api/prices).
+ * Server-side fetch means no CORS issues whatsoever.
+ * Returns { INSTRUMENT: price } map, or null on failure.
  */
 async function fetchLivePrices(instruments) {
-  const fetches = instruments.map(async instrument => {
-    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${instrument}.NS?range=1d&interval=1d`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-    const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error(`${instrument}: HTTP ${res.status}`);
-    const json = await res.json();
-    const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    if (!price) throw new Error(`${instrument}: no price in response`);
-    return { instrument, price };
-  });
-
-  const settled = await Promise.allSettled(fetches);
-  const priceMap = {};
-  settled.forEach(r => {
-    if (r.status === 'fulfilled') priceMap[r.value.instrument] = r.value.price;
-    else console.warn('[LivePrices]', r.reason?.message ?? r.reason);
-  });
-
-  console.log('[LivePrices] received:', priceMap);
-  return Object.keys(priceMap).length > 0 ? priceMap : null;
+  const symbols = instruments.map(i => i + '.NS').join(',');
+  try {
+    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const priceMap = await res.json();
+    if (priceMap.error) throw new Error(priceMap.error);
+    console.log('[LivePrices] received:', priceMap);
+    return Object.keys(priceMap).length > 0 ? priceMap : null;
+  } catch (err) {
+    console.warn('[LivePrices] fetch failed:', err.message);
+    return null;
+  }
 }
 
 async function fetchAndRefreshZerodhaPrices(assets) {
