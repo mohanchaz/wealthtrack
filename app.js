@@ -46,10 +46,18 @@ logoutBtn.addEventListener('click', async () => {
 });
 
 // ─── Auth state ───────────────────────────────────────────────
+// Guard to prevent showDashboard from running multiple times concurrently
+let _dashboardUserId = null;
+
 sb.auth.onAuthStateChange((event, session) => {
   if (session?.user) {
-    showDashboard(session.user);
+    // Only re-initialise the dashboard when the user actually changes
+    if (_dashboardUserId !== session.user.id) {
+      _dashboardUserId = session.user.id;
+      showDashboard(session.user);
+    }
   } else {
+    _dashboardUserId = null;
     showLogin();
   }
 });
@@ -160,26 +168,10 @@ function renderAllocations(allocations) {
 }
 
 async function seedAllocations(userId) {
-  if (_seedingInProgress) return;  // prevent duplicate seeds from race conditions
-  _seedingInProgress = true;
-
   allocContainer.innerHTML = `
     <p style="font-size:13px; color:var(--muted); text-align:center; padding:16px;">
       Setting up defaults…
     </p>`;
-
-  // Double-check: don't insert if rows already exist for this user
-  const { data: existing } = await sb
-    .from('ideal_allocations')
-    .select('id')
-    .eq('user_id', userId)
-    .limit(1);
-
-  if (existing && existing.length > 0) {
-    _seedingInProgress = false;
-    loadAllocations({ id: userId });
-    return;
-  }
 
   const defaults = [
     { user_id: userId, item: 'India Equity MF', type: 'Asset', category: 'Mutual Fund', percentage: 0.360 },
@@ -193,7 +185,6 @@ async function seedAllocations(userId) {
   ];
 
   const { error } = await sb.from('ideal_allocations').insert(defaults);
-  _seedingInProgress = false;
 
   if (error) {
     showToast('Could not seed allocations: ' + error.message, 'error');
