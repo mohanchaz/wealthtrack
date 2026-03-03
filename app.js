@@ -884,8 +884,8 @@ async function deleteFdInvested(id) {
  */
 async function fetchLivePrices(instruments) {
   const symbols = instruments.map(i => i + '.NS').join(',');
-  const targetUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,shortName`;
-  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+  const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice`;
+  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
   try {
     const res = await fetch(proxyUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
