@@ -650,10 +650,20 @@ function renderAssetsTable(assets, tableName) {
       <tr data-id="${a.id}">
         ${cells}
         <td style="text-align:right"><span class="gain-badge ${badgeCls}">${gainLabel}</span></td>
-        <td><button class="asset-delete-btn" data-id="${a.id}" data-table="${tableName}" title="Delete">🗑</button></td>
+        <td style="white-space:nowrap">
+          <button class="asset-edit-btn" data-id="${a.id}" data-table="${tableName}" title="Edit" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 5px;opacity:0.7;" data-row='${JSON.stringify(a).replace(/'/g, "&apos;")}'>✏️</button>
+          <button class="asset-delete-btn" data-id="${a.id}" data-table="${tableName}" title="Delete">🗑</button>
+        </td>
       </tr>`;
   });
   tbody.innerHTML = html;
+
+  tbody.querySelectorAll('.asset-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = JSON.parse(btn.dataset.row);
+      openEditAssetModal(row, btn.dataset.table);
+    });
+  });
 
   tbody.querySelectorAll('.asset-delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -670,10 +680,60 @@ async function deleteAsset(id, tableName) {
   loadAssets(_currentUserId, _currentAssetFilter);
 }
 
-// ── Add Asset Modal ───────────────────────────────────────────
+// ── Add / Edit Asset Modal ────────────────────────────────────
 const addAssetModal = document.getElementById('add-asset-modal');
+let _editingAssetId = null;
+let _editingAssetTable = null;
+
+function setField(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val ?? '';
+}
+
+function openEditAssetModal(row, tableName) {
+  _editingAssetId = row.id;
+  _editingAssetTable = tableName;
+
+  // Show/hide FD extra fields
+  const fdExtra = document.getElementById('fd-extra-fields');
+  const isFD = tableName === 'bank_fd_assets';
+  if (fdExtra) {
+    if (isFD) fdExtra.classList.remove('hidden');
+    else fdExtra.classList.add('hidden');
+  }
+
+  // Pre-fill common fields
+  setField('af-category', row.category);
+  setField('af-platform', row.platform);
+  setField('af-account-number', row.account_number);
+  setField('af-sb-account', row.sb_account_number);
+  setField('af-invested', row.invested);
+  setField('af-current', row.current_value);
+  setField('af-notes', row.notes);
+
+  // Pre-fill FD fields
+  if (isFD) {
+    setField('af-invested-date', row.invested_date);
+    setField('af-interest-rate', row.interest_rate);
+    setField('af-maturity-date', row.maturity_date);
+    setField('af-maturity-amount', row.maturity_amount);
+  }
+
+  // Update title and save button
+  const titleEl = document.querySelector('#add-asset-modal h2');
+  if (titleEl) titleEl.textContent = `Edit ${_currentAssetFilter || 'Asset'}`;
+  const saveBtn = document.getElementById('add-asset-save-btn');
+  if (saveBtn) saveBtn.textContent = '💾 Save Changes';
+
+  addAssetModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('af-category').focus();
+}
 
 function openAddAssetModal() {
+  _editingAssetId = null;   // fresh add
+  _editingAssetTable = null;
+
   // Show/hide Bank FD extra fields
   const fdExtra = document.getElementById('fd-extra-fields');
   const isFD = _currentAssetFilter === 'Bank FD';
@@ -688,9 +748,11 @@ function openAddAssetModal() {
     'af-invested-date', 'af-interest-rate', 'af-maturity-date', 'af-maturity-amount']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
-  // Update modal title to reflect current asset class
+  // Update modal title + save button
   const titleEl = document.querySelector('#add-asset-modal h2');
   if (titleEl) titleEl.textContent = `Add ${_currentAssetFilter || 'Asset'}`;
+  const saveBtn = document.getElementById('add-asset-save-btn');
+  if (saveBtn) saveBtn.textContent = '💾 Save Asset';
 
   addAssetModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -742,13 +804,26 @@ document.getElementById('add-asset-save-btn').addEventListener('click', async ()
     payload.maturity_amount = parseFloat(document.getElementById('af-maturity-amount').value) || null;
   }
 
-  const { error } = await sb.from(_currentAssetTable).insert(payload);
+  const table = _editingAssetId ? _editingAssetTable : _currentAssetTable;
+
+  let dbOp;
+  if (_editingAssetId) {
+    // UPDATE existing row
+    delete payload.user_id;   // don't overwrite owner
+    dbOp = sb.from(table).update(payload).eq('id', _editingAssetId);
+  } else {
+    // INSERT new row
+    dbOp = sb.from(table).insert(payload);
+  }
+
+  const { error } = await dbOp;
   saveBtn.textContent = '💾 Save Asset'; saveBtn.disabled = false;
 
   if (error) {
     showToast('Save failed: ' + error.message, 'error');
   } else {
-    showToast('Entry saved! 🎉', 'success');
+    showToast(_editingAssetId ? 'Changes saved! ✅' : 'Entry saved! 🎉', 'success');
+    _editingAssetId = null; _editingAssetTable = null;
     closeAddAssetModal();
     loadAssets(_currentUserId, _currentAssetFilter);
   }
