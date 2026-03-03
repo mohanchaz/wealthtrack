@@ -1944,27 +1944,28 @@
             </div>
           </div>
 
-          <!-- Toolbar (add button shown dynamically by JS when sub-category is active) -->
-          <div class="assets-toolbar" id="assets-toolbar">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="font-size:13px;color:var(--muted)" id="assets-toolbar-label">Select a category from the
-                sidebar to view assets</div>
-              <span id="zerodha-last-updated" class="hidden" style="font-size:11px;color:var(--muted2)"></span>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <button class="btn-primary hidden" id="add-asset-btn"><span>+</span> Add Asset</button>
-              <button class="btn-primary hidden" id="zerodha-import-btn" style="background:var(--teal)">📥 Import
-                CSV</button>
-              <button class="btn-primary hidden" id="zerodha-refresh-btn" style="background:var(--green)">🔄 Refresh
-                Prices</button>
-            </div>
-          </div>
+          <!-- Outer flex row: left (toolbar+table) | right (actual invested panel) -->
+          <div id="assets-layout-row" style="display:flex;gap:24px;align-items:flex-start">
 
-          <!-- Table + right-side panel row -->
-          <div style="display:flex;gap:20px;align-items:flex-start">
-
-            <!-- Main table -->
+            <!-- Left column: toolbar + table -->
             <div style="flex:1;min-width:0">
+              <!-- Toolbar -->
+              <div class="assets-toolbar" id="assets-toolbar">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="font-size:13px;color:var(--muted)" id="assets-toolbar-label">Select a category from the
+                    sidebar to view assets</div>
+                  <span id="zerodha-last-updated" class="hidden" style="font-size:11px;color:var(--muted2)"></span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button class="btn-primary hidden" id="add-asset-btn"><span>+</span> Add Asset</button>
+                  <button class="btn-primary hidden" id="zerodha-import-btn" style="background:var(--teal)">📥 Import
+                    CSV</button>
+                  <button class="btn-primary hidden" id="zerodha-refresh-btn" style="background:var(--green)">🔄 Refresh
+                    Prices</button>
+                </div>
+              </div>
+
+              <!-- Table -->
               <div class="assets-table-wrap" id="assets-table-wrap">
                 <table class="assets-table">
                   <thead>
@@ -1990,11 +1991,11 @@
                     </tr>
                   </tbody>
                 </table>
-              </div>
-            </div>
+              </div><!-- /assets-table-wrap -->
+            </div><!-- /left column -->
 
-            <!-- Right panel: one of the actual-invested sections shown at a time -->
-            <div style="width:300px;flex-shrink:0">
+            <!-- Right panel: actual-invested (sticky so it stays visible while scrolling the table) -->
+            <div id="assets-right-panel" style="width:300px;flex-shrink:0;position:sticky;top:24px">
 
               <!-- Bank FD Actual Invested -->
               <div id="assets-monthly-summary" class="hidden">
@@ -2065,7 +2066,7 @@
               </div>
 
             </div><!-- /right panel -->
-          </div><!-- /table+panel row -->
+          </div><!-- /assets-layout-row -->
 
         </div><!-- /#page-assets -->
 

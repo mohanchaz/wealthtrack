@@ -575,11 +575,11 @@ async function loadAssets(userId, filter = null) {
     if (monthlySec) monthlySec.classList.add('hidden');
     if (zerodhaSec) zerodhaSec.classList.add('hidden');
 
-    // Hide toolbar and table — only stat tiles visible
+    // Hide toolbar and layout row on overview — only stat tiles visible
     const toolbar = document.getElementById('assets-toolbar');
-    const tableWrap = document.getElementById('assets-table-wrap');
+    const layoutRow = document.getElementById('assets-layout-row');
     if (toolbar) toolbar.classList.add('hidden');
-    if (tableWrap) tableWrap.classList.add('hidden');
+    if (layoutRow) layoutRow.classList.add('hidden');
 
     // Hide the Actual Invested stat card and reset table headers to default
     const actualOverviewCard = document.getElementById('assets-actual-invested-card');
@@ -671,11 +671,9 @@ async function loadAssets(userId, filter = null) {
   if (toolbarLabel) toolbarLabel.textContent = `Showing ${filter} assets`;
   if (addBtn) addBtn.classList.remove('hidden');
 
-  // Show toolbar and table when a category is selected
-  const activeToolbar = document.getElementById('assets-toolbar');
-  const activeTableWrap = document.getElementById('assets-table-wrap');
-  if (activeToolbar) activeToolbar.classList.remove('hidden');
-  if (activeTableWrap) activeTableWrap.classList.remove('hidden');
+  // Show layout row when a category is selected
+  const activeLayoutRow = document.getElementById('assets-layout-row');
+  if (activeLayoutRow) activeLayoutRow.classList.remove('hidden');
 
   const orderCol = tableName === 'zerodha_stocks' ? 'instrument' : 'created_at';
   const orderAsc = tableName === 'zerodha_stocks';
