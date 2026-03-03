@@ -428,6 +428,7 @@ const INR = v => '₹' + Number(v || 0).toLocaleString('en-IN', { minimumFractio
 const ASSET_TABLES = {
   'Cash': 'cash_assets',
   'Bank FD': 'bank_fd_assets',
+  'Zerodha Stocks': 'zerodha_stocks',
 };
 
 // Per-table column definitions
@@ -453,6 +454,17 @@ const ASSET_COLUMNS = {
     { key: 'maturity_date', label: 'Maturity Date', align: 'right', fmt: 'date' },
     { key: 'maturity_amount', label: 'Maturity Amt', align: 'right', fmt: 'inr' },
   ],
+  zerodha_stocks: [
+    { key: 'instrument', label: 'Instrument', bold: true },
+    { key: 'qty', label: 'Qty', align: 'right' },
+    { key: '_qty_diff', label: 'Qty Diff', align: 'right', fmt: 'qty_diff' },
+    { key: 'avg_cost', label: 'Avg Cost', align: 'right', fmt: 'inr' },
+    { key: 'ltp', label: 'LTP', align: 'right', fmt: 'inr' },
+    { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
+    { key: 'current_value', label: 'Cur. Value', align: 'right', fmt: 'inr', fw: '600' },
+    { key: 'pnl', label: 'P&L', align: 'right', fmt: 'inr' },
+    { key: 'net_chg', label: 'Net Chg', align: 'right' },
+  ],
 };
 
 function formatCell(val, fmt) {
@@ -463,6 +475,13 @@ function formatCell(val, fmt) {
     case 'date': {
       const d = new Date(val);
       return isNaN(d) ? val : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    case 'qty_diff': {
+      const n = +val;
+      if (!n || isNaN(n)) return '<span style="color:var(--muted2)">—</span>';
+      const arrow = n > 0 ? '▲' : '▼';
+      const color = n > 0 ? 'var(--green)' : 'var(--danger)';
+      return `<span style="color:${color};font-weight:600">${arrow} ${Math.abs(n)}</span>`;
     }
     default: return val;
   }
@@ -627,6 +646,16 @@ function renderAssetsTable(assets, tableName) {
   const cols = ASSET_COLUMNS[tableName] || ASSET_COLUMNS['cash_assets'];
   const colCount = cols.length + 2; // +gain +delete
 
+  // Show/hide Import CSV button for Zerodha Stocks
+  const importBtn = document.getElementById('zerodha-import-btn');
+  const addBtn2 = document.getElementById('add-asset-btn');
+  if (tableName === 'zerodha_stocks') {
+    if (importBtn) importBtn.classList.remove('hidden');
+    if (addBtn2) addBtn2.classList.add('hidden');
+  } else {
+    if (importBtn) importBtn.classList.add('hidden');
+  }
+
   // Update thead dynamically
   if (thead) {
     thead.innerHTML =
@@ -650,8 +679,10 @@ function renderAssetsTable(assets, tableName) {
   if (!assets.length) {
     tbody.innerHTML = `<tr><td colspan="${colCount}">
       <div class="assets-empty">
-        <div class="empty-icon">🏦</div>
-        No entries yet.<br/>Click <b>+ Add Asset</b> to get started.
+        <div class="empty-icon">${tableName === 'zerodha_stocks' ? '📂' : '🏦'}</div>
+        ${tableName === 'zerodha_stocks'
+        ? 'No holdings yet — click <b>📥 Import CSV</b> to import your Zerodha portfolio'
+        : 'No entries yet.<br/>Click <b>+ Add Asset</b> to get started.'}
       </div></td></tr>`;
     return;
   }
@@ -671,13 +702,19 @@ function renderAssetsTable(assets, tableName) {
       ? `${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}`
       : '–';
 
+    // Inject virtual _qty_diff field for Zerodha Stocks
+    const row = tableName === 'zerodha_stocks'
+      ? { ...a, _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0) }
+      : a;
+
     const cells = cols.map(c => {
-      const raw = a[c.key];
+      const raw = row[c.key];
       const val = formatCell(raw, c.fmt);
       let style = '';
       if (c.align) style += `text-align:${c.align};`;
       if (c.fw) style += `font-weight:${c.fw};`;
       if (c.mono) style += 'font-family:monospace;font-size:12px;';
+      // Allow HTML (e.g. qty_diff spans) — use innerHTML via template literal
       const inner = c.bold ? `<b>${val}</b>` : val;
       return `<td${style ? ` style="${style}"` : ''}>${inner}</td>`;
     }).join('');
@@ -819,6 +856,205 @@ async function deleteFdInvested(id) {
   showToast('Entry deleted', 'success');
   loadFdActualInvested(_currentUserId);
 }
+
+// ══════════════════════════════════════════════════════════════
+//  ZERODHA STOCKS  — CSV import module
+// ══════════════════════════════════════════════════════════════
+
+let _zerodhaPreviewRows = [];
+
+/**
+ * Parse a Zerodha Holdings CSV text.
+ * Columns expected: Instrument, Qty., Avg. cost, LTP, Invested, Cur. val, P&L, Net chg., Day chg.
+ * Stocks: instrument name is entirely uppercase letters/digits/hyphens.
+ */
+function parseZerodhaCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+  const idxMap = {};
+  const find = (...names) => {
+    for (const name of names) {
+      const idx = header.findIndex(h => h.toLowerCase().includes(name.toLowerCase()));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+
+  const iInstrument = find('Instrument');
+  const iQty = find('Qty');
+  const iAvgCost = find('Avg. cost', 'Avg cost', 'avg_cost');
+  const iLTP = find('LTP');
+  const iInvested = find('Invested');
+  const iCurVal = find('Cur. val', 'Cur val', 'current_value');
+  const iPnL = find('P&L', 'P&amp;L');
+  const iNetChg = find('Net chg');
+  const iDayChg = find('Day chg');
+
+  const stocks = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    // Handle quoted CSV fields
+    const cols = lines[i].match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g)
+      || lines[i].split(',');
+    const clean = c => (c || '').toString().replace(/^"|"$/g, '').trim();
+    const num = c => parseFloat(clean(c)) || 0;
+
+    const instrument = clean(cols[iInstrument]);
+    if (!instrument) continue;
+
+    // Stock detection: name is ALL CAPS (letters, digits, hyphen, dot only)
+    const isStock = /^[A-Z0-9\-\.&]+$/.test(instrument);
+    if (!isStock) continue;
+
+    stocks.push({
+      instrument,
+      qty: num(cols[iQty]),
+      avg_cost: num(cols[iAvgCost]),
+      ltp: num(cols[iLTP]),
+      invested: num(cols[iInvested]),
+      current_value: num(cols[iCurVal]),
+      pnl: num(cols[iPnL]),
+      net_chg: num(cols[iNetChg]),
+      day_chg: num(cols[iDayChg]),
+    });
+  }
+  return stocks;
+}
+
+function openZerodhaImportModal() {
+  _zerodhaPreviewRows = [];
+  document.getElementById('zerodha-csv-input').value = '';
+  document.getElementById('zerodha-csv-filename').textContent = '';
+  document.getElementById('zerodha-preview-section').classList.add('hidden');
+  document.getElementById('zerodha-import-confirm-btn').classList.add('hidden');
+  document.getElementById('zerodha-import-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeZerodhaImportModal() {
+  document.getElementById('zerodha-import-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function handleZerodhaCSV(file) {
+  if (!file) return;
+  document.getElementById('zerodha-csv-filename').textContent = file.name;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    _zerodhaPreviewRows = parseZerodhaCSV(e.target.result);
+    const count = _zerodhaPreviewRows.length;
+
+    document.getElementById('zerodha-stock-count').textContent = count;
+    document.getElementById('zerodha-import-count').textContent = count;
+
+    // Render preview table
+    const thead = document.getElementById('zerodha-preview-thead');
+    const tbody = document.getElementById('zerodha-preview-body');
+    const thStyle = 'padding:7px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);background:var(--surface2);border-bottom:1px solid var(--border)';
+    thead.innerHTML = `<tr>
+      <th style="${thStyle};text-align:left">Instrument</th>
+      <th style="${thStyle}">Qty</th>
+      <th style="${thStyle}">Avg Cost</th>
+      <th style="${thStyle}">LTP</th>
+      <th style="${thStyle}">Invested</th>
+      <th style="${thStyle}">Cur. Value</th>
+      <th style="${thStyle}">P&amp;L</th>
+    </tr>`;
+
+    const tdS = 'padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);font-size:12px';
+    tbody.innerHTML = _zerodhaPreviewRows.map((r, i) => {
+      const pnlColor = r.pnl >= 0 ? 'var(--green)' : 'var(--danger)';
+      return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
+        <td style="${tdS};text-align:left;font-weight:600">${r.instrument}</td>
+        <td style="${tdS}">${r.qty}</td>
+        <td style="${tdS}">${INR(r.avg_cost)}</td>
+        <td style="${tdS}">${INR(r.ltp)}</td>
+        <td style="${tdS}">${INR(r.invested)}</td>
+        <td style="${tdS};font-weight:600">${INR(r.current_value)}</td>
+        <td style="${tdS};color:${pnlColor};font-weight:600">${INR(r.pnl)}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('zerodha-preview-section').classList.remove('hidden');
+    if (count > 0) document.getElementById('zerodha-import-confirm-btn').classList.remove('hidden');
+    else document.getElementById('zerodha-import-confirm-btn').classList.add('hidden');
+  };
+  reader.readAsText(file);
+}
+
+async function importZerodhaStocks(rows) {
+  const confirmBtn = document.getElementById('zerodha-import-confirm-btn');
+  confirmBtn.textContent = 'Importing…';
+  confirmBtn.disabled = true;
+
+  // Fetch existing to get prev_qty
+  const { data: existing } = await sb
+    .from('zerodha_stocks')
+    .select('instrument, qty')
+    .eq('user_id', _currentUserId);
+
+  const prevQtyMap = {};
+  (existing || []).forEach(r => { prevQtyMap[r.instrument] = +r.qty || 0; });
+
+  // Get set of incoming instruments to detect deletions
+  const incomingSet = new Set(rows.map(r => r.instrument));
+
+  // Delete instruments no longer in the CSV (fully sold)
+  const toDelete = (existing || []).filter(r => !incomingSet.has(r.instrument)).map(r => r.instrument);
+  if (toDelete.length) {
+    await sb.from('zerodha_stocks').delete().eq('user_id', _currentUserId).in('instrument', toDelete);
+  }
+
+  // Upsert each stock with prev_qty
+  const payload = rows.map(r => ({
+    user_id: _currentUserId,
+    instrument: r.instrument,
+    qty: r.qty,
+    prev_qty: prevQtyMap[r.instrument] ?? 0,
+    avg_cost: r.avg_cost,
+    ltp: r.ltp,
+    invested: r.invested,
+    current_value: r.current_value,
+    pnl: r.pnl,
+    net_chg: r.net_chg,
+    day_chg: r.day_chg,
+    imported_at: new Date().toISOString(),
+  }));
+
+  const { error } = await sb
+    .from('zerodha_stocks')
+    .upsert(payload, { onConflict: 'user_id,instrument' });
+
+  confirmBtn.textContent = `📥 Import ${rows.length} Stocks`;
+  confirmBtn.disabled = false;
+
+  if (error) {
+    showToast('Import failed: ' + error.message, 'error');
+  } else {
+    showToast(`✅ Imported ${rows.length} stocks successfully!`, 'success');
+    closeZerodhaImportModal();
+    loadAssets(_currentUserId, 'Zerodha Stocks');
+  }
+}
+
+// Wire Zerodha import modal events
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('zerodha-import-modal');
+  document.getElementById('zerodha-import-btn')?.addEventListener('click', openZerodhaImportModal);
+  document.getElementById('zerodha-import-close-btn')?.addEventListener('click', closeZerodhaImportModal);
+  document.getElementById('zerodha-import-cancel-btn')?.addEventListener('click', closeZerodhaImportModal);
+  modal?.addEventListener('click', e => { if (e.target === modal) closeZerodhaImportModal(); });
+
+  document.getElementById('zerodha-csv-input')?.addEventListener('change', e => {
+    handleZerodhaCSV(e.target.files[0]);
+  });
+
+  document.getElementById('zerodha-import-confirm-btn')?.addEventListener('click', () => {
+    if (_zerodhaPreviewRows.length) importZerodhaStocks(_zerodhaPreviewRows);
+  });
+});
 
 // Wire up fd-invested-modal events (safe to call at end of file, DOM is ready)
 document.addEventListener('DOMContentLoaded', () => {

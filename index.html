@@ -1706,6 +1706,9 @@
           <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Bank FD">
             <span class="sidebar-sub-icon">🏦</span> Bank FD
           </div>
+          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Zerodha Stocks">
+            <span class="sidebar-sub-icon">📈</span> Zerodha Stocks
+          </div>
         </div>
         <div class="sidebar-item" data-page="liabilities">
           <span class="sidebar-icon">◉</span> Liabilities
@@ -1947,6 +1950,8 @@
             <div style="font-size:13px;color:var(--muted)" id="assets-toolbar-label">Select a category from the sidebar
               to view assets</div>
             <button class="btn-primary hidden" id="add-asset-btn"><span>+</span> Add Asset</button>
+            <button class="btn-primary hidden" id="zerodha-import-btn" style="background:var(--teal)">📥 Import
+              CSV</button>
           </div>
 
           <!-- Table -->
@@ -2019,6 +2024,54 @@
 
   <!-- Toast notification -->
   <div id="toast"></div>
+
+  <!-- Zerodha CSV Import Modal -->
+  <div id="zerodha-import-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:680px">
+      <div class="modal-header">
+        <h2>Import Zerodha Holdings</h2>
+        <button class="modal-close-btn" id="zerodha-import-close-btn">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:24px;display:flex;flex-direction:column;gap:20px">
+
+        <!-- File picker -->
+        <div style="border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center">
+          <div style="font-size:28px;margin-bottom:8px">📂</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Select your Zerodha Holdings
+            CSV</div>
+          <div style="font-size:12px;color:var(--muted2);margin-bottom:14px">Download from Zerodha Console → Portfolio →
+            Holdings → Download</div>
+          <input type="file" id="zerodha-csv-input" accept=".csv" style="display:none">
+          <button onclick="document.getElementById('zerodha-csv-input').click()"
+            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer">Choose
+            File</button>
+          <div id="zerodha-csv-filename" style="margin-top:8px;font-size:12px;color:var(--muted2)"></div>
+        </div>
+
+        <!-- Preview -->
+        <div id="zerodha-preview-section" class="hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:14px;font-weight:600;color:var(--text)">Stocks detected <span id="zerodha-stock-count"
+                style="background:var(--accentbg);color:var(--accent);padding:2px 10px;border-radius:20px;font-size:12px;margin-left:6px">0</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted2)">Mutual Funds and Gold excluded automatically</div>
+          </div>
+          <div style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+              <thead id="zerodha-preview-thead"></thead>
+              <tbody id="zerodha-preview-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="modal-cancel-btn" id="zerodha-import-cancel-btn">Cancel</button>
+        <button class="modal-save-btn hidden" id="zerodha-import-confirm-btn">📥 Import <span
+            id="zerodha-import-count">0</span> Stocks</button>
+      </div>
+    </div>
+  </div>
 
   <!-- FD Actual Invested Modal -->
   <div id="fd-invested-modal" class="modal-overlay hidden">
