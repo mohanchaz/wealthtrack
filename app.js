@@ -1,124 +1,195 @@
-// Initialize Supabase Client
-const SUPABASE_URL = 'https://kgcuogyrxcbdlozgnfav.supabase.co';
+// ─── Supabase Config ──────────────────────────────────────────
+const SUPABASE_URL     = 'https://kgcuogyrxcbdlozgnfav.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnY3VvZ3lyeGNiZGxvemduZmF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MzY0MDMsImV4cCI6MjA4ODAxMjQwM30.kEI2A8o3rxRJAgncH9gzxeFhB6PYyvLQ8IwKOTuAQ3U';
 
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ─── DOM refs ────────────────────────────────────────────────
+const authView        = document.getElementById('auth-view');
+const dashView        = document.getElementById('dashboard-view');
+const loginBtn        = document.getElementById('login-btn');
+const logoutBtn       = document.getElementById('logout-btn');
+const userNameEl      = document.getElementById('user-name');
+const userAvatarEl    = document.getElementById('user-avatar');
+const userAvatarPH    = document.getElementById('user-avatar-placeholder');
+const dashDateEl      = document.getElementById('dash-date');
+const allocContainer  = document.getElementById('allocations-container');
+const toastEl         = document.getElementById('toast');
 
-// DOM Elements
-const loginBtn = document.getElementById('login-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const authView = document.getElementById('auth-view');         // Updated ID
-const dashboardView = document.getElementById('dashboard-view'); // Updated ID
-const userNameDisplay = document.getElementById('user-name');
+// ─── Toast ───────────────────────────────────────────────────
+function showToast(msg, type = 'info') {
+  const icons = { info: '💬', success: '✅', error: '❌' };
+  toastEl.innerHTML = `<span>${icons[type]}</span> ${msg}`;
+  toastEl.classList.add('show');
+  setTimeout(() => toastEl.classList.remove('show'), 3000);
+}
 
-// 1. Handle Google Login
+// ─── Google Login ─────────────────────────────────────────────
 loginBtn.addEventListener('click', async () => {
-    const { data, error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-    });
-    if (error) console.error("Error logging in:", error.message);
+  loginBtn.textContent = 'Redirecting…';
+  loginBtn.disabled = true;
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+  if (error) {
+    showToast('Login failed: ' + error.message, 'error');
+    loginBtn.textContent = 'Continue with Google';
+    loginBtn.disabled = false;
+  }
 });
 
-// 2. Handle Logout
+// ─── Logout ───────────────────────────────────────────────────
 logoutBtn.addEventListener('click', async () => {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) console.error("Error logging out:", error.message);
+  await sb.auth.signOut();
+  showToast('Signed out successfully', 'success');
 });
 
-// 3. Listen for Authentication State Changes
-supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (session) {
-        // User is logged in: Hide Auth, Show Dashboard
-        authView.classList.add('hidden');
-        dashboardView.classList.remove('hidden');
-        
-        // Extract the user's name
-        const userName = session.user.user_metadata.full_name;
-        userNameDisplay.textContent = userName;
-    } else {
-        // User is logged out: Hide Dashboard, Show Auth
-        dashboardView.classList.add('hidden');
-        authView.classList.remove('hidden');
-        userNameDisplay.textContent = '';
-    }
+// ─── Auth state ───────────────────────────────────────────────
+sb.auth.onAuthStateChange((event, session) => {
+  if (session?.user) {
+    showDashboard(session.user);
+  } else {
+    showLogin();
+  }
 });
-// --- NEW: Allocation Logic ---
 
-const allocationsContainer = document.getElementById('allocations-container');
-
-// 1. Fetch Allocations from Supabase
-async function loadAllocations(user) {
-    const { data, error } = await supabaseClient
-        .from('ideal_allocations')
-        .select('*')
-        .order('percentage', { ascending: false }); // Show highest % first
-
-    if (error) {
-        console.error("Error fetching allocations:", error);
-        allocationsContainer.innerHTML = `<p style="padding: 20px; color: red;">Failed to load allocations.</p>`;
-        return;
-    }
-
-    // 2. Auto-seed data if the table is empty
-    if (data.length === 0) {
-        await seedDefaultAllocations(user.id);
-        return; // Seed function will recall loadAllocations when done
-    }
-
-    renderAllocations(data);
+// ─── Show Login ───────────────────────────────────────────────
+function showLogin() {
+  dashView.classList.add('hidden');
+  authView.classList.remove('hidden');
+  document.title = 'FinTrack — Know Your Wealth';
 }
 
-// 3. Render the data to the screen
-function renderAllocations(allocations) {
-    allocationsContainer.innerHTML = ''; // Clear loading text
+// ─── Show Dashboard ───────────────────────────────────────────
+function showDashboard(user) {
+  authView.classList.add('hidden');
+  dashView.classList.remove('hidden');
+  document.title = 'FinTrack — Dashboard';
 
-    allocations.forEach(alloc => {
-        // Convert 0.275 to 27.5%
-        const percentageDisplay = (alloc.percentage * 100).toFixed(1) + '%';
-        
-        const itemHtml = `
-            <div class="allocation-item">
-                <div class="allocation-header">
-                    <div class="allocation-info">
-                        <span class="allocation-name">${alloc.item}</span>
-                        <span class="allocation-type">${alloc.type} &bull; ${alloc.category}</span>
-                    </div>
-                    <span class="allocation-value">${percentageDisplay}</span>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" style="width: ${percentageDisplay};"></div>
-                </div>
-            </div>
-        `;
-        allocationsContainer.insertAdjacentHTML('beforeend', itemHtml);
+  // User name
+  const fullName = user.user_metadata?.full_name || user.email || 'there';
+  const firstName = fullName.split(' ')[0];
+  userNameEl.textContent = firstName;
+
+  // Avatar
+  const avatarUrl = user.user_metadata?.avatar_url;
+  if (avatarUrl) {
+    userAvatarEl.src = avatarUrl;
+    userAvatarEl.classList.remove('hidden');
+    userAvatarPH.classList.add('hidden');
+  } else {
+    userAvatarPH.textContent = firstName[0].toUpperCase();
+    userAvatarPH.classList.remove('hidden');
+    userAvatarEl.classList.add('hidden');
+  }
+
+  // Date
+  if (dashDateEl) {
+    dashDateEl.textContent = new Date().toLocaleDateString('en-IN', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
+  }
+
+  // Load allocation data
+  loadAllocations(user);
 }
 
-// 4. Seed the database with your CSV data
-async function seedDefaultAllocations(userId) {
-    allocationsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--primary-color);">Setting up your default allocations...</div>`;
-    
-    // This is the exact data from your CSV file
-    const defaultData = [
-        { user_id: userId, item: 'Cash', type: 'Asset', category: 'Cash', percentage: 0.040 },
-        { user_id: userId, item: 'FD', type: 'Asset', category: 'FD', percentage: 0.060 },
-        { user_id: userId, item: 'India Equity Stocks', type: 'Asset', category: 'India Equity Stocks', percentage: 0.275 },
-        { user_id: userId, item: 'India Equity MF', type: 'Asset', category: 'India Equity MF', percentage: 0.360 },
-        { user_id: userId, item: 'Foreign Equity/ETF', type: 'Asset', category: 'Foreign Equity/ETF', percentage: 0.100 },
-        { user_id: userId, item: 'Gold', type: 'Asset', category: 'Gold', percentage: 0.100 },
-        { user_id: userId, item: 'Bonds', type: 'Asset', category: 'Bonds', percentage: 0.060 },
-        { user_id: userId, item: 'Crypto', type: 'Asset', category: 'Crypto', percentage: 0.005 }
-    ];
+// ─── Allocations ──────────────────────────────────────────────
+async function loadAllocations(user) {
+  allocContainer.innerHTML = '<div class="spinner"></div>';
 
-    const { error } = await supabaseClient
-        .from('ideal_allocations')
-        .insert(defaultData);
+  const { data, error } = await sb
+    .from('ideal_allocations')
+    .select('*')
+    .order('percentage', { ascending: false });
 
-    if (error) {
-        console.error("Error seeding data:", error);
-    } else {
-        // Reload now that data is in the database
-        loadAllocations({ id: userId });
-    }
+  if (error) {
+    allocContainer.innerHTML = `
+      <p style="font-size:13px; color:var(--muted); text-align:center; padding:16px;">
+        No allocation data yet.<br/>
+        <span style="color:var(--accent); cursor:pointer;" onclick="seedAllocations('${user.id}')">
+          Set up defaults →
+        </span>
+      </p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    await seedAllocations(user.id);
+    return;
+  }
+
+  renderAllocations(data);
 }
+
+function renderAllocations(allocations) {
+  const colors = [
+    '#0284c7', /* blue      */
+    '#0d9488', /* teal      */
+    '#16a34a', /* green     */
+    '#7c3aed', /* lavender  */
+    '#0ea5e9', /* sky       */
+    '#059669', /* emerald   */
+    '#4f46e5', /* indigo    */
+    '#0891b2', /* cyan      */
+  ];
+
+  allocContainer.innerHTML = '';
+  const list = document.createElement('div');
+  list.className = 'alloc-list';
+
+  allocations.forEach((a, i) => {
+    const pct = (a.percentage * 100).toFixed(1);
+    const color = colors[i % colors.length];
+
+    list.innerHTML += `
+      <div class="alloc-item">
+        <div class="alloc-header">
+          <span class="alloc-name">${a.item}</span>
+          <span class="alloc-pct" style="color:${color}">${pct}%</span>
+        </div>
+        <div class="alloc-track">
+          <div class="alloc-fill" style="width:${pct}%; background:linear-gradient(90deg,${color},${color}99)"></div>
+        </div>
+      </div>`;
+  });
+
+  allocContainer.appendChild(list);
+}
+
+async function seedAllocations(userId) {
+  allocContainer.innerHTML = `
+    <p style="font-size:13px; color:var(--muted); text-align:center; padding:16px;">
+      Setting up defaults…
+    </p>`;
+
+  const defaults = [
+    { user_id: userId, item: 'India Equity MF',      type: 'Asset', category: 'Mutual Fund',   percentage: 0.360 },
+    { user_id: userId, item: 'India Equity Stocks',   type: 'Asset', category: 'Equity',         percentage: 0.275 },
+    { user_id: userId, item: 'Foreign Equity/ETF',    type: 'Asset', category: 'International',  percentage: 0.100 },
+    { user_id: userId, item: 'Gold',                  type: 'Asset', category: 'Gold',            percentage: 0.100 },
+    { user_id: userId, item: 'Bonds',                 type: 'Asset', category: 'Debt',            percentage: 0.060 },
+    { user_id: userId, item: 'Fixed Deposit',         type: 'Asset', category: 'FD',              percentage: 0.060 },
+    { user_id: userId, item: 'Cash',                  type: 'Asset', category: 'Cash',            percentage: 0.040 },
+    { user_id: userId, item: 'Crypto',                type: 'Asset', category: 'Crypto',          percentage: 0.005 },
+  ];
+
+  const { error } = await sb.from('ideal_allocations').insert(defaults);
+
+  if (error) {
+    showToast('Could not seed allocations: ' + error.message, 'error');
+    allocContainer.innerHTML = '<p style="font-size:13px; color:var(--muted); text-align:center; padding:16px;">Could not load allocations.</p>';
+  } else {
+    showToast('Default allocations set up!', 'success');
+    loadAllocations({ id: userId });
+  }
+}
+
+// ─── Sidebar active state ─────────────────────────────────────
+document.querySelectorAll('.sidebar-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
