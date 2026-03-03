@@ -462,7 +462,7 @@ const ASSET_COLUMNS = {
     { key: 'ltp', label: 'LTP', align: 'right', fmt: 'inr' },
     { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
     { key: 'current_value', label: 'Cur. Value', align: 'right', fmt: 'inr', fw: '600' },
-    { key: 'pnl', label: 'P&L', align: 'right', fmt: 'inr' },
+    { key: '_alloc_pct', label: 'Allocation', align: 'right', fmt: 'alloc_pct' },
   ],
 };
 
@@ -481,6 +481,17 @@ function formatCell(val, fmt) {
       const arrow = n > 0 ? '▲' : '▼';
       const color = n > 0 ? 'var(--green)' : 'var(--danger)';
       return `<span style="color:${color};font-weight:600">${arrow} ${Math.abs(n)}</span>`;
+    }
+    case 'alloc_pct': {
+      const n = +val;
+      if (!n || isNaN(n)) return '<span style="color:var(--muted2)">—</span>';
+      const barWidth = Math.min(n, 100).toFixed(1);
+      return `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
+        <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
+          <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
+        </span>
+        <b style="font-size:12px;color:var(--accent)">${n.toFixed(1)}%</b>
+      </span>`;
     }
     default: return val;
   }
@@ -683,7 +694,8 @@ function renderAssetsTable(assets, tableName) {
   document.getElementById('assets-count').textContent = assets.length;
 
   const gainEl = document.getElementById('assets-total-gain');
-  gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain);
+  const totalGainPct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
+  gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain) + totalGainPct;
   gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
 
   if (!assets.length) {
@@ -706,7 +718,7 @@ function renderAssetsTable(assets, tableName) {
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
         invested: (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.ltp || 0),
-        pnl: (+a.qty || 0) * ((+a.ltp || 0) - (+a.avg_cost || 0)),
+        _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.ltp || 0)) / totalValue) * 100 : 0,
       }
       : a;
 
@@ -733,7 +745,7 @@ function renderAssetsTable(assets, tableName) {
       // Allow HTML (e.g. qty_diff spans) — use innerHTML via template literal
       const inner = c.bold ? `<b>${val}</b>` : val;
       // For zerodha: tag live-updatable cells with data attributes
-      const liveAttr = (tableName === 'zerodha_stocks' && ['ltp', 'current_value', 'pnl'].includes(c.key))
+      const liveAttr = (tableName === 'zerodha_stocks' && ['ltp', 'current_value', '_alloc_pct'].includes(c.key))
         ? ` data-live-${c.key}="${a.instrument}"`
         : '';
       return `<td${style ? ` style="${style}"` : ''}${liveAttr}>${inner}</td>`;
@@ -926,6 +938,15 @@ async function fetchAndRefreshZerodhaPrices(assets) {
 
   let totalValue = 0, totalInvested = 0;
 
+  // First pass — accumulate totals
+  assets.forEach(a => {
+    const ltp = prices[a.instrument];
+    if (!ltp) return;
+    totalValue += (+a.qty || 0) * ltp;
+    totalInvested += (+a.qty || 0) * (+a.avg_cost || 0);
+  });
+
+  // Second pass — update each row's cells
   assets.forEach(a => {
     const ltp = prices[a.instrument];
     if (!ltp) return;
@@ -936,9 +957,7 @@ async function fetchAndRefreshZerodhaPrices(assets) {
     const pnl = curVal - investedAmt;
     const gain = pnl;
     const gainPct = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
-
-    totalValue += curVal;
-    totalInvested += investedAmt;
+    const allocPct = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
 
     // LTP cell
     const ltpCell = document.querySelector(`[data-live-ltp="${a.instrument}"]`);
@@ -948,11 +967,16 @@ async function fetchAndRefreshZerodhaPrices(assets) {
     const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
     if (cvCell) cvCell.textContent = INR(curVal);
 
-    // P&L cell
-    const pnlCell = document.querySelector(`[data-live-pnl="${a.instrument}"]`);
-    if (pnlCell) {
-      pnlCell.textContent = INR(pnl);
-      pnlCell.style.color = pnl >= 0 ? 'var(--green)' : 'var(--danger)';
+    // Allocation % cell
+    const allocCell = document.querySelector(`[data-live-_alloc_pct="${a.instrument}"]`);
+    if (allocCell) {
+      const barWidth = Math.min(allocPct, 100).toFixed(1);
+      allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
+        <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
+          <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
+        </span>
+        <b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b>
+      </span>`;
     }
 
     // Gain/Loss badge
@@ -966,11 +990,13 @@ async function fetchAndRefreshZerodhaPrices(assets) {
 
   // Update stat cards with live totals
   const totalGain = totalValue - totalInvested;
+  const totalGainPct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   set('assets-total-value', INR(totalValue));
+  set('assets-total-invested', INR(totalInvested));
   const gainEl = document.getElementById('assets-total-gain');
   if (gainEl) {
-    gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain);
+    gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain) + totalGainPct;
     gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
   }
 
