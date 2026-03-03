@@ -1,20 +1,20 @@
 // ─── Supabase Config ──────────────────────────────────────────
-const SUPABASE_URL     = 'https://kgcuogyrxcbdlozgnfav.supabase.co';
+const SUPABASE_URL = 'https://kgcuogyrxcbdlozgnfav.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnY3VvZ3lyeGNiZGxvemduZmF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MzY0MDMsImV4cCI6MjA4ODAxMjQwM30.kEI2A8o3rxRJAgncH9gzxeFhB6PYyvLQ8IwKOTuAQ3U';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── DOM refs ────────────────────────────────────────────────
-const authView        = document.getElementById('auth-view');
-const dashView        = document.getElementById('dashboard-view');
-const loginBtn        = document.getElementById('login-btn');
-const logoutBtn       = document.getElementById('logout-btn');
-const userNameEl      = document.getElementById('user-name');
-const userAvatarEl    = document.getElementById('user-avatar');
-const userAvatarPH    = document.getElementById('user-avatar-placeholder');
-const dashDateEl      = document.getElementById('dash-date');
-const allocContainer  = document.getElementById('allocations-container');
-const toastEl         = document.getElementById('toast');
+const authView = document.getElementById('auth-view');
+const dashView = document.getElementById('dashboard-view');
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const userNameEl = document.getElementById('user-name');
+const userAvatarEl = document.getElementById('user-avatar');
+const userAvatarPH = document.getElementById('user-avatar-placeholder');
+const dashDateEl = document.getElementById('dash-date');
+const allocContainer = document.getElementById('allocations-container');
+const toastEl = document.getElementById('toast');
 
 // ─── Toast ───────────────────────────────────────────────────
 function showToast(msg, type = 'info') {
@@ -102,6 +102,7 @@ async function loadAllocations(user) {
   const { data, error } = await sb
     .from('ideal_allocations')
     .select('*')
+    .eq('user_id', user.id)
     .order('percentage', { ascending: false });
 
   if (error) {
@@ -159,23 +160,40 @@ function renderAllocations(allocations) {
 }
 
 async function seedAllocations(userId) {
+  if (_seedingInProgress) return;  // prevent duplicate seeds from race conditions
+  _seedingInProgress = true;
+
   allocContainer.innerHTML = `
     <p style="font-size:13px; color:var(--muted); text-align:center; padding:16px;">
       Setting up defaults…
     </p>`;
 
+  // Double-check: don't insert if rows already exist for this user
+  const { data: existing } = await sb
+    .from('ideal_allocations')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    _seedingInProgress = false;
+    loadAllocations({ id: userId });
+    return;
+  }
+
   const defaults = [
-    { user_id: userId, item: 'India Equity MF',      type: 'Asset', category: 'Mutual Fund',   percentage: 0.360 },
-    { user_id: userId, item: 'India Equity Stocks',   type: 'Asset', category: 'Equity',         percentage: 0.275 },
-    { user_id: userId, item: 'Foreign Equity/ETF',    type: 'Asset', category: 'International',  percentage: 0.100 },
-    { user_id: userId, item: 'Gold',                  type: 'Asset', category: 'Gold',            percentage: 0.100 },
-    { user_id: userId, item: 'Bonds',                 type: 'Asset', category: 'Debt',            percentage: 0.060 },
-    { user_id: userId, item: 'Fixed Deposit',         type: 'Asset', category: 'FD',              percentage: 0.060 },
-    { user_id: userId, item: 'Cash',                  type: 'Asset', category: 'Cash',            percentage: 0.040 },
-    { user_id: userId, item: 'Crypto',                type: 'Asset', category: 'Crypto',          percentage: 0.005 },
+    { user_id: userId, item: 'India Equity MF', type: 'Asset', category: 'Mutual Fund', percentage: 0.360 },
+    { user_id: userId, item: 'India Equity Stocks', type: 'Asset', category: 'Equity', percentage: 0.275 },
+    { user_id: userId, item: 'Foreign Equity/ETF', type: 'Asset', category: 'International', percentage: 0.100 },
+    { user_id: userId, item: 'Gold', type: 'Asset', category: 'Gold', percentage: 0.100 },
+    { user_id: userId, item: 'Bonds', type: 'Asset', category: 'Debt', percentage: 0.060 },
+    { user_id: userId, item: 'Fixed Deposit', type: 'Asset', category: 'FD', percentage: 0.060 },
+    { user_id: userId, item: 'Cash', type: 'Asset', category: 'Cash', percentage: 0.040 },
+    { user_id: userId, item: 'Crypto', type: 'Asset', category: 'Crypto', percentage: 0.005 },
   ];
 
   const { error } = await sb.from('ideal_allocations').insert(defaults);
+  _seedingInProgress = false;
 
   if (error) {
     showToast('Could not seed allocations: ' + error.message, 'error');
