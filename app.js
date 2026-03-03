@@ -669,8 +669,13 @@ function renderAssetsTable(assets, tableName) {
   }
 
   // Summary stats
-  const totalInvested = assets.reduce((s, a) => s + (+a.invested || 0), 0);
-  const totalValue = assets.reduce((s, a) => s + (+a.current_value || 0), 0);
+  // For zerodha_stocks, invested/current_value are not stored — compute from qty * avg_cost / ltp
+  const totalInvested = tableName === 'zerodha_stocks'
+    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
+    : assets.reduce((s, a) => s + (+a.invested || 0), 0);
+  const totalValue = tableName === 'zerodha_stocks'
+    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.ltp || 0)), 0)
+    : assets.reduce((s, a) => s + (+a.current_value || 0), 0);
   const totalGain = totalValue - totalInvested;
 
   document.getElementById('assets-total-invested').textContent = INR(totalInvested);
@@ -927,12 +932,13 @@ async function fetchAndRefreshZerodhaPrices(assets) {
 
     const qty = +a.qty || 0;
     const curVal = qty * ltp;
-    const pnl = curVal - (+a.invested || 0);
+    const investedAmt = qty * (+a.avg_cost || 0);   // correct: qty × avg_cost
+    const pnl = curVal - investedAmt;
     const gain = pnl;
-    const gainPct = a.invested > 0 ? ((gain / a.invested) * 100).toFixed(1) : null;
+    const gainPct = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
 
     totalValue += curVal;
-    totalInvested += +a.invested || 0;
+    totalInvested += investedAmt;
 
     // LTP cell
     const ltpCell = document.querySelector(`[data-live-ltp="${a.instrument}"]`);
