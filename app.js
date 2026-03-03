@@ -4,7 +4,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ─── DOM refs ────────────────────────────────────────────────
+// ─── DOM refs ─────────────────────────────────────────────────
 const authView = document.getElementById('auth-view');
 const dashView = document.getElementById('dashboard-view');
 const loginBtn = document.getElementById('login-btn');
@@ -15,8 +15,25 @@ const userAvatarPH = document.getElementById('user-avatar-placeholder');
 const dashDateEl = document.getElementById('dash-date');
 const allocContainer = document.getElementById('allocations-container');
 const toastEl = document.getElementById('toast');
+const allocChartWrap = document.getElementById('alloc-chart-wrap');
+const allocLegendEl = document.getElementById('alloc-legend');
+const allocModal = document.getElementById('alloc-modal');
+const modalRowsEl = document.getElementById('modal-rows');
+const modalTotalBadge = document.getElementById('modal-total-badge');
 
-// ─── Toast ───────────────────────────────────────────────────
+// ─── State ────────────────────────────────────────────────────
+let allocChartInstance = null;
+let _dashboardUserId = null;   // auth guard
+let _currentUserId = null;   // for edit modal
+let _currentAllocations = [];     // cached for edit modal
+
+// ─── Chart colour palette ─────────────────────────────────────
+const CHART_COLORS = [
+  '#0077cc', '#0a9080', '#15803d', '#6d28d9',
+  '#0ea5e9', '#059669', '#4f46e5', '#b45309',
+];
+
+// ─── Toast ────────────────────────────────────────────────────
 function showToast(msg, type = 'info') {
   const icons = { info: '💬', success: '✅', error: '❌' };
   toastEl.innerHTML = `<span>${icons[type]}</span> ${msg}`;
@@ -46,12 +63,8 @@ logoutBtn.addEventListener('click', async () => {
 });
 
 // ─── Auth state ───────────────────────────────────────────────
-// Guard to prevent showDashboard from running multiple times concurrently
-let _dashboardUserId = null;
-
 sb.auth.onAuthStateChange((event, session) => {
   if (session?.user) {
-    // Only re-initialise the dashboard when the user actually changes
     if (_dashboardUserId !== session.user.id) {
       _dashboardUserId = session.user.id;
       showDashboard(session.user);
@@ -75,12 +88,12 @@ function showDashboard(user) {
   dashView.classList.remove('hidden');
   document.title = 'FinTrack — Dashboard';
 
-  // User name
+  _currentUserId = user.id;
+
   const fullName = user.user_metadata?.full_name || user.email || 'there';
   const firstName = fullName.split(' ')[0];
   userNameEl.textContent = firstName;
 
-  // Avatar
   const avatarUrl = user.user_metadata?.avatar_url;
   if (avatarUrl) {
     userAvatarEl.src = avatarUrl;
@@ -92,20 +105,20 @@ function showDashboard(user) {
     userAvatarEl.classList.add('hidden');
   }
 
-  // Date
   if (dashDateEl) {
     dashDateEl.textContent = new Date().toLocaleDateString('en-IN', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
   }
 
-  // Load allocation data
   loadAllocations(user);
 }
 
-// ─── Allocations ──────────────────────────────────────────────
+// ─── Load allocations from Supabase ───────────────────────────
 async function loadAllocations(user) {
   allocContainer.innerHTML = '<div class="spinner"></div>';
+  allocChartWrap.style.display = 'none';
+  allocLegendEl.innerHTML = '';
 
   const { data, error } = await sb
     .from('ideal_allocations')
@@ -115,9 +128,9 @@ async function loadAllocations(user) {
 
   if (error) {
     allocContainer.innerHTML = `
-      <p style="font-size:13px; color:var(--muted); text-align:center; padding:16px;">
+      <p style="font-size:13px;color:var(--muted);text-align:center;padding:16px;">
         No allocation data yet.<br/>
-        <span style="color:var(--accent); cursor:pointer;" onclick="seedAllocations('${user.id}')">
+        <span style="color:var(--accent);cursor:pointer;" onclick="seedAllocations('${user.id}')">
           Set up defaults →
         </span>
       </p>`;
@@ -129,29 +142,22 @@ async function loadAllocations(user) {
     return;
   }
 
+  _currentAllocations = data;
   renderAllocations(data);
 }
 
+// ─── Render bar list + donut chart + legend ───────────────────
 function renderAllocations(allocations) {
-  const colors = [
-    '#0284c7', /* blue      */
-    '#0d9488', /* teal      */
-    '#16a34a', /* green     */
-    '#7c3aed', /* lavender  */
-    '#0ea5e9', /* sky       */
-    '#059669', /* emerald   */
-    '#4f46e5', /* indigo    */
-    '#0891b2', /* cyan      */
-  ];
+  _currentAllocations = allocations;
 
+  // ── Allocation bar list ──────────────────────────────────
   allocContainer.innerHTML = '';
   const list = document.createElement('div');
   list.className = 'alloc-list';
 
   allocations.forEach((a, i) => {
     const pct = (a.percentage * 100).toFixed(1);
-    const color = colors[i % colors.length];
-
+    const color = CHART_COLORS[i % CHART_COLORS.length];
     list.innerHTML += `
       <div class="alloc-item">
         <div class="alloc-header">
@@ -159,17 +165,61 @@ function renderAllocations(allocations) {
           <span class="alloc-pct" style="color:${color}">${pct}%</span>
         </div>
         <div class="alloc-track">
-          <div class="alloc-fill" style="width:${pct}%; background:linear-gradient(90deg,${color},${color}99)"></div>
+          <div class="alloc-fill" style="width:${pct}%;background:linear-gradient(90deg,${color},${color}99)"></div>
         </div>
       </div>`;
   });
-
   allocContainer.appendChild(list);
+
+  // ── Donut chart ──────────────────────────────────────────
+  allocChartWrap.style.display = 'flex';
+  if (allocChartInstance) {
+    allocChartInstance.destroy();
+    allocChartInstance = null;
+  }
+
+  const canvas = document.getElementById('alloc-chart');
+  allocChartInstance = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: allocations.map(a => a.item),
+      datasets: [{
+        data: allocations.map(a => +(a.percentage * 100).toFixed(1)),
+        backgroundColor: allocations.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
+        borderColor: '#ffffff',
+        borderWidth: 3,
+        hoverOffset: 10,
+      }],
+    },
+    options: {
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}%` },
+          bodyFont: { family: 'Inter', size: 13 },
+          titleFont: { family: 'Inter', size: 12 },
+          padding: 10,
+          backgroundColor: '#1c1917',
+          cornerRadius: 8,
+        },
+      },
+      animation: { animateRotate: true, duration: 900 },
+    },
+  });
+
+  // ── Legend ───────────────────────────────────────────────
+  allocLegendEl.innerHTML = allocations.map((a, i) => `
+    <div class="alloc-legend-item">
+      <div class="alloc-legend-dot" style="background:${CHART_COLORS[i % CHART_COLORS.length]}"></div>
+      ${a.item}
+    </div>`).join('');
 }
 
+// ─── Seed default allocations ─────────────────────────────────
 async function seedAllocations(userId) {
   allocContainer.innerHTML = `
-    <p style="font-size:13px; color:var(--muted); text-align:center; padding:16px;">
+    <p style="font-size:13px;color:var(--muted);text-align:center;padding:16px;">
       Setting up defaults…
     </p>`;
 
@@ -188,10 +238,153 @@ async function seedAllocations(userId) {
 
   if (error) {
     showToast('Could not seed allocations: ' + error.message, 'error');
-    allocContainer.innerHTML = '<p style="font-size:13px; color:var(--muted); text-align:center; padding:16px;">Could not load allocations.</p>';
+    allocContainer.innerHTML = `<p style="font-size:13px;color:var(--muted);text-align:center;padding:16px;">Could not load allocations.</p>`;
   } else {
     showToast('Default allocations set up!', 'success');
     loadAllocations({ id: userId });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EDIT MODAL
+// ══════════════════════════════════════════════════════════════
+
+// ── Open / close ─────────────────────────────────────────────
+document.getElementById('edit-alloc-btn').addEventListener('click', () => {
+  if (!_currentAllocations.length) {
+    showToast('No allocations to edit yet', 'info');
+    return;
+  }
+  openEditModal(_currentAllocations);
+});
+
+function openEditModal(allocations) {
+  modalRowsEl.innerHTML = '';
+  allocations.forEach(a => addModalRow(a.item, (a.percentage * 100).toFixed(1)));
+  updateModalTotal();
+  allocModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  allocModal.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+
+// Backdrop click
+allocModal.addEventListener('click', e => { if (e.target === allocModal) closeModal(); });
+
+// Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !allocModal.classList.contains('hidden')) closeModal(); });
+
+// ── Add row ───────────────────────────────────────────────────
+document.getElementById('modal-add-row-btn').addEventListener('click', () => {
+  addModalRow('', '');
+  const rows = modalRowsEl.querySelectorAll('.modal-row');
+  rows[rows.length - 1]?.querySelector('.modal-input-name')?.focus();
+});
+
+function addModalRow(name, pct) {
+  const row = document.createElement('div');
+  row.className = 'modal-row';
+  row.innerHTML = `
+    <input class="modal-input modal-input-name" type="text"
+      placeholder="e.g. India Equity MF" value="${name}" />
+    <input class="modal-input modal-input-pct" type="number"
+      placeholder="0.0" min="0" max="100" step="0.1" value="${pct}" />
+    <button class="modal-remove-btn" title="Remove">✕</button>
+  `;
+  row.querySelector('.modal-remove-btn').addEventListener('click', () => {
+    row.remove();
+    updateModalTotal();
+  });
+  row.querySelectorAll('.modal-input').forEach(inp => inp.addEventListener('input', updateModalTotal));
+  modalRowsEl.appendChild(row);
+}
+
+// ── Total badge ───────────────────────────────────────────────
+function updateModalTotal() {
+  let total = 0;
+  modalRowsEl.querySelectorAll('.modal-input-pct').forEach(inp => {
+    total += parseFloat(inp.value) || 0;
+  });
+  total = Math.round(total * 10) / 10;
+  modalTotalBadge.className = 'modal-total-badge';
+
+  if (Math.abs(total - 100) < 0.05) {
+    modalTotalBadge.textContent = `✓ Total: ${total}%`;
+    modalTotalBadge.classList.add('ok');
+  } else if (total > 100) {
+    modalTotalBadge.textContent = `Total: ${total}% (over by ${(total - 100).toFixed(1)}%)`;
+    modalTotalBadge.classList.add('err');
+  } else {
+    modalTotalBadge.textContent = `Total: ${total}% (need ${(100 - total).toFixed(1)}% more)`;
+    modalTotalBadge.classList.add('warn');
+  }
+}
+
+// ── Save ─────────────────────────────────────────────────────
+document.getElementById('modal-save-btn').addEventListener('click', saveAllocations);
+
+async function saveAllocations() {
+  const rows = [...modalRowsEl.querySelectorAll('.modal-row')];
+  const items = rows
+    .map(row => ({
+      name: row.querySelector('.modal-input-name').value.trim(),
+      pct: parseFloat(row.querySelector('.modal-input-pct').value) || 0,
+    }))
+    .filter(r => r.name && r.pct > 0);
+
+  if (!items.length) {
+    showToast('Add at least one valid row', 'error');
+    return;
+  }
+
+  const total = items.reduce((s, r) => s + r.pct, 0);
+  if (Math.abs(total - 100) > 0.5) {
+    showToast(`Total must equal 100% (currently ${total.toFixed(1)}%)`, 'error');
+    return;
+  }
+
+  const saveBtn = document.getElementById('modal-save-btn');
+  saveBtn.textContent = 'Saving…';
+  saveBtn.disabled = true;
+
+  // Delete existing → insert fresh
+  const { error: delErr } = await sb
+    .from('ideal_allocations')
+    .delete()
+    .eq('user_id', _currentUserId);
+
+  if (delErr) {
+    showToast('Save failed: ' + delErr.message, 'error');
+    saveBtn.textContent = '💾 Save';
+    saveBtn.disabled = false;
+    return;
+  }
+
+  const newRows = items.map(r => ({
+    user_id: _currentUserId,
+    item: r.name,
+    type: 'Asset',
+    category: 'Custom',
+    percentage: +(r.pct / 100).toFixed(4),
+  }));
+
+  const { error: insErr } = await sb.from('ideal_allocations').insert(newRows);
+
+  saveBtn.textContent = '💾 Save';
+  saveBtn.disabled = false;
+
+  if (insErr) {
+    showToast('Save failed: ' + insErr.message, 'error');
+  } else {
+    showToast('Allocation saved! 🎉', 'success');
+    closeModal();
+    loadAllocations({ id: _currentUserId });
   }
 }
 
