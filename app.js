@@ -475,14 +475,17 @@ let _currentAssetFilter = null;
 async function loadDashboardStats(userId) {
   let totalInvested = 0, totalValue = 0, count = 0;
 
-  // Query every known table in parallel
-  const results = await Promise.all(
-    Object.values(ASSET_TABLES).map(table =>
-      sb.from(table).select('invested, current_value').eq('user_id', userId)
-    )
-  );
+  // Query every known asset table + fd_actual_invested in parallel
+  const [assetResults, { data: fdData }] = await Promise.all([
+    Promise.all(
+      Object.values(ASSET_TABLES).map(table =>
+        sb.from(table).select('invested, current_value').eq('user_id', userId)
+      )
+    ),
+    sb.from('fd_actual_invested').select('amount').eq('user_id', userId)
+  ]);
 
-  results.forEach(({ data }) => {
+  assetResults.forEach(({ data }) => {
     if (!data) return;
     data.forEach(row => {
       totalInvested += +row.invested || 0;
@@ -491,15 +494,16 @@ async function loadDashboardStats(userId) {
     });
   });
 
-  const netWorthEl = document.getElementById('dash-net-worth');
-  const netWorthSubEl = document.getElementById('dash-net-worth-sub');
-  const totalAssetsEl = document.getElementById('dash-total-assets');
-  const totalAssetsSubEl = document.getElementById('dash-total-assets-sub');
+  const actualInvested = (fdData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const fdCount = (fdData || []).length;
 
-  if (netWorthEl) netWorthEl.textContent = INR(totalValue);
-  if (netWorthSubEl) netWorthSubEl.textContent = count ? `${count} asset${count > 1 ? 's' : ''} tracked` : 'Add assets to calculate';
-  if (totalAssetsEl) totalAssetsEl.textContent = INR(totalValue);
-  if (totalAssetsSubEl) totalAssetsSubEl.textContent = `${count} asset${count > 1 ? 's' : ''} tracked`;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('dash-net-worth', INR(totalValue));
+  set('dash-net-worth-sub', count ? `${count} asset${count > 1 ? 's' : ''} tracked` : 'Add assets to calculate');
+  set('dash-total-assets', INR(totalValue));
+  set('dash-total-assets-sub', `${count} asset${count > 1 ? 's' : ''} tracked`);
+  set('dash-actual-invested', INR(actualInvested));
+  set('dash-actual-invested-sub', `${fdCount} FD entr${fdCount !== 1 ? 'ies' : 'y'} tracked`);
 }
 
 async function loadAssets(userId, filter = null) {
@@ -545,6 +549,11 @@ async function loadAssets(userId, filter = null) {
       gainEl.textContent = (gain >= 0 ? '+' : '') + INR(gain);
       gainEl.style.color = gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)';
     }
+
+    // Also fetch fd_actual_invested total for the Actual Invested tile
+    const { data: fdData } = await sb.from('fd_actual_invested').select('amount').eq('user_id', userId);
+    const actualInvested = (fdData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    set('assets-actual-invested', INR(actualInvested));
 
     // Clear the spinner — show "select a category" prompt
     tbody.innerHTML = `<tr><td colspan="8">
