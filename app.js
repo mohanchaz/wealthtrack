@@ -1037,6 +1037,25 @@ async function fetchAndRefreshZerodhaPrices(assets) {
   // Timestamp
   const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
+
+  // ── Persist updated LTP to DB so the Assets overview always shows fresh gain/loss ──
+  const ltpUpdates = assets
+    .filter(a => prices[a.instrument])
+    .map(a => ({
+      user_id: _currentUserId,
+      instrument: a.instrument,
+      qty: a.qty,
+      prev_qty: a.prev_qty ?? 0,
+      avg_cost: a.avg_cost,
+      ltp: prices[a.instrument],
+    }));
+  if (ltpUpdates.length) {
+    sb.from('zerodha_stocks')
+      .upsert(ltpUpdates, { onConflict: 'user_id,instrument' })
+      .then(({ error }) => {
+        if (error) console.warn('LTP persist failed:', error.message);
+      });
+  }
 }
 
 // Wire Refresh button
@@ -1469,21 +1488,9 @@ document.getElementById('add-asset-save-btn').addEventListener('click', async ()
 //  SIDEBAR NAVIGATION
 // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-// ── Expandable assets sub-group ──────────────────────────────
+// ── Expandable assets sub-group — always open (static) ──────
 const assetsSubGroup = document.getElementById('assets-sub-group');
-const assetsChevron = document.getElementById('assets-chevron');
-
-function openAssetsSubGroup() {
-  assetsSubGroup.classList.add('open');
-  assetsChevron.classList.add('open');
-}
-function closeAssetsSubGroup() {
-  assetsSubGroup.classList.remove('open');
-  assetsChevron.classList.remove('open');
-}
-function toggleAssetsSubGroup() {
-  assetsSubGroup.classList.contains('open') ? closeAssetsSubGroup() : openAssetsSubGroup();
-}
+if (assetsSubGroup) assetsSubGroup.classList.add('open');
 
 // ── Set active sidebar item / sub-item ───────────────────────
 function setActiveSidebarItem(el) {
@@ -1497,30 +1504,20 @@ document.querySelectorAll('.sidebar-item[data-page]').forEach(item => {
   item.addEventListener('click', () => {
     const page = item.dataset.page;
     const pageId = `page-${page}`;
-
-    if (page === 'assets') {
-      // Toggle sub-group open/close
-      toggleAssetsSubGroup();
-      setActiveSidebarItem(item);
-      if (allPages.includes(pageId)) navigateTo(pageId, null);
+    setActiveSidebarItem(item);
+    if (allPages.includes(pageId)) {
+      navigateTo(pageId, null);
     } else {
-      closeAssetsSubGroup();
-      setActiveSidebarItem(item);
-      if (allPages.includes(pageId)) {
-        navigateTo(pageId);
-      } else {
-        allPages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
-      }
+      allPages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
     }
   });
 });
 
-// ── Sub-items (e.g. Cash) ─────────────────────────────────────
+// ── Sub-items (e.g. Cash, Bank FD, Zerodha Stocks) ───────────
 document.querySelectorAll('.sidebar-sub-item[data-asset-filter]').forEach(sub => {
   sub.addEventListener('click', e => {
     e.stopPropagation();
     setActiveSidebarItem(sub);
-    openAssetsSubGroup();
     navigateTo('page-assets', sub.dataset.assetFilter);
   });
 });
