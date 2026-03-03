@@ -527,6 +527,17 @@ async function loadAssets(userId, filter = null) {
     const monthlySec = document.getElementById('assets-monthly-summary');
     if (monthlySec) monthlySec.classList.add('hidden');
 
+    // Hide the Actual Invested stat card and reset table headers to default
+    const actualOverviewCard = document.getElementById('assets-actual-invested-card');
+    if (actualOverviewCard) actualOverviewCard.classList.add('hidden');
+    const overviewThead = document.getElementById('assets-thead-row');
+    if (overviewThead) {
+      const defaultCols = ASSET_COLUMNS['cash_assets'];
+      overviewThead.innerHTML =
+        defaultCols.map(c => `<th${c.align ? ` style="text-align:${c.align}"` : ''}>${c.label}</th>`).join('') +
+        `<th style="text-align:right">Gain / Loss</th><th></th>`;
+    }
+
     // Aggregate totals from all known asset tables
     let totalInvested = 0, totalValue = 0, count = 0;
     const results = await Promise.all(
@@ -671,10 +682,13 @@ function renderAssetsTable(assets, tableName) {
   });
   tbody.innerHTML = html;
 
-  // Show Actual Invested only for Bank FD
+  // Show Actual Invested section + stat card only for Bank FD
+  const actualCard = document.getElementById('assets-actual-invested-card');
   if (tableName === 'bank_fd_assets') {
+    if (actualCard) actualCard.classList.remove('hidden');
     loadFdActualInvested(_currentUserId);
   } else {
+    if (actualCard) actualCard.classList.add('hidden');
     const sec = document.getElementById('assets-monthly-summary');
     if (sec) sec.classList.add('hidden');
   }
