@@ -646,14 +646,20 @@ function renderAssetsTable(assets, tableName) {
   const cols = ASSET_COLUMNS[tableName] || ASSET_COLUMNS['cash_assets'];
   const colCount = cols.length + 2; // +gain +delete
 
-  // Show/hide Import CSV button for Zerodha Stocks
+  // Show/hide Import CSV and Refresh Prices buttons
   const importBtn = document.getElementById('zerodha-import-btn');
+  const refreshBtn = document.getElementById('zerodha-refresh-btn');
+  const lastUpdated = document.getElementById('zerodha-last-updated');
   const addBtn2 = document.getElementById('add-asset-btn');
   if (tableName === 'zerodha_stocks') {
     if (importBtn) importBtn.classList.remove('hidden');
+    if (refreshBtn) refreshBtn.classList.remove('hidden');
+    if (lastUpdated) lastUpdated.classList.remove('hidden');
     if (addBtn2) addBtn2.classList.add('hidden');
   } else {
     if (importBtn) importBtn.classList.add('hidden');
+    if (refreshBtn) refreshBtn.classList.add('hidden');
+    if (lastUpdated) lastUpdated.classList.add('hidden');
   }
 
   // Update thead dynamically
@@ -716,13 +722,18 @@ function renderAssetsTable(assets, tableName) {
       if (c.mono) style += 'font-family:monospace;font-size:12px;';
       // Allow HTML (e.g. qty_diff spans) — use innerHTML via template literal
       const inner = c.bold ? `<b>${val}</b>` : val;
-      return `<td${style ? ` style="${style}"` : ''}>${inner}</td>`;
+      // For zerodha: tag live-updatable cells with data attributes
+      const liveAttr = (tableName === 'zerodha_stocks' && ['ltp', 'current_value', 'pnl'].includes(c.key))
+        ? ` data-live-${c.key}="${a.instrument}"`
+        : '';
+      return `<td${style ? ` style="${style}"` : ''}${liveAttr}>${inner}</td>`;
     }).join('');
 
+    const gainAttr = tableName === 'zerodha_stocks' ? ` data-live-gain="${a.instrument}"` : '';
     html += `
       <tr data-id="${a.id}">
         ${cells}
-        <td style="text-align:right"><span class="gain-badge ${badgeCls}">${gainLabel}</span></td>
+        <td style="text-align:right"${gainAttr}><span class="gain-badge ${badgeCls}">${gainLabel}</span></td>
         <td style="white-space:nowrap">
           <button class="asset-edit-btn" data-id="${a.id}" data-table="${tableName}" title="Edit" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 5px;opacity:0.7;" data-row='${JSON.stringify(a).replace(/'/g, "&apos;")}'>✏️</button>
           <button class="asset-delete-btn" data-id="${a.id}" data-table="${tableName}" title="Delete">🗑</button>
@@ -740,6 +751,11 @@ function renderAssetsTable(assets, tableName) {
     if (actualCard) actualCard.classList.add('hidden');
     const sec = document.getElementById('assets-monthly-summary');
     if (sec) sec.classList.add('hidden');
+  }
+
+  // Auto-fetch live prices for Zerodha Stocks
+  if (tableName === 'zerodha_stocks' && assets.length) {
+    fetchAndRefreshZerodhaPrices(assets);
   }
 
   tbody.querySelectorAll('.asset-edit-btn').forEach(btn => {
@@ -856,6 +872,114 @@ async function deleteFdInvested(id) {
   showToast('Entry deleted', 'success');
   loadFdActualInvested(_currentUserId);
 }
+
+// ══════════════════════════════════════════════════════════════
+//  ZERODHA LIVE PRICES  — Yahoo Finance (NSE)
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Batch-fetch current prices for NSE instruments from Yahoo Finance.
+ * Adds .NS suffix to each symbol (e.g. RELIANCE → RELIANCE.NS).
+ * Returns { INSTRUMENT: price } map.
+ */
+async function fetchLivePrices(instruments) {
+  const symbols = instruments.map(i => i + '.NS').join(',');
+  const url = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,shortName`;
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const priceMap = {};
+    (json?.quoteResponse?.result || []).forEach(q => {
+      const inst = q.symbol.replace('.NS', '').replace('.BO', '');
+      priceMap[inst] = q.regularMarketPrice;
+    });
+    return priceMap;
+  } catch (err) {
+    console.warn('[LivePrices] fetch failed:', err.message);
+    return null; // null signals failure (not just empty)
+  }
+}
+
+async function fetchAndRefreshZerodhaPrices(assets) {
+  const lastUpdateEl = document.getElementById('zerodha-last-updated');
+  const refreshBtn = document.getElementById('zerodha-refresh-btn');
+  if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching live prices…';
+  if (refreshBtn) refreshBtn.disabled = true;
+
+  const instruments = assets.map(a => a.instrument);
+  const prices = await fetchLivePrices(instruments);
+
+  if (refreshBtn) refreshBtn.disabled = false;
+
+  if (!prices) {
+    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ Could not fetch prices';
+    showToast('Live price fetch failed — check console', 'error');
+    return;
+  }
+
+  let totalValue = 0, totalInvested = 0;
+
+  assets.forEach(a => {
+    const ltp = prices[a.instrument];
+    if (!ltp) return;
+
+    const qty = +a.qty || 0;
+    const curVal = qty * ltp;
+    const pnl = curVal - (+a.invested || 0);
+    const gain = pnl;
+    const gainPct = a.invested > 0 ? ((gain / a.invested) * 100).toFixed(1) : null;
+
+    totalValue += curVal;
+    totalInvested += +a.invested || 0;
+
+    // LTP cell
+    const ltpCell = document.querySelector(`[data-live-ltp="${a.instrument}"]`);
+    if (ltpCell) ltpCell.textContent = INR(ltp);
+
+    // Current value cell
+    const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
+    if (cvCell) cvCell.textContent = INR(curVal);
+
+    // P&L cell
+    const pnlCell = document.querySelector(`[data-live-pnl="${a.instrument}"]`);
+    if (pnlCell) {
+      pnlCell.textContent = INR(pnl);
+      pnlCell.style.color = pnl >= 0 ? 'var(--green)' : 'var(--danger)';
+    }
+
+    // Gain/Loss badge
+    const gainTd = document.querySelector(`[data-live-gain="${a.instrument}"]`);
+    if (gainTd) {
+      const arrow = gain >= 0 ? '▲' : '▼';
+      const badgeCls = gain > 0 ? 'pos' : gain < 0 ? 'neg' : 'zero';
+      gainTd.innerHTML = `<span class="gain-badge ${badgeCls}">${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}</span>`;
+    }
+  });
+
+  // Update stat cards with live totals
+  const totalGain = totalValue - totalInvested;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('assets-total-value', INR(totalValue));
+  const gainEl = document.getElementById('assets-total-gain');
+  if (gainEl) {
+    gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain);
+    gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+
+  // Timestamp
+  const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
+}
+
+// Wire Refresh button
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('zerodha-refresh-btn')?.addEventListener('click', () => {
+    if (_currentAssetFilter === 'Zerodha Stocks') {
+      loadAssets(_currentUserId, 'Zerodha Stocks');
+    }
+  });
+});
 
 // ══════════════════════════════════════════════════════════════
 //  ZERODHA STOCKS  — CSV import module
