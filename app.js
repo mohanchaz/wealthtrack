@@ -527,6 +527,12 @@ async function loadAssets(userId, filter = null) {
     const monthlySec = document.getElementById('assets-monthly-summary');
     if (monthlySec) monthlySec.classList.add('hidden');
 
+    // Hide toolbar and table — only stat tiles visible
+    const toolbar = document.getElementById('assets-toolbar');
+    const tableWrap = document.getElementById('assets-table-wrap');
+    if (toolbar) toolbar.classList.add('hidden');
+    if (tableWrap) tableWrap.classList.add('hidden');
+
     // Hide the Actual Invested stat card and reset table headers to default
     const actualOverviewCard = document.getElementById('assets-actual-invested-card');
     if (actualOverviewCard) actualOverviewCard.classList.add('hidden');
@@ -592,6 +598,12 @@ async function loadAssets(userId, filter = null) {
   if (subtitle) subtitle.textContent = `💵 ${filter}`;
   if (toolbarLabel) toolbarLabel.textContent = `Showing ${filter} assets`;
   if (addBtn) addBtn.classList.remove('hidden');
+
+  // Show toolbar and table when a category is selected
+  const activeToolbar = document.getElementById('assets-toolbar');
+  const activeTableWrap = document.getElementById('assets-table-wrap');
+  if (activeToolbar) activeToolbar.classList.remove('hidden');
+  if (activeTableWrap) activeTableWrap.classList.remove('hidden');
 
   const { data, error } = await sb
     .from(tableName)
