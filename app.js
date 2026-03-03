@@ -112,6 +112,7 @@ function showDashboard(user) {
   }
 
   loadAllocations(user);
+  loadDashboardStats(user.id);
 }
 
 // ─── Load allocations from Supabase ───────────────────────────
@@ -412,6 +413,9 @@ function navigateTo(pageId, assetFilter = null) {
   if (pageId === 'page-assets' && _currentUserId) {
     loadAssets(_currentUserId, assetFilter);
   }
+  if (pageId === 'page-dashboard' && _currentUserId) {
+    loadDashboardStats(_currentUserId);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -426,11 +430,45 @@ const ASSET_TABLES = {
   // future: 'Equity': 'equity_assets', 'Gold': 'gold_assets', etc.
 };
 
-let _currentAssetTable = null;   // which table is currently loaded
-let _currentAssetFilter = null;   // which filter label is active
+let _currentAssetTable = null;
+let _currentAssetFilter = null;
+
+// ── Dashboard stats (aggregates all asset tables) ──────────────────
+async function loadDashboardStats(userId) {
+  let totalInvested = 0, totalValue = 0, count = 0;
+
+  // Query every known table in parallel
+  const results = await Promise.all(
+    Object.values(ASSET_TABLES).map(table =>
+      sb.from(table).select('invested, current_value').eq('user_id', userId)
+    )
+  );
+
+  results.forEach(({ data }) => {
+    if (!data) return;
+    data.forEach(row => {
+      totalInvested += +row.invested || 0;
+      totalValue += +row.current_value || 0;
+      count += 1;
+    });
+  });
+
+  const netWorthEl = document.getElementById('dash-net-worth');
+  const netWorthSubEl = document.getElementById('dash-net-worth-sub');
+  const totalAssetsEl = document.getElementById('dash-total-assets');
+  const totalAssetsSubEl = document.getElementById('dash-total-assets-sub');
+
+  if (netWorthEl) netWorthEl.textContent = INR(totalValue);
+  if (netWorthSubEl) netWorthSubEl.textContent = count ? `${count} asset${count > 1 ? 's' : ''} tracked` : 'Add assets to calculate';
+  if (totalAssetsEl) totalAssetsEl.textContent = INR(totalValue);
+  if (totalAssetsSubEl) totalAssetsSubEl.textContent = `${count} asset${count > 1 ? 's' : ''} tracked`;
+}
 
 async function loadAssets(userId, filter = null) {
   const tbody = document.getElementById('assets-table-body');
+  const addBtn = document.getElementById('add-asset-btn');
+  const toolbarLabel = document.getElementById('assets-toolbar-label');
+
   tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
 
   // Update subtitle
@@ -440,20 +478,19 @@ async function loadAssets(userId, filter = null) {
     // No category selected — prompt user to pick one
     _currentAssetTable = null;
     _currentAssetFilter = null;
-    if (subtitle) subtitle.textContent = 'Select an asset category from the sidebar';
+    if (subtitle) subtitle.textContent = 'Your assets overview';
+    if (toolbarLabel) toolbarLabel.textContent = 'Select a category from the sidebar to view assets';
+    if (addBtn) addBtn.classList.add('hidden');
     ['assets-total-invested', 'assets-total-value', 'assets-total-gain', 'assets-count']
       .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
-    tbody.innerHTML = `<tr><td colspan="8">
-      <div class="assets-empty">
-        <div class="empty-icon">👈</div>
-        Choose a category from the sidebar<br/>
-        <span style="font-size:12px;color:var(--muted2)">e.g. Assets → Cash</span>
-      </div></td></tr>`;
+    // Show aggregated overview from all tables
+    await loadDashboardStats(userId);
     return;
   }
 
   const tableName = ASSET_TABLES[filter];
   if (!tableName) {
+    if (addBtn) addBtn.classList.add('hidden');
     tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">🚧</div>${filter} — coming soon!</div></td></tr>`;
     return;
   }
@@ -461,6 +498,8 @@ async function loadAssets(userId, filter = null) {
   _currentAssetTable = tableName;
   _currentAssetFilter = filter;
   if (subtitle) subtitle.textContent = `💵 ${filter}`;
+  if (toolbarLabel) toolbarLabel.textContent = `Showing ${filter} assets`;
+  if (addBtn) addBtn.classList.remove('hidden');
 
   const { data, error } = await sb
     .from(tableName)

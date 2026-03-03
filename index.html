@@ -1751,23 +1751,23 @@
                 <div class="summary-card-label-dot" style="background:var(--teal)"></div>
                 Net Worth
               </div>
-              <div class="summary-card-value" style="color:var(--teal)">₹0</div>
-              <div class="summary-card-sub">Add assets to calculate</div>
+              <div class="summary-card-value" id="dash-net-worth" style="color:var(--teal)">₹0</div>
+              <div class="summary-card-sub" id="dash-net-worth-sub">Add assets to calculate</div>
             </div>
             <div class="summary-card anim-fadeup delay-2" style="--card-accent:var(--accent)">
               <div class="summary-card-label">
                 <div class="summary-card-label-dot" style="background:var(--accent)"></div>
                 Total Assets
               </div>
-              <div class="summary-card-value" style="color:var(--accent)">₹0</div>
-              <div class="summary-card-sub">0 assets tracked</div>
+              <div class="summary-card-value" id="dash-total-assets" style="color:var(--accent)">₹0</div>
+              <div class="summary-card-sub" id="dash-total-assets-sub">0 assets tracked</div>
             </div>
             <div class="summary-card anim-fadeup delay-3" style="--card-accent:var(--warn)">
               <div class="summary-card-label">
                 <div class="summary-card-label-dot" style="background:var(--warn)"></div>
                 Total Liabilities
               </div>
-              <div class="summary-card-value" style="color:var(--warn)">₹0</div>
+              <div class="summary-card-value" id="dash-liabilities" style="color:var(--warn)">₹0</div>
               <div class="summary-card-sub">0 loans / EMIs</div>
             </div>
             <div class="summary-card anim-fadeup delay-4" style="--card-accent:var(--lavender)">
@@ -1927,10 +1927,11 @@
             </div>
           </div>
 
-          <!-- Toolbar -->
+          <!-- Toolbar (add button shown dynamically by JS when sub-category is active) -->
           <div class="assets-toolbar">
-            <div style="font-size:13px;color:var(--muted)">All your financial assets in one place</div>
-            <button class="btn-primary" id="add-asset-btn"><span>+</span> Add Asset</button>
+            <div style="font-size:13px;color:var(--muted)" id="assets-toolbar-label">Select a category from the sidebar
+              to view assets</div>
+            <button class="btn-primary hidden" id="add-asset-btn"><span>+</span> Add Asset</button>
           </div>
 
           <!-- Table -->
