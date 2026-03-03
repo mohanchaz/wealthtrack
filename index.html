@@ -1305,6 +1305,197 @@
     .modal-total-badge.err {
       color: var(--danger);
     }
+
+    /* ─── ASSETS TABLE ─────────────────────────────────────── */
+    .assets-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .assets-table-wrap {
+      overflow-x: auto;
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .assets-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: #fff;
+    }
+
+    .assets-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--muted2);
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .assets-table td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .assets-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .assets-table tr:hover td {
+      background: var(--surface2);
+    }
+
+    .asset-class-row td {
+      background: var(--bg);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted2);
+      padding: 8px 16px;
+    }
+
+    .gain-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .gain-badge.pos {
+      background: rgba(21, 128, 61, 0.1);
+      color: var(--green);
+    }
+
+    .gain-badge.neg {
+      background: rgba(220, 38, 38, 0.1);
+      color: var(--danger);
+    }
+
+    .gain-badge.zero {
+      background: var(--surface2);
+      color: var(--muted);
+    }
+
+    .asset-delete-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: none;
+      border: 1px solid transparent;
+      color: var(--muted2);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .asset-delete-btn:hover {
+      background: rgba(220, 38, 38, 0.09);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .assets-empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height: 1.8;
+    }
+
+    .assets-empty .empty-icon {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    /* ─── ADD ASSET MODAL ──────────────────────────────────── */
+    .asset-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .asset-form-grid .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--muted2);
+    }
+
+    .asset-form-group-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--muted2);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      grid-column: 1 / -1;
+      margin-top: 4px;
+    }
+
+    .assets-summary-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .assets-stat-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      flex: 1;
+      min-width: 140px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .assets-stat-label {
+      font-size: 11px;
+      color: var(--muted2);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 4px;
+    }
+
+    .assets-stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
   </style>
 </head>
 
@@ -1641,6 +1832,70 @@
 
         </div><!-- /#page-allocation -->
 
+        <!-- ══ PAGE: ASSETS ════════════════════════════════════ -->
+        <div id="page-assets" class="hidden">
+
+          <div class="page-header">
+            <h1 class="page-title">Assets</h1>
+            <p class="page-subtitle">Track all your investments and holdings</p>
+          </div>
+
+          <!-- Summary stats -->
+          <div class="assets-summary-row">
+            <div class="assets-stat-card">
+              <div class="assets-stat-label">Total Invested</div>
+              <div class="assets-stat-value" id="assets-total-invested" style="color:var(--accent)">₹0</div>
+            </div>
+            <div class="assets-stat-card">
+              <div class="assets-stat-label">Current Value</div>
+              <div class="assets-stat-value" id="assets-total-value" style="color:var(--teal)">₹0</div>
+            </div>
+            <div class="assets-stat-card">
+              <div class="assets-stat-label">Total Gain / Loss</div>
+              <div class="assets-stat-value" id="assets-total-gain">₹0</div>
+            </div>
+            <div class="assets-stat-card">
+              <div class="assets-stat-label">Assets Tracked</div>
+              <div class="assets-stat-value" id="assets-count" style="color:var(--lavender)">0</div>
+            </div>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="assets-toolbar">
+            <div style="font-size:13px;color:var(--muted)">All your financial assets in one place</div>
+            <button class="btn-primary" id="add-asset-btn"><span>+</span> Add Asset</button>
+          </div>
+
+          <!-- Table -->
+          <div class="assets-table-wrap">
+            <table class="assets-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Platform</th>
+                  <th>Account No.</th>
+                  <th>SB Account No.</th>
+                  <th style="text-align:right">Invested</th>
+                  <th style="text-align:right">Current Value</th>
+                  <th style="text-align:right">Gain / Loss</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="assets-table-body">
+                <tr>
+                  <td colspan="8">
+                    <div class="assets-empty">
+                      <div class="empty-icon">🏦</div>
+                      Loading assets…
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div><!-- /#page-assets -->
+
       </main>
     </div>
   </div>
@@ -1670,6 +1925,82 @@
         <div class="modal-total-badge" id="modal-total-badge">Total: 0%</div>
         <button class="btn-secondary" id="modal-cancel-btn">Cancel</button>
         <button class="btn-primary" id="modal-save-btn">💾 Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Asset Modal -->
+  <div id="add-asset-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:600px">
+      <div class="modal-header">
+        <h3>Add Asset</h3>
+        <button class="modal-close" id="add-asset-close-btn" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="asset-form-grid">
+
+          <div class="asset-form-group-title">Asset Details</div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-asset-class">Asset Class</label>
+            <select class="modal-input" id="af-asset-class">
+              <option value="Cash">Cash</option>
+              <option value="Equity">Equity</option>
+              <option value="Mutual Fund">Mutual Fund</option>
+              <option value="Gold">Gold</option>
+              <option value="Real Estate">Real Estate</option>
+              <option value="EPF/PPF/NPS">EPF/PPF/NPS</option>
+              <option value="Bonds">Bonds</option>
+              <option value="Crypto">Crypto</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-category">Category / Type</label>
+            <input class="modal-input" id="af-category" type="text" placeholder="e.g. NRE FD, SB Account" />
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="af-platform">Platform / Bank</label>
+            <input class="modal-input" id="af-platform" type="text" placeholder="e.g. Equitas Bank, Zerodha" />
+          </div>
+
+          <div class="asset-form-group-title">Account Reference</div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-account-number">Account Number</label>
+            <input class="modal-input" id="af-account-number" type="text" placeholder="e.g. 30011971029" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-sb-account">SB Account Number</label>
+            <input class="modal-input" id="af-sb-account" type="text" placeholder="e.g. 100049429906" />
+          </div>
+
+          <div class="asset-form-group-title">Value</div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-invested">Amount Invested (₹)</label>
+            <input class="modal-input" id="af-invested" type="number" min="0" step="0.01" placeholder="e.g. 100000" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-current">Current Value (₹)</label>
+            <input class="modal-input" id="af-current" type="number" min="0" step="0.01" placeholder="e.g. 110744" />
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="af-notes">Notes (optional)</label>
+            <input class="modal-input" id="af-notes" type="text" placeholder="Any notes…" />
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div style="font-size:12px;color:var(--muted);margin-right:auto">All fields except Category are optional</div>
+        <button class="btn-secondary" id="add-asset-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="add-asset-save-btn">💾 Save Asset</button>
       </div>
     </div>
   </div>

@@ -389,7 +389,7 @@ async function saveAllocations() {
 }
 
 // ─── Page navigation ──────────────────────────────────────────
-const allPages = ['page-dashboard', 'page-allocation'];
+const allPages = ['page-dashboard', 'page-allocation', 'page-assets'];
 
 function navigateTo(pageId) {
   // Hide all known pages
@@ -405,11 +405,184 @@ function navigateTo(pageId) {
     target.classList.add('anim-fadein');
   }
 
-  // Load allocation data when navigating to that page
+  // Load data when navigating to specific pages
   if (pageId === 'page-allocation' && _currentUserId && !_currentAllocations.length) {
     loadAllocations({ id: _currentUserId });
   }
+  if (pageId === 'page-assets' && _currentUserId) {
+    loadAssets(_currentUserId);
+  }
 }
+
+// ══════════════════════════════════════════════════════════════
+//  ASSETS MODULE
+// ══════════════════════════════════════════════════════════════
+
+const INR = v => '₹' + Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+async function loadAssets(userId) {
+  document.getElementById('assets-table-body').innerHTML =
+    `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
+
+  const { data, error } = await sb
+    .from('assets')
+    .select('*')
+    .eq('user_id', userId)
+    .order('asset_class')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    document.getElementById('assets-table-body').innerHTML =
+      `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⚠️</div>${error.message}</div></td></tr>`;
+    return;
+  }
+
+  renderAssetsTable(data || []);
+}
+
+function renderAssetsTable(assets) {
+  const tbody = document.getElementById('assets-table-body');
+
+  // Summary stats
+  const totalInvested = assets.reduce((s, a) => s + (+a.invested || 0), 0);
+  const totalValue = assets.reduce((s, a) => s + (+a.current_value || 0), 0);
+  const totalGain = totalValue - totalInvested;
+
+  document.getElementById('assets-total-invested').textContent = INR(totalInvested);
+  document.getElementById('assets-total-value').textContent = INR(totalValue);
+  document.getElementById('assets-count').textContent = assets.length;
+
+  const gainEl = document.getElementById('assets-total-gain');
+  gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain);
+  gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
+
+  if (!assets.length) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="assets-empty">
+        <div class="empty-icon">🏦</div>
+        No assets yet.<br/>Click <b>+ Add Asset</b> to get started.
+      </div></td></tr>`;
+    return;
+  }
+
+  // Group by asset_class
+  const groups = {};
+  assets.forEach(a => {
+    const cls = a.asset_class || 'Other';
+    if (!groups[cls]) groups[cls] = [];
+    groups[cls].push(a);
+  });
+
+  let html = '';
+  for (const [cls, items] of Object.entries(groups)) {
+    html += `<tr class="asset-class-row"><td colspan="8">📂 ${cls}</td></tr>`;
+    items.forEach(a => {
+      const invested = +a.invested || 0;
+      const current = +a.current_value || 0;
+      const gain = current - invested;
+      const gainPct = invested > 0 ? ((gain / invested) * 100).toFixed(1) : null;
+
+      let badgeCls = 'zero', arrow = '–';
+      if (gain > 0) { badgeCls = 'pos'; arrow = '▲'; }
+      if (gain < 0) { badgeCls = 'neg'; arrow = '▼'; }
+
+      const gainLabel = gain !== 0
+        ? `${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}`
+        : '–';
+
+      html += `
+        <tr data-id="${a.id}">
+          <td><b>${a.category || '—'}</b></td>
+          <td>${a.platform || '—'}</td>
+          <td style="font-family:monospace;font-size:12px">${a.account_number || '—'}</td>
+          <td style="font-family:monospace;font-size:12px">${a.sb_account_number || '—'}</td>
+          <td style="text-align:right">${invested ? INR(invested) : '—'}</td>
+          <td style="text-align:right;font-weight:600">${current ? INR(current) : '—'}</td>
+          <td style="text-align:right">
+            <span class="gain-badge ${badgeCls}">${gainLabel}</span>
+          </td>
+          <td>
+            <button class="asset-delete-btn" data-id="${a.id}" title="Delete">🗑</button>
+          </td>
+        </tr>`;
+    });
+  }
+  tbody.innerHTML = html;
+
+  // Delete handlers
+  tbody.querySelectorAll('.asset-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this asset?')) return;
+      await deleteAsset(btn.dataset.id);
+    });
+  });
+}
+
+async function deleteAsset(id) {
+  const { error } = await sb.from('assets').delete().eq('id', id);
+  if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
+  showToast('Asset deleted', 'success');
+  loadAssets(_currentUserId);
+}
+
+// ── Add Asset Modal ───────────────────────────────────────────
+const addAssetModal = document.getElementById('add-asset-modal');
+
+function openAddAssetModal() {
+  ['af-asset-class', 'af-category', 'af-platform', 'af-account-number', 'af-sb-account', 'af-invested', 'af-current', 'af-notes']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = el.tagName === 'SELECT' ? 'Cash' : '';
+    });
+  addAssetModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('af-category').focus();
+}
+
+function closeAddAssetModal() {
+  addAssetModal.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('add-asset-btn').addEventListener('click', openAddAssetModal);
+document.getElementById('add-asset-close-btn').addEventListener('click', closeAddAssetModal);
+document.getElementById('add-asset-cancel-btn').addEventListener('click', closeAddAssetModal);
+addAssetModal.addEventListener('click', e => { if (e.target === addAssetModal) closeAddAssetModal(); });
+
+document.getElementById('add-asset-save-btn').addEventListener('click', async () => {
+  const assetClass = document.getElementById('af-asset-class').value.trim();
+  const category = document.getElementById('af-category').value.trim();
+
+  if (!assetClass || !category) {
+    showToast('Asset Class and Category are required', 'error');
+    return;
+  }
+
+  const saveBtn = document.getElementById('add-asset-save-btn');
+  saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+
+  const { error } = await sb.from('assets').insert({
+    user_id: _currentUserId,
+    asset_class: assetClass,
+    category: category,
+    platform: document.getElementById('af-platform').value.trim() || null,
+    account_number: document.getElementById('af-account-number').value.trim() || null,
+    sb_account_number: document.getElementById('af-sb-account').value.trim() || null,
+    invested: parseFloat(document.getElementById('af-invested').value) || 0,
+    current_value: parseFloat(document.getElementById('af-current').value) || 0,
+    notes: document.getElementById('af-notes').value.trim() || null,
+  });
+
+  saveBtn.textContent = '💾 Save Asset'; saveBtn.disabled = false;
+
+  if (error) {
+    showToast('Save failed: ' + error.message, 'error');
+  } else {
+    showToast('Asset saved! 🎉', 'success');
+    closeAddAssetModal();
+    loadAssets(_currentUserId);
+  }
+});
 
 // Sidebar active state + page navigation
 document.querySelectorAll('.sidebar-item[data-page]').forEach(item => {
