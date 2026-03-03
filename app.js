@@ -523,6 +523,10 @@ async function loadAssets(userId, filter = null) {
     if (toolbarLabel) toolbarLabel.textContent = 'Select a category from the sidebar to view assets';
     if (addBtn) addBtn.classList.add('hidden');
 
+    // Hide the Actual Invested section on overview
+    const monthlySec = document.getElementById('assets-monthly-summary');
+    if (monthlySec) monthlySec.classList.add('hidden');
+
     // Aggregate totals from all known asset tables
     let totalInvested = 0, totalValue = 0, count = 0;
     const results = await Promise.all(
