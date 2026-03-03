@@ -388,10 +388,46 @@ async function saveAllocations() {
   }
 }
 
-// ─── Sidebar active state ─────────────────────────────────────
-document.querySelectorAll('.sidebar-item').forEach(item => {
+// ─── Page navigation ──────────────────────────────────────────
+const allPages = ['page-dashboard', 'page-allocation'];
+
+function navigateTo(pageId) {
+  // Hide all known pages
+  allPages.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+
+  // Show target page
+  const target = document.getElementById(pageId);
+  if (target) {
+    target.classList.remove('hidden');
+    target.classList.add('anim-fadein');
+  }
+
+  // Load allocation data when navigating to that page
+  if (pageId === 'page-allocation' && _currentUserId && !_currentAllocations.length) {
+    loadAllocations({ id: _currentUserId });
+  }
+}
+
+// Sidebar active state + page navigation
+document.querySelectorAll('.sidebar-item[data-page]').forEach(item => {
   item.addEventListener('click', () => {
     document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
     item.classList.add('active');
+
+    const page = item.dataset.page;
+    const pageId = `page-${page}`;
+
+    if (allPages.includes(pageId)) {
+      navigateTo(pageId);
+    } else {
+      // Future pages: hide all and show a placeholder
+      allPages.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+    }
   });
 });

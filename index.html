@@ -1438,39 +1438,39 @@
       <!-- Sidebar -->
       <aside class="dash-sidebar">
         <div class="sidebar-section-label">Overview</div>
-        <div class="sidebar-item active">
+        <div class="sidebar-item active" data-page="dashboard">
           <span class="sidebar-icon">⬡</span> Dashboard
         </div>
 
         <div class="sidebar-section-label">Wealth</div>
-        <div class="sidebar-item">
+        <div class="sidebar-item" data-page="assets">
           <span class="sidebar-icon">◈</span> Assets
         </div>
-        <div class="sidebar-item">
+        <div class="sidebar-item" data-page="liabilities">
           <span class="sidebar-icon">◉</span> Liabilities
         </div>
-        <div class="sidebar-item">
+        <div class="sidebar-item" data-page="allocation">
           <span class="sidebar-icon">◎</span> Allocation
         </div>
 
         <div class="sidebar-section-label">Money Flow</div>
-        <div class="sidebar-item">
+        <div class="sidebar-item" data-page="transactions">
           <span class="sidebar-icon">⇅</span> Transactions
         </div>
-        <div class="sidebar-item">
+        <div class="sidebar-item" data-page="budget">
           <span class="sidebar-icon">◷</span> Budget
         </div>
 
         <div class="sidebar-section-label">Planning</div>
-        <div class="sidebar-item">
+        <div class="sidebar-item" data-page="goals">
           <span class="sidebar-icon">◌</span> Goals
         </div>
-        <div class="sidebar-item">
+        <div class="sidebar-item" data-page="snapshots">
           <span class="sidebar-icon">⊡</span> Snapshots
         </div>
 
         <div class="sidebar-section-label">More</div>
-        <div class="sidebar-item">
+        <div class="sidebar-item" data-page="settings">
           <span class="sidebar-icon">⚙</span> Settings
         </div>
       </aside>
@@ -1478,97 +1478,76 @@
       <!-- Main -->
       <main class="dash-main anim-fadein">
 
-        <!-- Page header -->
-        <div class="page-header">
-          <h1 class="page-title">Dashboard</h1>
-          <p class="page-subtitle" id="dash-date"></p>
-        </div>
+        <!-- ══ PAGE: DASHBOARD ══════════════════════════════════ -->
+        <div id="page-dashboard">
 
-        <!-- Summary cards -->
-        <div class="summary-grid">
-          <div class="summary-card anim-fadeup delay-1" style="--card-accent:var(--teal)">
-            <div class="summary-card-label">
-              <div class="summary-card-label-dot" style="background:var(--teal)"></div>
-              Net Worth
-            </div>
-            <div class="summary-card-value" style="color:var(--teal)">₹0</div>
-            <div class="summary-card-sub">Add assets to calculate</div>
+          <div class="page-header">
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle" id="dash-date"></p>
           </div>
-          <div class="summary-card anim-fadeup delay-2" style="--card-accent:var(--accent)">
-            <div class="summary-card-label">
-              <div class="summary-card-label-dot" style="background:var(--accent)"></div>
-              Total Assets
-            </div>
-            <div class="summary-card-value" style="color:var(--accent)">₹0</div>
-            <div class="summary-card-sub">0 assets tracked</div>
-          </div>
-          <div class="summary-card anim-fadeup delay-3" style="--card-accent:var(--warn)">
-            <div class="summary-card-label">
-              <div class="summary-card-label-dot" style="background:var(--warn)"></div>
-              Total Liabilities
-            </div>
-            <div class="summary-card-value" style="color:var(--warn)">₹0</div>
-            <div class="summary-card-sub">0 loans / EMIs</div>
-          </div>
-          <div class="summary-card anim-fadeup delay-4" style="--card-accent:var(--lavender)">
-            <div class="summary-card-label">
-              <div class="summary-card-label-dot" style="background:var(--lavender)"></div>
-              Savings Rate
-            </div>
-            <div class="summary-card-value" style="color:var(--lavender)">0%</div>
-            <div class="summary-card-sub">No transactions yet</div>
-          </div>
-        </div>
 
-        <!-- Quick actions -->
-        <div class="quick-actions">
-          <div class="quick-action anim-fadeup delay-1">
-            <div class="quick-action-icon" style="background:var(--greenbg); color:var(--green)">+</div>
-            <div class="quick-action-label">Add Asset</div>
-            <div class="quick-action-sub">Stocks, MF, Gold…</div>
+          <!-- Summary cards -->
+          <div class="summary-grid">
+            <div class="summary-card anim-fadeup delay-1" style="--card-accent:var(--teal)">
+              <div class="summary-card-label">
+                <div class="summary-card-label-dot" style="background:var(--teal)"></div>
+                Net Worth
+              </div>
+              <div class="summary-card-value" style="color:var(--teal)">₹0</div>
+              <div class="summary-card-sub">Add assets to calculate</div>
+            </div>
+            <div class="summary-card anim-fadeup delay-2" style="--card-accent:var(--accent)">
+              <div class="summary-card-label">
+                <div class="summary-card-label-dot" style="background:var(--accent)"></div>
+                Total Assets
+              </div>
+              <div class="summary-card-value" style="color:var(--accent)">₹0</div>
+              <div class="summary-card-sub">0 assets tracked</div>
+            </div>
+            <div class="summary-card anim-fadeup delay-3" style="--card-accent:var(--warn)">
+              <div class="summary-card-label">
+                <div class="summary-card-label-dot" style="background:var(--warn)"></div>
+                Total Liabilities
+              </div>
+              <div class="summary-card-value" style="color:var(--warn)">₹0</div>
+              <div class="summary-card-sub">0 loans / EMIs</div>
+            </div>
+            <div class="summary-card anim-fadeup delay-4" style="--card-accent:var(--lavender)">
+              <div class="summary-card-label">
+                <div class="summary-card-label-dot" style="background:var(--lavender)"></div>
+                Savings Rate
+              </div>
+              <div class="summary-card-value" style="color:var(--lavender)">0%</div>
+              <div class="summary-card-sub">No transactions yet</div>
+            </div>
           </div>
-          <div class="quick-action anim-fadeup delay-2">
-            <div class="quick-action-icon" style="background:var(--accentbg); color:var(--accent)">⇅</div>
-            <div class="quick-action-label">Log Transaction</div>
-            <div class="quick-action-sub">Income or expense</div>
-          </div>
-          <div class="quick-action anim-fadeup delay-3">
-            <div class="quick-action-icon" style="background:var(--lavenderbg); color:var(--lavender)">◎</div>
-            <div class="quick-action-label">Set a Goal</div>
-            <div class="quick-action-sub">Retirement, EMF…</div>
-          </div>
-          <div class="quick-action anim-fadeup delay-4">
-            <div class="quick-action-icon" style="background:var(--tealbg); color:var(--teal)">⊡</div>
-            <div class="quick-action-label">Take Snapshot</div>
-            <div class="quick-action-sub">Freeze net worth</div>
-          </div>
-        </div>
 
-        <!-- Two-col: allocation + empty state -->
-        <div class="dash-grid-2">
+          <!-- Quick actions -->
+          <div class="quick-actions">
+            <div class="quick-action anim-fadeup delay-1">
+              <div class="quick-action-icon" style="background:var(--greenbg); color:var(--green)">+</div>
+              <div class="quick-action-label">Add Asset</div>
+              <div class="quick-action-sub">Stocks, MF, Gold…</div>
+            </div>
+            <div class="quick-action anim-fadeup delay-2">
+              <div class="quick-action-icon" style="background:var(--accentbg); color:var(--accent)">⇅</div>
+              <div class="quick-action-label">Log Transaction</div>
+              <div class="quick-action-sub">Income or expense</div>
+            </div>
+            <div class="quick-action anim-fadeup delay-3">
+              <div class="quick-action-icon" style="background:var(--lavenderbg); color:var(--lavender)">◎</div>
+              <div class="quick-action-label">Set a Goal</div>
+              <div class="quick-action-sub">Retirement, EMF…</div>
+            </div>
+            <div class="quick-action anim-fadeup delay-4">
+              <div class="quick-action-icon" style="background:var(--tealbg); color:var(--teal)">⊡</div>
+              <div class="quick-action-label">Take Snapshot</div>
+              <div class="quick-action-sub">Freeze net worth</div>
+            </div>
+          </div>
 
-          <!-- Allocation card -->
+          <!-- Net Worth Over Time -->
           <div class="section-card anim-fadeup delay-2">
-            <div class="section-card-header">
-              <span class="section-card-title">Ideal Allocation</span>
-              <span class="section-card-action" id="edit-alloc-btn">✏️ Edit</span>
-            </div>
-            <div class="section-card-body">
-              <!-- Donut chart -->
-              <div class="alloc-chart-wrap" id="alloc-chart-wrap" style="display:none">
-                <canvas id="alloc-chart" width="220" height="220"></canvas>
-              </div>
-              <!-- Legend -->
-              <div class="alloc-legend" id="alloc-legend"></div>
-              <!-- Allocation list -->
-              <div id="allocations-container">
-                <div class="spinner"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Net worth empty state -->
-          <div class="section-card anim-fadeup delay-3">
             <div class="section-card-header">
               <span class="section-card-title">Net Worth Over Time</span>
             </div>
@@ -1582,23 +1561,85 @@
             </div>
           </div>
 
-        </div>
-
-        <!-- Main empty state -->
-        <div class="empty-state anim-fadeup delay-3">
-          <div class="empty-icon">₹</div>
-          <h2 class="empty-title">Your wealth journey starts here</h2>
-          <p class="empty-text">
-            Add your first asset — stocks, mutual funds, gold, real estate, EPF — and watch your complete financial
-            picture come alive.
-          </p>
-          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <button class="btn-primary">
-              <span>+</span> Add First Asset
-            </button>
-            <button class="btn-secondary">Import from CSV</button>
+          <!-- Empty state -->
+          <div class="empty-state anim-fadeup delay-3" style="margin-top:16px">
+            <div class="empty-icon">₹</div>
+            <h2 class="empty-title">Your wealth journey starts here</h2>
+            <p class="empty-text">
+              Add your first asset — stocks, mutual funds, gold, real estate, EPF — and watch your complete financial
+              picture come alive.
+            </p>
+            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+              <button class="btn-primary"><span>+</span> Add First Asset</button>
+              <button class="btn-secondary">Import from CSV</button>
+            </div>
           </div>
-        </div>
+
+        </div><!-- /#page-dashboard -->
+
+        <!-- ══ PAGE: ALLOCATION ══════════════════════════════════ -->
+        <div id="page-allocation" class="hidden">
+
+          <div class="page-header">
+            <h1 class="page-title">Ideal Allocation</h1>
+            <p class="page-subtitle">Your target portfolio mix across asset classes</p>
+          </div>
+
+          <div class="dash-grid-2">
+            <!-- Allocation card -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <span class="section-card-title">Allocation</span>
+                <span class="section-card-action" id="edit-alloc-btn">✏️ Edit</span>
+              </div>
+              <div class="section-card-body">
+                <div class="alloc-chart-wrap" id="alloc-chart-wrap" style="display:none">
+                  <canvas id="alloc-chart" width="220" height="220"></canvas>
+                </div>
+                <div class="alloc-legend" id="alloc-legend"></div>
+                <div id="allocations-container">
+                  <div class="spinner"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tips card -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <span class="section-card-title">About Ideal Allocation</span>
+              </div>
+              <div class="section-card-body">
+                <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="font-size:22px">🎯</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Target Mix</div>
+                      <div style="font-size:12.5px;color:var(--muted);line-height:1.65">Set the % you want in each asset
+                        class. This is your long-term financial goal, not current holdings.</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="font-size:22px">✏️</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Customise Freely</div>
+                      <div style="font-size:12.5px;color:var(--muted);line-height:1.65">Click Edit to rename, add, or
+                        remove asset classes. Total must equal 100%.</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="font-size:22px">📊</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Stay on Track</div>
+                      <div style="font-size:12.5px;color:var(--muted);line-height:1.65">Once you add assets, FinTrack
+                        will show how your actual portfolio compares to this target.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /#page-allocation -->
 
       </main>
     </div>
