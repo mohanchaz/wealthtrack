@@ -658,6 +658,14 @@ function renderAssetsTable(assets, tableName) {
   });
   tbody.innerHTML = html;
 
+  // Show monthly summary only for Bank FD
+  if (tableName === 'bank_fd_assets') {
+    renderMonthlyInvestedSummary(assets);
+  } else {
+    const sec = document.getElementById('assets-monthly-summary');
+    if (sec) sec.classList.add('hidden');
+  }
+
   tbody.querySelectorAll('.asset-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const row = JSON.parse(btn.dataset.row);
@@ -671,6 +679,42 @@ function renderAssetsTable(assets, tableName) {
       await deleteAsset(btn.dataset.id, btn.dataset.table);
     });
   });
+}
+
+function renderMonthlyInvestedSummary(assets) {
+  const section = document.getElementById('assets-monthly-summary');
+  const body = document.getElementById('assets-monthly-body');
+  const totalEl = document.getElementById('assets-monthly-total');
+  if (!section || !body) return;
+
+  const withDate = assets.filter(a => a.invested_date);
+  if (!withDate.length) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+
+  // Group by YYYY-MM, sum invested
+  const groups = {};
+  withDate.forEach(a => {
+    const d = new Date(a.invested_date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const lbl = d.toLocaleString('en-GB', { month: 'short' }) + '-' + d.getFullYear();
+    groups[key] = groups[key] || { label: lbl, total: 0 };
+    groups[key].total += +a.invested || 0;
+  });
+
+  const rows = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  const grand = rows.reduce((s, [, g]) => s + g.total, 0);
+
+  body.innerHTML = rows.map(([, g], i) =>
+    `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
+      <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${g.label}</td>
+      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(g.total)}</td>
+    </tr>`).join('') +
+    `<tr style="background:var(--surface2)">
+      <td style="padding:9px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2)">Total</td>
+      <td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">${INR(grand)}</td>
+    </tr>`;
+
+  if (totalEl) totalEl.textContent = INR(grand);
 }
 
 async function deleteAsset(id, tableName) {
