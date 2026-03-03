@@ -391,7 +391,7 @@ async function saveAllocations() {
 // ─── Page navigation ──────────────────────────────────────────
 const allPages = ['page-dashboard', 'page-allocation', 'page-assets'];
 
-function navigateTo(pageId) {
+function navigateTo(pageId, assetFilter = null) {
   // Hide all known pages
   allPages.forEach(id => {
     const el = document.getElementById(id);
@@ -410,7 +410,7 @@ function navigateTo(pageId) {
     loadAllocations({ id: _currentUserId });
   }
   if (pageId === 'page-assets' && _currentUserId) {
-    loadAssets(_currentUserId);
+    loadAssets(_currentUserId, assetFilter);
   }
 }
 
@@ -420,16 +420,24 @@ function navigateTo(pageId) {
 
 const INR = v => '₹' + Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-async function loadAssets(userId) {
+async function loadAssets(userId, filter = null) {
   document.getElementById('assets-table-body').innerHTML =
     `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
 
-  const { data, error } = await sb
+  // Update subtitle based on filter
+  const subtitle = document.querySelector('#page-assets .page-subtitle');
+  if (subtitle) subtitle.textContent = filter ? `Showing: ${filter}` : 'Track all your investments and holdings';
+
+  let query = sb
     .from('assets')
     .select('*')
     .eq('user_id', userId)
     .order('asset_class')
     .order('created_at', { ascending: false });
+
+  if (filter) query = query.eq('asset_class', filter);
+
+  const { data, error } = await query;
 
   if (error) {
     document.getElementById('assets-table-body').innerHTML =
@@ -584,23 +592,62 @@ document.getElementById('add-asset-save-btn').addEventListener('click', async ()
   }
 });
 
-// Sidebar active state + page navigation
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+//  SIDEBAR NAVIGATION
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+
+// ── Expandable assets sub-group ──────────────────────────────
+const assetsSubGroup = document.getElementById('assets-sub-group');
+const assetsChevron = document.getElementById('assets-chevron');
+
+function openAssetsSubGroup() {
+  assetsSubGroup.classList.add('open');
+  assetsChevron.classList.add('open');
+}
+function closeAssetsSubGroup() {
+  assetsSubGroup.classList.remove('open');
+  assetsChevron.classList.remove('open');
+}
+function toggleAssetsSubGroup() {
+  assetsSubGroup.classList.contains('open') ? closeAssetsSubGroup() : openAssetsSubGroup();
+}
+
+// ── Set active sidebar item / sub-item ───────────────────────
+function setActiveSidebarItem(el) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.sidebar-sub-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Main sidebar items ────────────────────────────────────────
 document.querySelectorAll('.sidebar-item[data-page]').forEach(item => {
   item.addEventListener('click', () => {
-    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-    item.classList.add('active');
-
     const page = item.dataset.page;
     const pageId = `page-${page}`;
 
-    if (allPages.includes(pageId)) {
-      navigateTo(pageId);
+    if (page === 'assets') {
+      // Toggle sub-group open/close
+      toggleAssetsSubGroup();
+      setActiveSidebarItem(item);
+      if (allPages.includes(pageId)) navigateTo(pageId, null);
     } else {
-      // Future pages: hide all and show a placeholder
-      allPages.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
-      });
+      closeAssetsSubGroup();
+      setActiveSidebarItem(item);
+      if (allPages.includes(pageId)) {
+        navigateTo(pageId);
+      } else {
+        allPages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+      }
     }
+  });
+});
+
+// ── Sub-items (e.g. Cash) ─────────────────────────────────────
+document.querySelectorAll('.sidebar-sub-item[data-asset-filter]').forEach(sub => {
+  sub.addEventListener('click', e => {
+    e.stopPropagation();
+    setActiveSidebarItem(sub);
+    openAssetsSubGroup();
+    navigateTo('page-assets', sub.dataset.assetFilter);
   });
 });

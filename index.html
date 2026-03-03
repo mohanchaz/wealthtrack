@@ -696,6 +696,67 @@
       text-align: center;
     }
 
+    .sidebar-expandable {
+      position: relative;
+    }
+
+    .sidebar-chevron {
+      margin-left: auto;
+      font-size: 14px;
+      color: var(--muted2);
+      transition: transform 0.25s ease;
+      display: inline-block;
+      line-height: 1;
+    }
+
+    .sidebar-chevron.open {
+      transform: rotate(90deg);
+    }
+
+    .sidebar-sub-group {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      margin-left: 12px;
+    }
+
+    .sidebar-sub-group.open {
+      max-height: 300px;
+    }
+
+    .sidebar-sub-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px 7px 12px;
+      font-size: 12.5px;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 8px;
+      margin: 1px 0;
+      transition: all 0.15s;
+      font-weight: 500;
+      border-left: 2px solid transparent;
+    }
+
+    .sidebar-sub-item:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .sidebar-sub-item.active {
+      color: var(--accent);
+      background: var(--accentbg);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .sidebar-sub-icon {
+      font-size: 13px;
+      width: 16px;
+      text-align: center;
+    }
+
     /* Main content */
     .dash-main {
       flex: 1;
@@ -1634,8 +1695,14 @@
         </div>
 
         <div class="sidebar-section-label">Wealth</div>
-        <div class="sidebar-item" data-page="assets">
+        <div class="sidebar-item sidebar-expandable" data-page="assets" id="sidebar-assets">
           <span class="sidebar-icon">◈</span> Assets
+          <span class="sidebar-chevron" id="assets-chevron">›</span>
+        </div>
+        <div class="sidebar-sub-group" id="assets-sub-group">
+          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Cash">
+            <span class="sidebar-sub-icon">💵</span> Cash
+          </div>
         </div>
         <div class="sidebar-item" data-page="liabilities">
           <span class="sidebar-icon">◉</span> Liabilities
