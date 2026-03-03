@@ -475,16 +475,46 @@ async function loadAssets(userId, filter = null) {
   const subtitle = document.querySelector('#page-assets .page-subtitle');
 
   if (!filter) {
-    // No category selected — prompt user to pick one
     _currentAssetTable = null;
     _currentAssetFilter = null;
     if (subtitle) subtitle.textContent = 'Your assets overview';
     if (toolbarLabel) toolbarLabel.textContent = 'Select a category from the sidebar to view assets';
     if (addBtn) addBtn.classList.add('hidden');
-    ['assets-total-invested', 'assets-total-value', 'assets-total-gain', 'assets-count']
-      .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
-    // Show aggregated overview from all tables
-    await loadDashboardStats(userId);
+
+    // Aggregate totals from all known asset tables
+    let totalInvested = 0, totalValue = 0, count = 0;
+    const results = await Promise.all(
+      Object.values(ASSET_TABLES).map(t =>
+        sb.from(t).select('invested, current_value').eq('user_id', userId)
+      )
+    );
+    results.forEach(({ data }) => {
+      if (!data) return;
+      data.forEach(row => {
+        totalInvested += +row.invested || 0;
+        totalValue += +row.current_value || 0;
+        count++;
+      });
+    });
+    const gain = totalValue - totalInvested;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('assets-total-invested', INR(totalInvested));
+    set('assets-total-value', INR(totalValue));
+    set('assets-count', count);
+    const gainEl = document.getElementById('assets-total-gain');
+    if (gainEl) {
+      gainEl.textContent = (gain >= 0 ? '+' : '') + INR(gain);
+      gainEl.style.color = gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)';
+    }
+
+    // Clear the spinner — show "select a category" prompt
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="assets-empty">
+        <div class="empty-icon">👈</div>
+        Pick a category from the sidebar<br/>
+        <span style="font-size:12px;color:var(--muted2)">e.g. Assets → Cash</span>
+      </div></td></tr>`;
     return;
   }
 
