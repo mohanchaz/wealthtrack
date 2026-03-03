@@ -883,28 +883,31 @@ async function deleteFdInvested(id) {
 // ══════════════════════════════════════════════════════════════
 
 /**
- * Batch-fetch current prices for NSE instruments from Yahoo Finance.
- * Adds .NS suffix to each symbol (e.g. RELIANCE → RELIANCE.NS).
- * Returns { INSTRUMENT: price } map.
+ * Fetch live NSE prices using Yahoo Finance v8/finance/chart (per-symbol).
+ * This endpoint is auth-free unlike v7/quote which needs a crumb token.
+ * All symbols fetched in parallel; failed ones are logged and skipped.
  */
 async function fetchLivePrices(instruments) {
-  const symbols = instruments.map(i => i + '.NS').join(',');
-  const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice`;
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-  try {
+  const fetches = instruments.map(async instrument => {
+    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${instrument}.NS?range=1d&interval=1d`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
     const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`${instrument}: HTTP ${res.status}`);
     const json = await res.json();
-    const priceMap = {};
-    (json?.quoteResponse?.result || []).forEach(q => {
-      const inst = q.symbol.replace('.NS', '').replace('.BO', '');
-      priceMap[inst] = q.regularMarketPrice;
-    });
-    return priceMap;
-  } catch (err) {
-    console.warn('[LivePrices] fetch failed:', err.message);
-    return null;
-  }
+    const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    if (!price) throw new Error(`${instrument}: no price in response`);
+    return { instrument, price };
+  });
+
+  const settled = await Promise.allSettled(fetches);
+  const priceMap = {};
+  settled.forEach(r => {
+    if (r.status === 'fulfilled') priceMap[r.value.instrument] = r.value.price;
+    else console.warn('[LivePrices]', r.reason?.message ?? r.reason);
+  });
+
+  console.log('[LivePrices] received:', priceMap);
+  return Object.keys(priceMap).length > 0 ? priceMap : null;
 }
 
 async function fetchAndRefreshZerodhaPrices(assets) {
