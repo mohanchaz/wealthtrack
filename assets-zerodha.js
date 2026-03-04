@@ -183,10 +183,6 @@ async function fetchAndRefreshZerodhaPrices(assets) {
     const gainPct = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
     const allocPct = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
 
-    // LTP cell
-    const ltpCell = document.querySelector(`[data-live-ltp="${a.instrument}"]`);
-    if (ltpCell) ltpCell.textContent = INR(ltp);
-
     // Current value cell
     const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
     if (cvCell) cvCell.textContent = INR(curVal);
@@ -227,25 +223,6 @@ async function fetchAndRefreshZerodhaPrices(assets) {
   // Timestamp
   const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
-
-  // ── Persist updated LTP to DB so the Assets overview always shows fresh gain/loss ──
-  const ltpUpdates = assets
-    .filter(a => prices[a.instrument])
-    .map(a => ({
-      user_id: _currentUserId,
-      instrument: a.instrument,
-      qty: a.qty,
-      prev_qty: a.prev_qty ?? 0,
-      avg_cost: a.avg_cost,
-      ltp: prices[a.instrument],
-    }));
-  if (ltpUpdates.length) {
-    sb.from('zerodha_stocks')
-      .upsert(ltpUpdates, { onConflict: 'user_id,instrument' })
-      .then(({ error }) => {
-        if (error) console.warn('LTP persist failed:', error.message);
-      });
-  }
 }
 
 // Wire Refresh button
@@ -439,7 +416,6 @@ async function importZerodhaStocks(allRows) {
     qty: r.qty,
     prev_qty: prevQtyMap[r.instrument] ?? 0,
     avg_cost: r.avg_cost,
-    ltp: r.ltp,   // snapshot LTP as fallback before live prices load
     imported_at: new Date().toISOString(),
   }));
 
@@ -490,7 +466,6 @@ function openZerodhaEditModal(row) {
   document.getElementById('ze-instrument').value = row.instrument ?? '';
   document.getElementById('ze-qty').value        = row.qty       ?? '';
   document.getElementById('ze-avg-cost').value   = row.avg_cost  ?? '';
-  document.getElementById('ze-ltp').value        = row.ltp       ?? '';
   document.getElementById('zerodha-edit-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -513,16 +488,14 @@ document.addEventListener('fragments-loaded', () => {
 
     const qty     = parseFloat(document.getElementById('ze-qty').value);
     const avgCost = parseFloat(document.getElementById('ze-avg-cost').value);
-    const ltp     = parseFloat(document.getElementById('ze-ltp').value);
 
     if (!qty || qty <= 0)         { showToast('Quantity must be greater than 0', 'error'); return; }
     if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
 
     const saveBtn = document.getElementById('zerodha-edit-save-btn');
-    saveBtn.textContent = 'Saving\u2026'; saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-    // If qty changed, shift current qty into prev_qty so the Qty Diff column reflects this edit
-    const updatePayload = { qty, avg_cost: avgCost, ltp: ltp || null };
+    const updatePayload = { qty, avg_cost: avgCost };
     if (qty !== _editingZerodhaCurrentQty) {
       updatePayload.prev_qty = _editingZerodhaCurrentQty;
     }

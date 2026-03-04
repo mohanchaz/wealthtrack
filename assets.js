@@ -29,8 +29,8 @@ async function loadDashboardStats(userId) {
     Promise.all(nonStockTables.map(table =>
       sb.from(table).select('invested, current_value').eq('user_id', userId)
     )),
-    sb.from('zerodha_stocks').select('qty, avg_cost, ltp').eq('user_id', userId),
-    sb.from('aionion_stocks').select('qty, avg_cost').eq('user_id', userId),
+    sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
+    sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
     sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
     sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
     sb.from('aionion_actual_invested').select('amount').eq('user_id', userId)
@@ -45,10 +45,15 @@ async function loadDashboardStats(userId) {
     });
   });
 
-  (zerodhaResult.data || []).forEach(row => {
+  // Zerodha: fetch live prices; fall back to avg_cost if unavailable
+  const zerodhaAssets = zerodhaResult.data || [];
+  const zerodhaInstruments = zerodhaAssets.map(r => r.instrument);
+  const zerodhaPrices = zerodhaInstruments.length ? (await fetchLivePrices(zerodhaInstruments)) || {} : {};
+  zerodhaAssets.forEach(row => {
     const qty = +row.qty || 0;
+    const ltp = zerodhaPrices[row.instrument] || +row.avg_cost || 0;
     totalInvested += qty * (+row.avg_cost || 0);
-    totalValue += qty * (+row.ltp || 0);
+    totalValue    += qty * ltp;
     count++;
   });
 
@@ -132,8 +137,8 @@ async function loadAssets(userId, filter = null) {
       Promise.all(nonStockTables2.map(t =>
         sb.from(t).select('invested, current_value').eq('user_id', userId)
       )),
-      sb.from('zerodha_stocks').select('qty, avg_cost, ltp').eq('user_id', userId),
-      sb.from('aionion_stocks').select('qty, avg_cost').eq('user_id', userId)
+      sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
+      sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId)
     ]);
 
     otherResults.forEach(({ data }) => {
@@ -145,10 +150,15 @@ async function loadAssets(userId, filter = null) {
       });
     });
 
-    (zerodhaResult.data || []).forEach(row => {
+    // Zerodha: fetch live prices; fall back to avg_cost if unavailable
+    const zerodhaAssets2 = zerodhaResult.data || [];
+    const zerodhaInstruments2 = zerodhaAssets2.map(r => r.instrument);
+    const zerodhaPrices2 = zerodhaInstruments2.length ? (await fetchLivePrices(zerodhaInstruments2)) || {} : {};
+    zerodhaAssets2.forEach(row => {
       const qty = +row.qty || 0;
+      const ltp = zerodhaPrices2[row.instrument] || +row.avg_cost || 0;
       totalInvested += qty * (+row.avg_cost || 0);
-      totalValue += qty * (+row.ltp || 0);
+      totalValue    += qty * ltp;
       count++;
     });
 
@@ -222,6 +232,8 @@ async function loadAssets(userId, filter = null) {
 
   const selectCols = tableName === 'aionion_stocks'
     ? 'id,user_id,instrument,qty,prev_qty,avg_cost,created_at,updated_at'
+    : tableName === 'zerodha_stocks'
+    ? 'id,user_id,instrument,qty,prev_qty,avg_cost,imported_at'
     : '*';
   const { data, error } = await sb
     .from(tableName)
@@ -278,7 +290,7 @@ function renderAssetsTable(assets, tableName) {
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
     : assets.reduce((s, a) => s + (+a.invested || 0), 0);
   const totalValue = tableName === 'zerodha_stocks'
-    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.ltp || 0)), 0)
+    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)  // placeholder until live prices load
     : tableName === 'aionion_stocks'
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
     : assets.reduce((s, a) => s + (+a.current_value || 0), 0);
@@ -312,8 +324,8 @@ function renderAssetsTable(assets, tableName) {
         ...a,
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
         invested:      (+a.qty || 0) * (+a.avg_cost || 0),
-        current_value: (+a.qty || 0) * (+a.ltp || 0),
-        _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.ltp || 0)) / totalValue) * 100 : 0,
+        current_value: (+a.qty || 0) * (+a.avg_cost || 0),  // placeholder; patched by fetchAndRefreshZerodhaPrices
+        _alloc_pct: 0,  // placeholder; patched by fetchAndRefreshZerodhaPrices
       }
       : tableName === 'aionion_stocks'
       ? {
@@ -348,7 +360,7 @@ function renderAssetsTable(assets, tableName) {
       // Allow HTML (e.g. qty_diff spans) — use innerHTML via template literal
       const inner = c.bold ? `<b>${val}</b>` : val;
       // For zerodha/aionion: tag live-updatable cells with data attributes
-      const liveAttr = ((tableName === 'zerodha_stocks' && ['ltp', 'current_value', '_alloc_pct'].includes(c.key)) ||
+      const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct'].includes(c.key)) ||
                         (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct'].includes(c.key)))
         ? ` data-live-${c.key}="${a.instrument}"`
         : '';
