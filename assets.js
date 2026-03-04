@@ -2,19 +2,19 @@ async function loadDashboardStats(userId) {
   let totalInvested = 0, totalValue = 0, count = 0;
 
   // zerodha_stocks doesn't store invested/current_value — must compute from qty * avg_cost / ltp
-  const nonZerodhaTables = Object.entries(ASSET_TABLES)
-    .filter(([, t]) => t !== 'zerodha_stocks').map(([, t]) => t);
-  const hasZerodha = Object.values(ASSET_TABLES).includes('zerodha_stocks');
+  const stockTables = ['zerodha_stocks', 'aionion_stocks'];
+  const nonStockTables = Object.entries(ASSET_TABLES)
+    .filter(([, t]) => !stockTables.includes(t)).map(([, t]) => t);
 
-  const [assetResults, zerodhaResult, { data: fdData }, { data: zaiData }] = await Promise.all([
-    Promise.all(nonZerodhaTables.map(table =>
+  const [assetResults, zerodhaResult, aionionResult, { data: fdData }, { data: zaiData }, { data: aaiData }] = await Promise.all([
+    Promise.all(nonStockTables.map(table =>
       sb.from(table).select('invested, current_value').eq('user_id', userId)
     )),
-    hasZerodha
-      ? sb.from('zerodha_stocks').select('qty, avg_cost, ltp').eq('user_id', userId)
-      : Promise.resolve({ data: [] }),
+    sb.from('zerodha_stocks').select('qty, avg_cost, ltp').eq('user_id', userId),
+    sb.from('aionion_stocks').select('qty, avg_cost, ltp').eq('user_id', userId),
     sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
-    sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId)
+    sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
+    sb.from('aionion_actual_invested').select('amount').eq('user_id', userId)
   ]);
 
   assetResults.forEach(({ data }) => {
@@ -26,19 +26,21 @@ async function loadDashboardStats(userId) {
     });
   });
 
-  (zerodhaResult.data || []).forEach(row => {
+  [...(zerodhaResult.data || []), ...(aionionResult.data || [])].forEach(row => {
     const qty = +row.qty || 0;
     totalInvested += qty * (+row.avg_cost || 0);
     totalValue += qty * (+row.ltp || 0);
     count++;
   });
 
-  const fdActual = (fdData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const fdActual  = (fdData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const zaiActual = (zaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const actualInvested = fdActual + zaiActual;
-  const fdCount = (fdData || []).length;
+  const aaiActual = (aaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const actualInvested = fdActual + zaiActual + aaiActual;
+  const fdCount  = (fdData  || []).length;
   const zaiCount = (zaiData || []).length;
-  const entryLabel = `${fdCount} FD · ${zaiCount} Zerodha entr${(fdCount + zaiCount) !== 1 ? 'ies' : 'y'}`;
+  const aaiCount = (aaiData || []).length;
+  const entryLabel = `${fdCount} FD · ${zaiCount} Zerodha · ${aaiCount} Aionion entr${(fdCount + zaiCount + aaiCount) !== 1 ? 'ies' : 'y'}`;
 
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   set('dash-net-worth', INR(totalValue));
@@ -92,17 +94,16 @@ async function loadAssets(userId, filter = null) {
     // zerodha_stocks doesn't store invested/current_value — compute from qty * avg_cost / ltp
     let totalInvested = 0, totalValue = 0, count = 0;
 
-    const nonZerodhaTables = Object.entries(ASSET_TABLES)
-      .filter(([, t]) => t !== 'zerodha_stocks').map(([, t]) => t);
-    const hasZerodha = Object.values(ASSET_TABLES).includes('zerodha_stocks');
+    const stockTables2 = ['zerodha_stocks', 'aionion_stocks'];
+    const nonStockTables2 = Object.entries(ASSET_TABLES)
+      .filter(([, t]) => !stockTables2.includes(t)).map(([, t]) => t);
 
-    const [otherResults, zerodhaResult] = await Promise.all([
-      Promise.all(nonZerodhaTables.map(t =>
+    const [otherResults, zerodhaResult2, aionionResult2] = await Promise.all([
+      Promise.all(nonStockTables2.map(t =>
         sb.from(t).select('invested, current_value').eq('user_id', userId)
       )),
-      hasZerodha
-        ? sb.from('zerodha_stocks').select('qty, avg_cost, ltp').eq('user_id', userId)
-        : Promise.resolve({ data: [] })
+      sb.from('zerodha_stocks').select('qty, avg_cost, ltp').eq('user_id', userId),
+      sb.from('aionion_stocks').select('qty, avg_cost, ltp').eq('user_id', userId)
     ]);
 
     otherResults.forEach(({ data }) => {
@@ -114,7 +115,7 @@ async function loadAssets(userId, filter = null) {
       });
     });
 
-    (zerodhaResult.data || []).forEach(row => {
+    [...(zerodhaResult2.data || []), ...(aionionResult2.data || [])].forEach(row => {
       const qty = +row.qty || 0;
       totalInvested += qty * (+row.avg_cost || 0);
       totalValue += qty * (+row.ltp || 0);
@@ -135,13 +136,15 @@ async function loadAssets(userId, filter = null) {
     }
 
     // Also fetch both actual_invested totals for the Actual Invested tile
-    const [{ data: fdData2 }, { data: zaiData2 }] = await Promise.all([
+    const [{ data: fdData2 }, { data: zaiData2 }, { data: aaiData2 }] = await Promise.all([
       sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
-      sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId)
+      sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('aionion_actual_invested').select('amount').eq('user_id', userId)
     ]);
     const actualInvested =
       (fdData2 || []).reduce((s, r) => s + (+r.amount || 0), 0) +
-      (zaiData2 || []).reduce((s, r) => s + (+r.amount || 0), 0);
+      (zaiData2 || []).reduce((s, r) => s + (+r.amount || 0), 0) +
+      (aaiData2 || []).reduce((s, r) => s + (+r.amount || 0), 0);
     set('assets-actual-invested', INR(actualInvested));
 
     // Clear the spinner — show "select a category" prompt
@@ -171,8 +174,9 @@ async function loadAssets(userId, filter = null) {
   const activeLayoutRow = document.getElementById('assets-layout-row');
   if (activeLayoutRow) activeLayoutRow.classList.remove('hidden');
 
-  const orderCol = tableName === 'zerodha_stocks' ? 'instrument' : 'created_at';
-  const orderAsc = tableName === 'zerodha_stocks';
+  const isStockTable = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks';
+  const orderCol = isStockTable ? 'instrument' : 'created_at';
+  const orderAsc = isStockTable;
 
   const { data, error } = await sb
     .from(tableName)
@@ -220,11 +224,11 @@ function renderAssetsTable(assets, tableName) {
   }
 
   // Summary stats
-  // For zerodha_stocks, invested/current_value are not stored — compute from qty * avg_cost / ltp
-  const totalInvested = tableName === 'zerodha_stocks'
+  // For stock tables, invested/current_value are not stored — compute from qty * avg_cost / ltp
+  const totalInvested = isStockTable2
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
     : assets.reduce((s, a) => s + (+a.invested || 0), 0);
-  const totalValue = tableName === 'zerodha_stocks'
+  const totalValue = isStockTable2
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.ltp || 0)), 0)
     : assets.reduce((s, a) => s + (+a.current_value || 0), 0);
   const totalGain = totalValue - totalInvested;
@@ -241,9 +245,9 @@ function renderAssetsTable(assets, tableName) {
   if (!assets.length) {
     tbody.innerHTML = `<tr><td colspan="${colCount}">
       <div class="assets-empty">
-        <div class="empty-icon">${tableName === 'zerodha_stocks' ? '📂' : '🏦'}</div>
-        ${tableName === 'zerodha_stocks'
-        ? 'No holdings yet — click <b>📥 Import CSV</b> to import your Zerodha portfolio'
+        <div class="empty-icon">${isStockTable2 ? '📂' : '🏦'}</div>
+        ${isStockTable2
+        ? `No holdings yet — click <b>📥 Import CSV</b> to import your ${_currentAssetFilter} portfolio`
         : 'No entries yet.<br/>Click <b>+ Add Asset</b> to get started.'}
       </div></td></tr>`;
     return;
@@ -251,8 +255,8 @@ function renderAssetsTable(assets, tableName) {
 
   let html = '';
   assets.forEach(a => {
-    // Inject virtual fields for Zerodha Stocks — all computed from stored qty, avg_cost, ltp
-    const row = tableName === 'zerodha_stocks'
+    // Inject virtual fields for stock tables — computed from stored qty, avg_cost, ltp
+    const row = isStockTable2
       ? {
         ...a,
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
@@ -284,14 +288,14 @@ function renderAssetsTable(assets, tableName) {
       if (c.mono) style += 'font-family:monospace;font-size:12px;';
       // Allow HTML (e.g. qty_diff spans) — use innerHTML via template literal
       const inner = c.bold ? `<b>${val}</b>` : val;
-      // For zerodha: tag live-updatable cells with data attributes
-      const liveAttr = (tableName === 'zerodha_stocks' && ['ltp', 'current_value', '_alloc_pct'].includes(c.key))
+      // For stock tables: tag live-updatable cells with data attributes
+      const liveAttr = (isStockTable2 && ['ltp', 'current_value', '_alloc_pct'].includes(c.key))
         ? ` data-live-${c.key}="${a.instrument}"`
         : '';
       return `<td${style ? ` style="${style}"` : ''}${liveAttr}>${inner}</td>`;
     }).join('');
 
-    const gainAttr = tableName === 'zerodha_stocks' ? ` data-live-gain="${a.instrument}"` : '';
+    const gainAttr = isStockTable2 ? ` data-live-gain="${a.instrument}"` : '';
     html += `
       <tr data-id="${a.id}">
         ${cells}
@@ -309,25 +313,37 @@ function renderAssetsTable(assets, tableName) {
   const fdSec = document.getElementById('assets-monthly-summary');
   const zerodhaSec = document.getElementById('zerodha-monthly-summary');
 
+  const aionionSec = document.getElementById('aionion-monthly-summary');
   if (tableName === 'bank_fd_assets') {
     if (actualCard) actualCard.classList.remove('hidden');
-    if (fdSec) fdSec.classList.remove('hidden');
-    if (zerodhaSec) zerodhaSec.classList.add('hidden');
+    if (fdSec)       fdSec.classList.remove('hidden');
+    if (zerodhaSec)  zerodhaSec.classList.add('hidden');
+    if (aionionSec)  aionionSec.classList.add('hidden');
     loadFdActualInvested(_currentUserId);
   } else if (tableName === 'zerodha_stocks') {
     if (actualCard) actualCard.classList.remove('hidden');
-    if (fdSec) fdSec.classList.add('hidden');
-    if (zerodhaSec) zerodhaSec.classList.remove('hidden');
+    if (fdSec)       fdSec.classList.add('hidden');
+    if (zerodhaSec)  zerodhaSec.classList.remove('hidden');
+    if (aionionSec)  aionionSec.classList.add('hidden');
     loadZerodhaActualInvested(_currentUserId);
+  } else if (tableName === 'aionion_stocks') {
+    if (actualCard) actualCard.classList.remove('hidden');
+    if (fdSec)       fdSec.classList.add('hidden');
+    if (zerodhaSec)  zerodhaSec.classList.add('hidden');
+    if (aionionSec)  aionionSec.classList.remove('hidden');
+    loadAionionActualInvested(_currentUserId);
   } else {
     if (actualCard) actualCard.classList.add('hidden');
-    if (fdSec) fdSec.classList.add('hidden');
-    if (zerodhaSec) zerodhaSec.classList.add('hidden');
+    if (fdSec)       fdSec.classList.add('hidden');
+    if (zerodhaSec)  zerodhaSec.classList.add('hidden');
+    if (aionionSec)  aionionSec.classList.add('hidden');
   }
 
-  // Auto-fetch live prices for Zerodha Stocks
+  // Auto-fetch live prices for stock tables
   if (tableName === 'zerodha_stocks' && assets.length) {
     fetchAndRefreshZerodhaPrices(assets);
+  } else if (tableName === 'aionion_stocks' && assets.length) {
+    fetchAndRefreshAionionPrices(assets);
   }
 
   tbody.querySelectorAll('.asset-edit-btn').forEach(btn => {
@@ -365,9 +381,13 @@ function setField(id, val) {
 }
 
 function openEditAssetModal(row, tableName) {
-  // Zerodha stocks have their own dedicated edit modal
+  // Stock tables have their own dedicated edit modal
   if (tableName === 'zerodha_stocks') {
     openZerodhaEditModal(row);
+    return;
+  }
+  if (tableName === 'aionion_stocks') {
+    openAionionEditModal(row);
     return;
   }
 
