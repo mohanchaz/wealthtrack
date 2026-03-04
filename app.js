@@ -1503,6 +1503,12 @@ function setField(id, val) {
 }
 
 function openEditAssetModal(row, tableName) {
+  // Zerodha stocks have their own dedicated edit modal
+  if (tableName === 'zerodha_stocks') {
+    openZerodhaEditModal(row);
+    return;
+  }
+
   _editingAssetId = row.id;
   _editingAssetTable = tableName;
 
@@ -1639,6 +1645,67 @@ document.getElementById('add-asset-save-btn').addEventListener('click', async ()
     closeAddAssetModal();
     loadAssets(_currentUserId, _currentAssetFilter);
   }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  ZERODHA STOCK EDIT MODAL
+// ══════════════════════════════════════════════════════════════
+
+let _editingZerodhaId = null;
+
+function openZerodhaEditModal(row) {
+  _editingZerodhaId = row.id;
+  document.getElementById('zerodha-edit-modal-title').textContent = `Edit — ${row.instrument}`;
+  document.getElementById('ze-instrument').value = row.instrument ?? '';
+  document.getElementById('ze-qty').value = row.qty ?? '';
+  document.getElementById('ze-avg-cost').value = row.avg_cost ?? '';
+  document.getElementById('ze-ltp').value = row.ltp ?? '';
+  document.getElementById('ze-notes').value = row.notes ?? '';
+  document.getElementById('zerodha-edit-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeZerodhaEditModal() {
+  document.getElementById('zerodha-edit-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+  _editingZerodhaId = null;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('zerodha-edit-close-btn')?.addEventListener('click', closeZerodhaEditModal);
+  document.getElementById('zerodha-edit-cancel-btn')?.addEventListener('click', closeZerodhaEditModal);
+  document.getElementById('zerodha-edit-modal')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('zerodha-edit-modal')) closeZerodhaEditModal();
+  });
+
+  document.getElementById('zerodha-edit-save-btn')?.addEventListener('click', async () => {
+    if (!_editingZerodhaId) return;
+
+    const qty = parseFloat(document.getElementById('ze-qty').value);
+    const avgCost = parseFloat(document.getElementById('ze-avg-cost').value);
+    const ltp = parseFloat(document.getElementById('ze-ltp').value);
+    const notes = document.getElementById('ze-notes').value.trim() || null;
+
+    if (!qty || qty <= 0) { showToast('Quantity must be greater than 0', 'error'); return; }
+    if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
+
+    const saveBtn = document.getElementById('zerodha-edit-save-btn');
+    saveBtn.textContent = 'Saving\u2026'; saveBtn.disabled = true;
+
+    const { error } = await sb.from('zerodha_stocks')
+      .update({ qty, avg_cost: avgCost, ltp: ltp || null, notes })
+      .eq('id', _editingZerodhaId);
+
+    saveBtn.textContent = '\uD83D\uDCBE Save Changes'; saveBtn.disabled = false;
+
+    if (error) {
+      showToast('Save failed: ' + error.message, 'error');
+    } else {
+      showToast('Stock updated \u2705', 'success');
+      closeZerodhaEditModal();
+      loadAssets(_currentUserId, _currentAssetFilter);
+    }
+  });
 });
 
 // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
