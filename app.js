@@ -1660,7 +1660,6 @@ function openZerodhaEditModal(row) {
   document.getElementById('ze-qty').value = row.qty ?? '';
   document.getElementById('ze-avg-cost').value = row.avg_cost ?? '';
   document.getElementById('ze-ltp').value = row.ltp ?? '';
-  document.getElementById('ze-notes').value = row.notes ?? '';
   document.getElementById('zerodha-edit-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -1684,7 +1683,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const qty = parseFloat(document.getElementById('ze-qty').value);
     const avgCost = parseFloat(document.getElementById('ze-avg-cost').value);
     const ltp = parseFloat(document.getElementById('ze-ltp').value);
-    const notes = document.getElementById('ze-notes').value.trim() || null;
 
     if (!qty || qty <= 0) { showToast('Quantity must be greater than 0', 'error'); return; }
     if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
@@ -1693,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn.textContent = 'Saving\u2026'; saveBtn.disabled = true;
 
     const { error } = await sb.from('zerodha_stocks')
-      .update({ qty, avg_cost: avgCost, ltp: ltp || null, notes })
+      .update({ qty, avg_cost: avgCost, ltp: ltp || null })
       .eq('id', _editingZerodhaId);
 
     saveBtn.textContent = '\uD83D\uDCBE Save Changes'; saveBtn.disabled = false;
