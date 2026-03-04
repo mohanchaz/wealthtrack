@@ -15,7 +15,7 @@ const MF_ORDERED_MAP = [
   { name: 'HDFC Focused Fund',                             symbol: '0P0000XW75.BO' },
   { name: 'HDFC Nifty 100 Index Fund',                     symbol: '0P0001OF02.BO' },
   { name: 'ICICI Prudential Dividend Yield Equity Fund',   symbol: '0P000134CI.BO' },
-  { name: 'ICICI Prudential Nifty Midcap 150 Index Fund',  symbol: '0P0001D39P.BO' },
+  { name: 'ICICI Prudential Nifty Midcap 150 Index Fund',  symbol: '0P0001NYM0.BO' },
   { name: 'Kotak ELSS Tax Saver Fund',                     symbol: '0P0000XV6Q.BO' },
   { name: 'Motilal Oswal Midcap Fund',                     symbol: '0P00012ALS.BO' },
   { name: 'Nippon India ELSS Tax Saver Fund',              symbol: '0P00015E14.BO' },
