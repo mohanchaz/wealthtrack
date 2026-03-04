@@ -148,137 +148,8 @@ document.addEventListener('fragments-loaded', () => {
  * Server-side fetch means no CORS issues whatsoever.
  * Returns { INSTRUMENT: price } map, or null on failure.
  */
-async function fetchLivePrices(instruments) {
-  const symbols = instruments.map(i => i + '.NS').join(',');
-  try {
-    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const priceMap = await res.json();
-    if (priceMap.error) throw new Error(priceMap.error);
-    console.log('[LivePrices] received:', priceMap);
-    return Object.keys(priceMap).length > 0 ? priceMap : null;
-  } catch (err) {
-    console.warn('[LivePrices] fetch failed:', err.message);
-    return null;
-  }
-}
-
-async function fetchAndRefreshAionionPrices(assets) {
-  const lastUpdateEl = document.getElementById('aionion-last-updated');
-  const refreshBtn = document.getElementById('aionion-refresh-btn');
-  if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching live prices…';
-  if (refreshBtn) refreshBtn.disabled = true;
-
-  const instruments = assets.map(a => a.instrument);
-  const prices = await fetchLivePrices(instruments);
-
-  if (refreshBtn) refreshBtn.disabled = false;
-
-  if (!prices) {
-    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ Could not fetch prices';
-    showToast('Live price fetch failed — check console', 'error');
-    return;
-  }
-
-  let totalValue = 0, totalInvested = 0;
-
-  // First pass — accumulate totals
-  assets.forEach(a => {
-    const ltp = prices[a.instrument];
-    if (!ltp) return;
-    totalValue   += (+a.qty || 0) * ltp;
-    totalInvested += (+a.qty || 0) * (+a.avg_cost || 0);
-  });
-
-  // Second pass — update each row's cells
-  assets.forEach(a => {
-    const ltp = prices[a.instrument];
-    if (!ltp) return;
-
-    const qty = +a.qty || 0;
-    const curVal = qty * ltp;
-    const investedAmt = qty * (+a.avg_cost || 0);   // correct: qty × avg_cost
-    const pnl = curVal - investedAmt;
-    const gain = pnl;
-    const gainPct = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
-    const allocPct = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
-
-    // LTP cell
-    const ltpCell = document.querySelector(`[data-live-ltp="${a.instrument}"]`);
-    if (ltpCell) ltpCell.textContent = INR(ltp);
-
-    // Current value cell
-    const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
-    if (cvCell) cvCell.textContent = INR(curVal);
-
-    // Allocation % cell
-    const allocCell = document.querySelector(`[data-live-_alloc_pct="${a.instrument}"]`);
-    if (allocCell) {
-      const barWidth = Math.min(allocPct, 100).toFixed(1);
-      allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
-        <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
-          <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
-        </span>
-        <b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b>
-      </span>`;
-    }
-
-    // Gain/Loss badge
-    const gainTd = document.querySelector(`[data-live-gain="${a.instrument}"]`);
-    if (gainTd) {
-      const arrow = gain >= 0 ? '▲' : '▼';
-      const badgeCls = gain > 0 ? 'pos' : gain < 0 ? 'neg' : 'zero';
-      gainTd.innerHTML = `<span class="gain-badge ${badgeCls}">${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}</span>`;
-    }
-  });
-
-  // Update stat cards with live totals
-  const totalGain = totalValue - totalInvested;
-  const totalGainPct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('assets-total-value', INR(totalValue));
-  set('assets-total-invested', INR(totalInvested));
-  const gainEl = document.getElementById('assets-total-gain');
-  if (gainEl) {
-    gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain) + totalGainPct;
-    gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
-  }
-
-  // Timestamp
-  const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
-
-  // ── Persist updated LTP to DB so the Assets overview always shows fresh gain/loss ──
-  const ltpUpdates = assets
-    .filter(a => prices[a.instrument])
-    .map(a => ({
-      user_id: _currentUserId,
-      instrument: a.instrument,
-      qty: a.qty,
-      prev_qty: a.prev_qty ?? 0,
-      avg_cost: a.avg_cost,
-      ltp: prices[a.instrument],
-    }));
-  if (ltpUpdates.length) {
-    sb.from('aionion_stocks')
-      .upsert(ltpUpdates, { onConflict: 'user_id,instrument' })
-      .then(({ error }) => {
-        if (error) console.warn('LTP persist failed:', error.message);
-      });
-  }
-}
-
-// Wire Refresh button
-document.addEventListener('fragments-loaded', () => {
-  document.getElementById('aionion-refresh-btn')?.addEventListener('click', () => {
-    if (_currentAssetFilter === 'Aionion Stocks') {
-      loadAssets(_currentUserId, 'Aionion Stocks');
-    }
-  });
-});
-
 // ══════════════════════════════════════════════════════════════
-//  AIONION STOCKS  — CSV import module
+//  AIONION STOCKS  — manual add/edit module
 // ══════════════════════════════════════════════════════════════
 
 let _aionionPreviewRows = [];
@@ -304,7 +175,6 @@ function parseAionionCSV(text) {
   const iInstrument = find('Instrument');
   const iQty = find('Qty');
   const iAvgCost = find('Avg. cost', 'Avg cost', 'avg_cost');
-  const iLTP = find('LTP');
   const iInvested = find('Invested');
   const iCurVal = find('Cur. val', 'Cur val', 'current_value');
   const iPnL = find('P&L', 'P&amp;L');
@@ -334,7 +204,6 @@ function parseAionionCSV(text) {
       instrument,
       qty: num(cols[iQty]),
       avg_cost: num(cols[iAvgCost]),
-      ltp: num(cols[iLTP]),
       invested: num(cols[iInvested]),
       current_value: num(cols[iCurVal]),
       pnl: num(cols[iPnL]),
@@ -397,7 +266,6 @@ function handleAionionCSV(file) {
         <td style="${tdS};text-align:left;font-weight:600">${r.instrument}</td>
         <td style="${tdS}">${r.qty}</td>
         <td style="${tdS}">${INR(r.avg_cost)}</td>
-        <td style="${tdS}">${INR(r.ltp)}</td>
         <td style="${tdS}">${INR(r.invested)}</td>
         <td style="${tdS};font-weight:600">${INR(r.current_value)}</td>
         <td style="${tdS};color:${pnlColor};font-weight:600">${INR(r.pnl)}</td>
@@ -459,7 +327,6 @@ async function importAionionStocks(allRows) {
     qty: r.qty,
     prev_qty: prevQtyMap[r.instrument] ?? 0,
     avg_cost: r.avg_cost,
-    ltp: r.ltp,   // snapshot LTP as fallback before live prices load
     imported_at: new Date().toISOString(),
   }));
 
@@ -504,13 +371,20 @@ let _editingAionionId = null;
 let _editingAionionCurrentQty = null;  // tracks old qty so prev_qty stays meaningful
 
 function openAionionEditModal(row) {
-  _editingAionionId = row.id;
-  _editingAionionCurrentQty = +row.qty || 0;  // remember current qty as the "before" value
-  document.getElementById('aionion-edit-modal-title').textContent = `Edit — ${row.instrument}`;
-  document.getElementById('ae-instrument').value = row.instrument ?? '';
-  document.getElementById('ae-qty').value        = row.qty       ?? '';
-  document.getElementById('ae-avg-cost').value   = row.avg_cost  ?? '';
-  document.getElementById('ae-ltp').value        = row.ltp       ?? '';
+  const isAdd = !row;
+  _editingAionionId       = row?.id   || null;
+  _editingAionionCurrentQty = +row?.qty || 0;
+  document.getElementById('aionion-edit-modal-title').textContent = isAdd ? 'Add Stock' : `Edit — ${row.instrument}`;
+  const instrEl = document.getElementById('ae-instrument');
+  instrEl.value    = row?.instrument ?? '';
+  instrEl.readOnly = !isAdd;
+  instrEl.style.background = isAdd ? '' : 'var(--surface2)';
+  instrEl.style.color      = isAdd ? '' : 'var(--muted)';
+  instrEl.style.cursor     = isAdd ? '' : 'not-allowed';
+  document.getElementById('ae-qty').value      = row?.qty      ?? '';
+  document.getElementById('ae-avg-cost').value = row?.avg_cost ?? '';
+  const saveBtn = document.getElementById('aionion-edit-save-btn');
+  if (saveBtn) saveBtn.textContent = isAdd ? '💾 Add Stock' : '💾 Save Changes';
   document.getElementById('aionion-edit-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -529,11 +403,12 @@ document.addEventListener('fragments-loaded', () => {
   });
 
   document.getElementById('aionion-edit-save-btn')?.addEventListener('click', async () => {
-    if (!_editingAionionId) return;
+    const isAddMode = !_editingAionionId;
+    const instrument = document.getElementById('ae-instrument').value.trim();
+    if (isAddMode && !instrument) { showToast('Instrument symbol is required', 'error'); return; }
 
     const qty     = parseFloat(document.getElementById('ae-qty').value);
     const avgCost = parseFloat(document.getElementById('ae-avg-cost').value);
-    const ltp     = parseFloat(document.getElementById('ae-ltp').value);
 
     if (!qty || qty <= 0)         { showToast('Quantity must be greater than 0', 'error'); return; }
     if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
@@ -542,24 +417,28 @@ document.addEventListener('fragments-loaded', () => {
     saveBtn.textContent = 'Saving\u2026'; saveBtn.disabled = true;
 
     // If qty changed, shift current qty into prev_qty so the Qty Diff column reflects this edit
-    const updatePayload = { qty, avg_cost: avgCost, ltp: ltp || null };
-    if (qty !== _editingAionionCurrentQty) {
-      updatePayload.prev_qty = _editingAionionCurrentQty;
+    let error;
+    if (isAddMode) {
+      ({ error } = await sb.from('aionion_stocks').insert({
+        user_id: _currentUserId, instrument, qty, prev_qty: 0, avg_cost: avgCost,
+      }));
+    } else {
+      const payload = { qty, avg_cost: avgCost };
+      if (qty !== _editingAionionCurrentQty) payload.prev_qty = _editingAionionCurrentQty;
+      ({ error } = await sb.from('aionion_stocks').update(payload).eq('id', _editingAionionId));
     }
 
-    const { error } = await sb.from('aionion_stocks')
-      .update(updatePayload)
-      .eq('id', _editingAionionId);
-
-    saveBtn.textContent = '\uD83D\uDCBE Save Changes'; saveBtn.disabled = false;
+    saveBtn.textContent = isAddMode ? '💾 Add Stock' : '💾 Save Changes';
+    saveBtn.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
     } else {
-      showToast('Stock updated \u2705', 'success');
+      showToast(isAddMode ? 'Stock added 🎉' : 'Stock updated ✅', 'success');
       closeAionionEditModal();
       loadAssets(_currentUserId, _currentAssetFilter);
     }
+
   });
 });
 

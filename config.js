@@ -58,6 +58,7 @@ const ASSET_TABLES = {
   'Cash': 'cash_assets',
   'Bank FD': 'bank_fd_assets',
   'Zerodha Stocks': 'zerodha_stocks',
+  'Aionion Stocks': 'aionion_stocks',
 };
 
 // Per-table column definitions
@@ -89,6 +90,15 @@ const ASSET_COLUMNS = {
     { key: '_qty_diff', label: 'Qty Diff', align: 'right', fmt: 'qty_diff' },
     { key: 'avg_cost', label: 'Avg Cost', align: 'right', fmt: 'inr' },
     { key: 'ltp', label: 'LTP', align: 'right', fmt: 'inr' },
+    { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
+    { key: 'current_value', label: 'Cur. Value', align: 'right', fmt: 'inr', fw: '600' },
+    { key: '_alloc_pct', label: 'Allocation', align: 'right', fmt: 'alloc_pct' },
+  ],
+  aionion_stocks: [
+    { key: 'instrument', label: 'Instrument', bold: true },
+    { key: 'qty', label: 'Qty', align: 'right' },
+    { key: '_qty_diff', label: 'Qty Diff', align: 'right', fmt: 'qty_diff' },
+    { key: 'avg_cost', label: 'Avg Cost', align: 'right', fmt: 'inr' },
     { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
     { key: 'current_value', label: 'Cur. Value', align: 'right', fmt: 'inr', fw: '600' },
     { key: '_alloc_pct', label: 'Allocation', align: 'right', fmt: 'alloc_pct' },
