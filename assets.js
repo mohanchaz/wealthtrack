@@ -196,24 +196,26 @@ function renderAssetsTable(assets, tableName) {
   const tbody = document.getElementById('assets-table-body');
   const thead = document.getElementById('assets-thead-row');
 
+  // Shared flag — true for any broker stock table
+  const isStockTable2 = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks';
+  const prefix = tableName === 'zerodha_stocks' ? 'zerodha' : tableName === 'aionion_stocks' ? 'aionion' : null;
+
   // Get column config (default to cash layout)
   const cols = ASSET_COLUMNS[tableName] || ASSET_COLUMNS['cash_assets'];
   const colCount = cols.length + 2; // +gain +delete
 
-  // Show/hide Import CSV and Refresh Prices buttons
-  const importBtn = document.getElementById('zerodha-import-btn');
-  const refreshBtn = document.getElementById('zerodha-refresh-btn');
-  const lastUpdated = document.getElementById('zerodha-last-updated');
+  // Show/hide Import CSV and Refresh Prices buttons — hide all first, then show the right ones
+  ['zerodha', 'aionion'].forEach(p => {
+    document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
+    document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
+    document.getElementById(`${p}-last-updated`)?.classList.add('hidden');
+  });
   const addBtn2 = document.getElementById('add-asset-btn');
-  if (tableName === 'zerodha_stocks') {
-    if (importBtn) importBtn.classList.remove('hidden');
-    if (refreshBtn) refreshBtn.classList.remove('hidden');
-    if (lastUpdated) lastUpdated.classList.remove('hidden');
+  if (isStockTable2 && prefix) {
+    document.getElementById(`${prefix}-import-btn`)?.classList.remove('hidden');
+    document.getElementById(`${prefix}-refresh-btn`)?.classList.remove('hidden');
+    document.getElementById(`${prefix}-last-updated`)?.classList.remove('hidden');
     if (addBtn2) addBtn2.classList.add('hidden');
-  } else {
-    if (importBtn) importBtn.classList.add('hidden');
-    if (refreshBtn) refreshBtn.classList.add('hidden');
-    if (lastUpdated) lastUpdated.classList.add('hidden');
   }
 
   // Update thead dynamically
