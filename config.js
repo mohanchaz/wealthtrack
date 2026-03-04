@@ -1,8 +1,8 @@
-// ─── Supabase Config ──────────────────────────────────────────
-const SUPABASE_URL = 'https://kgcuogyrxcbdlozgnfav.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnY3VvZ3lyeGNiZGxvemduZmF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MzY0MDMsImV4cCI6MjA4ODAxMjQwM30.kEI2A8o3rxRJAgncH9gzxeFhB6PYyvLQ8IwKOTuAQ3U';
+// ─── Supabase client ─────────────────────────────────────────
+// SUPABASE_URL, SUPABASE_ANON_KEY and `sb` are injected at runtime
+// by the Cloudflare Pages Function at functions/config.js.
+// Set SUPABASE_URL and SUPABASE_ANON_KEY in the Cloudflare Pages dashboard.
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Static DOM refs (present in index.html before loader runs) ─
 const authView = document.getElementById('auth-view');
