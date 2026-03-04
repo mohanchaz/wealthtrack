@@ -377,6 +377,7 @@ function renderAssetsTable(assets, tableName) {
       : tableName === 'mf_holdings'
       ? {
         ...a,
+        _ticker:   a.nav_symbol ? a.nav_symbol.replace(/\.(NS|BO)$/, '') : null,
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
         invested:      (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),
@@ -413,8 +414,13 @@ function renderAssetsTable(assets, tableName) {
       if (c.align) style += `text-align:${c.align};`;
       if (c.fw) style += `font-weight:${c.fw};`;
       if (c.mono) style += 'font-family:monospace;font-size:12px;';
-      // Allow HTML (e.g. qty_diff spans) — use innerHTML via template literal
-      const inner = c.bold ? `<b>${val}</b>` : val;
+      // For MF fund_name: show ticker symbol below the name
+      let inner;
+      if (tableName === 'mf_holdings' && c.key === 'fund_name' && row._ticker) {
+        inner = `<span style="display:flex;flex-direction:column;gap:1px"><b>${val}</b><span style="font-size:10.5px;color:var(--muted2);font-weight:400">${row._ticker}</span></span>`;
+      } else {
+        inner = c.bold ? `<b>${val}</b>` : val;
+      }
       // For zerodha/aionion: tag live-updatable cells with data attributes
       const liveKey2 = tableName === 'mf_holdings' ? a.fund_name : a.instrument;
       const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct', '_name'].includes(c.key)) ||

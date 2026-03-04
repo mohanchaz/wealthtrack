@@ -120,6 +120,15 @@ function formatCell(val, fmt) {
   if (val === null || val === undefined || val === '') return '—';
   switch (fmt) {
     case 'name': return `<span style="color:var(--muted);font-size:12px">${val || '—'}</span>`;
+    case 'fund_name': {
+      const parts = (val || '').split('||');
+      const name   = parts[0] || val;
+      const ticker = parts[1] || '';
+      return `<span style="display:flex;flex-direction:column;gap:1px">
+        <b>${name}</b>
+        ${ticker ? `<span style="font-size:10.5px;color:var(--muted2);font-weight:400">${ticker.replace(/\.(NS|BO)$/, '')}</span>` : ''}
+      </span>`;
+    }
     case 'inr': return INR(val);
     case 'pct': return `${(+val).toFixed(2)}%`;
     case 'date': {
