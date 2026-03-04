@@ -33,6 +33,10 @@ function renderFdActualInvested(rows) {
   const grand = rows.reduce((s, r) => s + (+r.amount || 0), 0);
   if (totalEl) totalEl.textContent = `Total: ${INR(grand)}`;
 
+  // Also update the stat tile on the assets page
+  const statTile = document.getElementById('assets-actual-invested');
+  if (statTile) statTile.textContent = INR(grand);
+
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="4" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
     return;
@@ -139,5 +143,3 @@ document.addEventListener('fragments-loaded', () => {
     }
   });
 });
-
-
