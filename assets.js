@@ -21,7 +21,7 @@ async function loadDashboardStats(userId) {
     if (!data) return;
     data.forEach(row => {
       totalInvested += +row.invested || 0;
-      totalValue    += +row.current_value || 0;
+      totalValue += +row.current_value || 0;
       count++;
     });
   });
@@ -29,14 +29,14 @@ async function loadDashboardStats(userId) {
   (zerodhaResult.data || []).forEach(row => {
     const qty = +row.qty || 0;
     totalInvested += qty * (+row.avg_cost || 0);
-    totalValue    += qty * (+row.ltp || 0);
+    totalValue += qty * (+row.ltp || 0);
     count++;
   });
 
-  const fdActual      = (fdData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const zaiActual     = (zaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const fdActual = (fdData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const zaiActual = (zaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const actualInvested = fdActual + zaiActual;
-  const fdCount  = (fdData  || []).length;
+  const fdCount = (fdData || []).length;
   const zaiCount = (zaiData || []).length;
   const entryLabel = `${fdCount} FD · ${zaiCount} Zerodha entr${(fdCount + zaiCount) !== 1 ? 'ies' : 'y'}`;
 
@@ -109,7 +109,7 @@ async function loadAssets(userId, filter = null) {
       if (!data) return;
       data.forEach(row => {
         totalInvested += +row.invested || 0;
-        totalValue    += +row.current_value || 0;
+        totalValue += +row.current_value || 0;
         count++;
       });
     });
@@ -117,7 +117,7 @@ async function loadAssets(userId, filter = null) {
     (zerodhaResult.data || []).forEach(row => {
       const qty = +row.qty || 0;
       totalInvested += qty * (+row.avg_cost || 0);
-      totalValue    += qty * (+row.ltp || 0);
+      totalValue += qty * (+row.ltp || 0);
       count++;
     });
 
@@ -140,7 +140,7 @@ async function loadAssets(userId, filter = null) {
       sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId)
     ]);
     const actualInvested =
-      (fdData2  || []).reduce((s, r) => s + (+r.amount || 0), 0) +
+      (fdData2 || []).reduce((s, r) => s + (+r.amount || 0), 0) +
       (zaiData2 || []).reduce((s, r) => s + (+r.amount || 0), 0);
     set('assets-actual-invested', INR(actualInvested));
 
@@ -306,23 +306,23 @@ function renderAssetsTable(assets, tableName) {
 
   // Show correct Actual Invested section; hide the other
   const actualCard = document.getElementById('assets-actual-invested-card');
-  const fdSec      = document.getElementById('assets-monthly-summary');
+  const fdSec = document.getElementById('assets-monthly-summary');
   const zerodhaSec = document.getElementById('zerodha-monthly-summary');
 
   if (tableName === 'bank_fd_assets') {
-    if (actualCard)   actualCard.classList.remove('hidden');
-    if (fdSec)        fdSec.classList.remove('hidden');
-    if (zerodhaSec)   zerodhaSec.classList.add('hidden');
+    if (actualCard) actualCard.classList.remove('hidden');
+    if (fdSec) fdSec.classList.remove('hidden');
+    if (zerodhaSec) zerodhaSec.classList.add('hidden');
     loadFdActualInvested(_currentUserId);
   } else if (tableName === 'zerodha_stocks') {
-    if (actualCard)   actualCard.classList.remove('hidden');
-    if (fdSec)        fdSec.classList.add('hidden');
-    if (zerodhaSec)   zerodhaSec.classList.remove('hidden');
+    if (actualCard) actualCard.classList.remove('hidden');
+    if (fdSec) fdSec.classList.add('hidden');
+    if (zerodhaSec) zerodhaSec.classList.remove('hidden');
     loadZerodhaActualInvested(_currentUserId);
   } else {
-    if (actualCard)   actualCard.classList.add('hidden');
-    if (fdSec)        fdSec.classList.add('hidden');
-    if (zerodhaSec)   zerodhaSec.classList.add('hidden');
+    if (actualCard) actualCard.classList.add('hidden');
+    if (fdSec) fdSec.classList.add('hidden');
+    if (zerodhaSec) zerodhaSec.classList.add('hidden');
   }
 
   // Auto-fetch live prices for Zerodha Stocks
@@ -444,68 +444,70 @@ function closeAddAssetModal() {
   document.body.style.overflow = '';
 }
 
-document.getElementById('add-asset-btn').addEventListener('click', () => {
-  if (!_currentAssetFilter) {
-    showToast('Please select an asset category first (e.g. Cash)', 'info');
-    return;
-  }
-  openAddAssetModal();
-});
-document.getElementById('add-asset-close-btn').addEventListener('click', closeAddAssetModal);
-document.getElementById('add-asset-cancel-btn').addEventListener('click', closeAddAssetModal);
-getAddAssetModal().addEventListener('click', e => { if (e.target === getAddAssetModal()) closeAddAssetModal(); });
+// ── Asset modal event wiring (runs after fragments-loaded) ────
+document.addEventListener('fragments-loaded', () => {
+  document.getElementById('add-asset-btn').addEventListener('click', () => {
+    if (!_currentAssetFilter) {
+      showToast('Please select an asset category first (e.g. Cash)', 'info');
+      return;
+    }
+    openAddAssetModal();
+  });
+  document.getElementById('add-asset-close-btn').addEventListener('click', closeAddAssetModal);
+  document.getElementById('add-asset-cancel-btn').addEventListener('click', closeAddAssetModal);
+  getAddAssetModal().addEventListener('click', e => { if (e.target === getAddAssetModal()) closeAddAssetModal(); });
 
-document.getElementById('add-asset-save-btn').addEventListener('click', async () => {
-  const category = document.getElementById('af-category').value.trim();
+  document.getElementById('add-asset-save-btn').addEventListener('click', async () => {
+    const category = document.getElementById('af-category').value.trim();
 
-  if (!category) { showToast('Category / Type is required', 'error'); return; }
-  if (!_currentAssetTable) { showToast('No asset category selected', 'error'); return; }
+    if (!category) { showToast('Category / Type is required', 'error'); return; }
+    if (!_currentAssetTable) { showToast('No asset category selected', 'error'); return; }
 
-  const saveBtn = document.getElementById('add-asset-save-btn');
-  saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const saveBtn = document.getElementById('add-asset-save-btn');
+    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-  // Common payload
-  const payload = {
-    user_id: _currentUserId,
-    category: category,
-    platform: document.getElementById('af-platform').value.trim() || null,
-    account_number: document.getElementById('af-account-number').value.trim() || null,
-    sb_account_number: document.getElementById('af-sb-account').value.trim() || null,
-    invested: parseFloat(document.getElementById('af-invested').value) || 0,
-    current_value: parseFloat(document.getElementById('af-current').value) || 0,
-    notes: document.getElementById('af-notes').value.trim() || null,
-  };
+    // Common payload
+    const payload = {
+      user_id: _currentUserId,
+      category: category,
+      platform: document.getElementById('af-platform').value.trim() || null,
+      account_number: document.getElementById('af-account-number').value.trim() || null,
+      sb_account_number: document.getElementById('af-sb-account').value.trim() || null,
+      invested: parseFloat(document.getElementById('af-invested').value) || 0,
+      current_value: parseFloat(document.getElementById('af-current').value) || 0,
+      notes: document.getElementById('af-notes').value.trim() || null,
+    };
 
-  // Bank FD extras
-  if (_currentAssetFilter === 'Bank FD') {
-    payload.invested_date = document.getElementById('af-invested-date').value || null;
-    payload.interest_rate = parseFloat(document.getElementById('af-interest-rate').value) || null;
-    payload.maturity_date = document.getElementById('af-maturity-date').value || null;
-    payload.maturity_amount = parseFloat(document.getElementById('af-maturity-amount').value) || null;
-  }
+    // Bank FD extras
+    if (_currentAssetFilter === 'Bank FD') {
+      payload.invested_date = document.getElementById('af-invested-date').value || null;
+      payload.interest_rate = parseFloat(document.getElementById('af-interest-rate').value) || null;
+      payload.maturity_date = document.getElementById('af-maturity-date').value || null;
+      payload.maturity_amount = parseFloat(document.getElementById('af-maturity-amount').value) || null;
+    }
 
-  const table = _editingAssetId ? _editingAssetTable : _currentAssetTable;
+    const table = _editingAssetId ? _editingAssetTable : _currentAssetTable;
 
-  let dbOp;
-  if (_editingAssetId) {
-    // UPDATE existing row
-    delete payload.user_id;   // don't overwrite owner
-    dbOp = sb.from(table).update(payload).eq('id', _editingAssetId);
-  } else {
-    // INSERT new row
-    dbOp = sb.from(table).insert(payload);
-  }
+    let dbOp;
+    if (_editingAssetId) {
+      // UPDATE existing row
+      delete payload.user_id;   // don't overwrite owner
+      dbOp = sb.from(table).update(payload).eq('id', _editingAssetId);
+    } else {
+      // INSERT new row
+      dbOp = sb.from(table).insert(payload);
+    }
 
-  const { error } = await dbOp;
-  saveBtn.textContent = '💾 Save Asset'; saveBtn.disabled = false;
+    const { error } = await dbOp;
+    saveBtn.textContent = '💾 Save Asset'; saveBtn.disabled = false;
 
-  if (error) {
-    showToast('Save failed: ' + error.message, 'error');
-  } else {
-    showToast(_editingAssetId ? 'Changes saved! ✅' : 'Entry saved! 🎉', 'success');
-    _editingAssetId = null; _editingAssetTable = null;
-    closeAddAssetModal();
-    loadAssets(_currentUserId, _currentAssetFilter);
-  }
-});
-
+    if (error) {
+      showToast('Save failed: ' + error.message, 'error');
+    } else {
+      showToast(_editingAssetId ? 'Changes saved! ✅' : 'Entry saved! 🎉', 'success');
+      _editingAssetId = null; _editingAssetTable = null;
+      closeAddAssetModal();
+      loadAssets(_currentUserId, _currentAssetFilter);
+    }
+  });
+}); // end asset modal wiring

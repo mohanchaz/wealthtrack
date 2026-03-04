@@ -1,36 +1,41 @@
-// ─── Google Login ─────────────────────────────────────────────
-getLoginBtn().addEventListener('click', async () => {
-  getLoginBtn().textContent = 'Redirecting…';
-  getLoginBtn().disabled = true;
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin }
-  });
-  if (error) {
-    showToast('Login failed: ' + error.message, 'error');
-    getLoginBtn().textContent = 'Continue with Google';
-    getLoginBtn().disabled = false;
-  }
-});
+// ─── Wire up auth listeners after DOM fragments are injected ──
+document.addEventListener('fragments-loaded', () => {
 
-// ─── Logout ───────────────────────────────────────────────────
-getLogoutBtn().addEventListener('click', async () => {
-  await sb.auth.signOut();
-  showToast('Signed out successfully', 'success');
-});
-
-// ─── Auth state ───────────────────────────────────────────────
-sb.auth.onAuthStateChange((event, session) => {
-  if (session?.user) {
-    if (_dashboardUserId !== session.user.id) {
-      _dashboardUserId = session.user.id;
-      showDashboard(session.user);
+  // ─── Google Login ─────────────────────────────────────────────
+  getLoginBtn().addEventListener('click', async () => {
+    getLoginBtn().textContent = 'Redirecting…';
+    getLoginBtn().disabled = true;
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+    if (error) {
+      showToast('Login failed: ' + error.message, 'error');
+      getLoginBtn().textContent = 'Continue with Google';
+      getLoginBtn().disabled = false;
     }
-  } else {
-    _dashboardUserId = null;
-    showLogin();
-  }
-});
+  });
+
+  // ─── Logout ───────────────────────────────────────────────────
+  getLogoutBtn().addEventListener('click', async () => {
+    await sb.auth.signOut();
+    showToast('Signed out successfully', 'success');
+  });
+
+  // ─── Auth state ───────────────────────────────────────────────
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session?.user) {
+      if (_dashboardUserId !== session.user.id) {
+        _dashboardUserId = session.user.id;
+        showDashboard(session.user);
+      }
+    } else {
+      _dashboardUserId = null;
+      showLogin();
+    }
+  });
+
+}); // end fragments-loaded
 
 // ─── Show Login ───────────────────────────────────────────────
 function showLogin() {
@@ -208,14 +213,7 @@ async function seedAllocations(userId) {
 //  EDIT MODAL
 // ══════════════════════════════════════════════════════════════
 
-// ── Open / close ─────────────────────────────────────────────
-document.getElementById('edit-alloc-btn').addEventListener('click', () => {
-  if (!_currentAllocations.length) {
-    showToast('No allocations to edit yet', 'info');
-    return;
-  }
-  openEditModal(_currentAllocations);
-});
+// ── Helper functions (module scope — usable from anywhere) ────
 
 function openEditModal(allocations) {
   getModalRowsEl().innerHTML = '';
@@ -229,22 +227,6 @@ function closeModal() {
   getAllocModal().classList.add('hidden');
   document.body.style.overflow = '';
 }
-
-document.getElementById('modal-close-btn').addEventListener('click', closeModal);
-document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
-
-// Backdrop click
-getAllocModal().addEventListener('click', e => { if (e.target === getAllocModal()) closeModal(); });
-
-// Escape key
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !getAllocModal().classList.contains('hidden')) closeModal(); });
-
-// ── Add row ───────────────────────────────────────────────────
-document.getElementById('modal-add-row-btn').addEventListener('click', () => {
-  addModalRow('', '');
-  const rows = getModalRowsEl().querySelectorAll('.modal-row');
-  rows[rows.length - 1]?.querySelector('.modal-input-name')?.focus();
-});
 
 function addModalRow(name, pct) {
   const row = document.createElement('div');
@@ -285,8 +267,26 @@ function updateModalTotal() {
   }
 }
 
-// ── Save ─────────────────────────────────────────────────────
-document.getElementById('modal-save-btn').addEventListener('click', saveAllocations);
+// ── Modal event wiring (runs after fragments-loaded) ─────────
+document.addEventListener('fragments-loaded', () => {
+  document.getElementById('edit-alloc-btn').addEventListener('click', () => {
+    if (!_currentAllocations.length) {
+      showToast('No allocations to edit yet', 'info');
+      return;
+    }
+    openEditModal(_currentAllocations);
+  });
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+  getAllocModal().addEventListener('click', e => { if (e.target === getAllocModal()) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !getAllocModal().classList.contains('hidden')) closeModal(); });
+  document.getElementById('modal-add-row-btn').addEventListener('click', () => {
+    addModalRow('', '');
+    const rows = getModalRowsEl().querySelectorAll('.modal-row');
+    rows[rows.length - 1]?.querySelector('.modal-input-name')?.focus();
+  });
+  document.getElementById('modal-save-btn').addEventListener('click', saveAllocations);
+}); // end modal wiring
 
 async function saveAllocations() {
   const rows = [...getModalRowsEl().querySelectorAll('.modal-row')];
