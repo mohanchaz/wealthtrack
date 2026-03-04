@@ -77,7 +77,7 @@ document.addEventListener('fragments-loaded', () => {
 
 // ─── Show Login ───────────────────────────────────────────────
 function showLogin() {
-  dashView.classList.add('hidden');
+  getDashView().classList.add('hidden');
   authView.classList.remove('hidden');
   document.title = 'FinTrack — Know Your Wealth';
 }
@@ -85,7 +85,7 @@ function showLogin() {
 // ─── Show Dashboard ───────────────────────────────────────────
 function showDashboard(user) {
   authView.classList.add('hidden');
-  dashView.classList.remove('hidden');
+  getDashView().classList.remove('hidden');
   document.title = 'FinTrack — Dashboard';
 
   _currentUserId = user.id;

@@ -6,23 +6,24 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Static DOM refs (present in index.html before loader runs) ─
 const authView = document.getElementById('auth-view');
-const dashView = document.getElementById('dashboard-view');
-const toastEl  = document.getElementById('toast');
+// dashView is replaced by loader.js (replaceWith) so we use a lazy getter
+const getDashView = () => document.getElementById('dashboard-view');
+const toastEl = document.getElementById('toast');
 
 // ─── Lazy DOM getters (elements injected by loader.js) ─────────
 // Use these functions instead of caching refs at parse time,
 // because the elements don't exist until fragments-loaded fires.
-const getLoginBtn   = () => document.getElementById('login-btn');
-const getLogoutBtn  = () => document.getElementById('logout-btn');
+const getLoginBtn = () => document.getElementById('login-btn');
+const getLogoutBtn = () => document.getElementById('logout-btn');
 const getUserNameEl = () => document.getElementById('user-name');
 const getUserAvatarEl = () => document.getElementById('user-avatar');
 const getUserAvatarPH = () => document.getElementById('user-avatar-placeholder');
 const getDashDateEl = () => document.getElementById('dash-date');
 const getAllocContainer = () => document.getElementById('allocations-container');
 const getAllocChartWrap = () => document.getElementById('alloc-chart-wrap');
-const getAllocLegendEl  = () => document.getElementById('alloc-legend');
-const getAllocModal    = () => document.getElementById('alloc-modal');
-const getModalRowsEl  = () => document.getElementById('modal-rows');
+const getAllocLegendEl = () => document.getElementById('alloc-legend');
+const getAllocModal = () => document.getElementById('alloc-modal');
+const getModalRowsEl = () => document.getElementById('modal-rows');
 const getModalTotalBadge = () => document.getElementById('modal-total-badge');
 
 // ─── State ────────────────────────────────────────────────────
