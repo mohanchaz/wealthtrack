@@ -416,7 +416,7 @@ async function importMfFunds(allRows) {
   const prevQtyMap = {};
   (existing || []).forEach(r => { prevQtyMap[r.fund_name] = +r.qty || 0; });
 
-  const incomingSet = new Set(rows.map(r => r.fund_name));
+  const incomingSet = new Set(deduped.map(r => r.fund_name));
 
   // Delete funds no longer in CSV
   const toDelete = (existing || []).filter(r => !incomingSet.has(r.fund_name)).map(r => r.fund_name);
@@ -424,7 +424,23 @@ async function importMfFunds(allRows) {
     await sb.from('mf_holdings').delete().eq('user_id', _currentUserId).in('fund_name', toDelete);
   }
 
-  const payload = rows.map(r => ({
+  // Deduplicate by fund_name — merge rows with same name (e.g. Quant Flexi Cap Fund appears twice)
+  const mergedMap = {};
+  rows.forEach(r => {
+    if (mergedMap[r.fund_name]) {
+      // Merge: sum qty and invested, recalculate avg_cost
+      const existing = mergedMap[r.fund_name];
+      const totalInvested = existing.qty * existing.avg_cost + r.qty * r.avg_cost;
+      const totalQty      = existing.qty + r.qty;
+      existing.qty      = totalQty;
+      existing.avg_cost = totalQty > 0 ? totalInvested / totalQty : existing.avg_cost;
+    } else {
+      mergedMap[r.fund_name] = { ...r };
+    }
+  });
+  const deduped = Object.values(mergedMap);
+
+  const payload = deduped.map(r => ({
     user_id:   _currentUserId,
     fund_name: r.fund_name,
     qty:       r.qty,
@@ -437,13 +453,13 @@ async function importMfFunds(allRows) {
     .from('mf_holdings')
     .upsert(payload, { onConflict: 'user_id,fund_name' });
 
-  confirmBtn.textContent = `📥 Import ${rows.length} Funds`;
+  confirmBtn.textContent = `📥 Import ${deduped.length} Funds`;
   confirmBtn.disabled = false;
 
   if (error) {
     showToast('Import failed: ' + error.message, 'error');
   } else {
-    showToast(`✅ Imported ${rows.length} funds successfully!`, 'success');
+    showToast(`✅ Imported ${deduped.length} funds successfully!`, 'success');
     closeMfImportModal();
     loadAssets(_currentUserId, 'Mutual Funds');
   }
