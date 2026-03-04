@@ -22,14 +22,15 @@ export async function onRequestGet(context) {
             if (!res.ok) throw new Error(`${sym}: HTTP ${res.status}`);
             const data = await res.json();
             const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+            const name  = data?.chart?.result?.[0]?.meta?.longName || data?.chart?.result?.[0]?.meta?.shortName || null;
             if (!price) throw new Error(`${sym}: no price`);
-            return { sym: sym.replace(/\.(NS|BO)$/, ''), price };
+            return { sym: sym.replace(/\.(NS|BO)$/, ''), price, name };
         })
     );
 
     const priceMap = {};
     settled.forEach(r => {
-        if (r.status === 'fulfilled') priceMap[r.value.sym] = r.value.price;
+        if (r.status === 'fulfilled') priceMap[r.value.sym] = { price: r.value.price, name: r.value.name };
         else console.error('[prices fn]', r.reason?.message ?? r.reason);
     });
 

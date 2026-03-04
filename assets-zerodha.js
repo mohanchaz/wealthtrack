@@ -164,7 +164,7 @@ async function fetchAndRefreshZerodhaPrices(assets) {
 
   // First pass — accumulate totals
   assets.forEach(a => {
-    const ltp = prices[a.instrument];
+    const ltp = getLTP(prices, a.instrument);
     if (!ltp) return;
     totalValue   += (+a.qty || 0) * ltp;
     totalInvested += (+a.qty || 0) * (+a.avg_cost || 0);
@@ -172,7 +172,7 @@ async function fetchAndRefreshZerodhaPrices(assets) {
 
   // Second pass — update each row's cells
   assets.forEach(a => {
-    const ltp = prices[a.instrument];
+    const ltp = getLTP(prices, a.instrument);
     if (!ltp) return;
 
     const qty = +a.qty || 0;

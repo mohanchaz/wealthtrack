@@ -95,6 +95,7 @@ const ASSET_COLUMNS = {
   ],
   aionion_stocks: [
     { key: 'instrument', label: 'Instrument', bold: true },
+    { key: '_name', label: 'Company', fmt: 'name' },
     { key: 'qty', label: 'Qty', align: 'right' },
     { key: '_qty_diff', label: 'Qty Diff', align: 'right', fmt: 'qty_diff' },
     { key: 'avg_cost', label: 'Avg Cost', align: 'right', fmt: 'inr' },
@@ -107,6 +108,7 @@ const ASSET_COLUMNS = {
 function formatCell(val, fmt) {
   if (val === null || val === undefined || val === '') return '—';
   switch (fmt) {
+    case 'name': return `<span style="color:var(--muted);font-size:12px">${val || '—'}</span>`;
     case 'inr': return INR(val);
     case 'pct': return `${(+val).toFixed(2)}%`;
     case 'date': {

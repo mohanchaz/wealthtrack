@@ -1,7 +1,7 @@
 /**
  * Fetch live NSE prices via /api/prices Cloudflare Function.
  * Shared by Zerodha and Aionion refresh paths.
- * Returns { INSTRUMENT: price } map, or null on failure.
+ * Returns { INSTRUMENT: { price, name } } map, or null on failure.
  */
 async function fetchLivePrices(instruments) {
   const symbols = instruments.map(i => i + '.NS').join(',');
@@ -16,6 +16,20 @@ async function fetchLivePrices(instruments) {
     console.warn('[LivePrices] fetch failed:', err.message);
     return null;
   }
+}
+
+// Helper — extract just the price from a priceMap entry (handles both old plain numbers and new {price,name} objects)
+function getLTP(priceMap, instrument) {
+  const entry = priceMap?.[instrument];
+  if (!entry) return null;
+  return typeof entry === 'object' ? entry.price : entry;
+}
+
+// Helper — extract company name from a priceMap entry
+function getCompanyName(priceMap, instrument) {
+  const entry = priceMap?.[instrument];
+  if (!entry || typeof entry !== 'object') return null;
+  return entry.name || null;
 }
 
 async function loadDashboardStats(userId) {
@@ -51,7 +65,7 @@ async function loadDashboardStats(userId) {
   const zerodhaPrices = zerodhaInstruments.length ? (await fetchLivePrices(zerodhaInstruments)) || {} : {};
   zerodhaAssets.forEach(row => {
     const qty = +row.qty || 0;
-    const ltp = zerodhaPrices[row.instrument] || +row.avg_cost || 0;
+    const ltp = getLTP(zerodhaPrices, row.instrument) || +row.avg_cost || 0;
     totalInvested += qty * (+row.avg_cost || 0);
     totalValue    += qty * ltp;
     count++;
@@ -63,7 +77,7 @@ async function loadDashboardStats(userId) {
   const aionionPrices = aionionInstruments.length ? (await fetchLivePrices(aionionInstruments)) || {} : {};
   aionionAssets.forEach(row => {
     const qty      = +row.qty || 0;
-    const ltp      = aionionPrices[row.instrument] || +row.avg_cost || 0;
+    const ltp      = getLTP(aionionPrices, row.instrument) || +row.avg_cost || 0;
     const invested = qty * (+row.avg_cost || 0);
     totalInvested += invested;
     totalValue    += qty * ltp;
@@ -156,7 +170,7 @@ async function loadAssets(userId, filter = null) {
     const zerodhaPrices2 = zerodhaInstruments2.length ? (await fetchLivePrices(zerodhaInstruments2)) || {} : {};
     zerodhaAssets2.forEach(row => {
       const qty = +row.qty || 0;
-      const ltp = zerodhaPrices2[row.instrument] || +row.avg_cost || 0;
+      const ltp = getLTP(zerodhaPrices2, row.instrument) || +row.avg_cost || 0;
       totalInvested += qty * (+row.avg_cost || 0);
       totalValue    += qty * ltp;
       count++;
@@ -168,7 +182,7 @@ async function loadAssets(userId, filter = null) {
     const aionionPrices2 = aionionInstruments2.length ? (await fetchLivePrices(aionionInstruments2)) || {} : {};
     aionionAssets2.forEach(row => {
       const qty      = +row.qty || 0;
-      const ltp      = aionionPrices2[row.instrument] || +row.avg_cost || 0;
+      const ltp      = getLTP(aionionPrices2, row.instrument) || +row.avg_cost || 0;
       totalInvested += qty * (+row.avg_cost || 0);
       totalValue    += qty * ltp;
       count++;
@@ -330,6 +344,7 @@ function renderAssetsTable(assets, tableName) {
       : tableName === 'aionion_stocks'
       ? {
         ...a,
+        _name: null,  // patched live by fetchAndRefreshAionionPrices
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
         invested:      (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),
@@ -361,7 +376,7 @@ function renderAssetsTable(assets, tableName) {
       const inner = c.bold ? `<b>${val}</b>` : val;
       // For zerodha/aionion: tag live-updatable cells with data attributes
       const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct'].includes(c.key)) ||
-                        (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct'].includes(c.key)))
+                        (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct', '_name'].includes(c.key)))
         ? ` data-live-${c.key}="${a.instrument}"`
         : '';
       return `<td${style ? ` style="${style}"` : ''}${liveAttr}>${inner}</td>`;

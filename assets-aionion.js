@@ -170,22 +170,27 @@ async function fetchAndRefreshAionionPrices(assets) {
 
   // First pass — accumulate totals with live prices
   assets.forEach(a => {
-    const ltp = prices[a.instrument];
+    const ltp = getLTP(prices, a.instrument);
     totalValue    += (+a.qty || 0) * (ltp || +a.avg_cost || 0);
     totalInvested += (+a.qty || 0) * (+a.avg_cost || 0);
   });
 
   // Second pass — update each row's cells in the DOM
   assets.forEach(a => {
-    const ltp        = prices[a.instrument];
+    const ltp        = getLTP(prices, a.instrument);
     if (!ltp) return;
 
+    const name       = getCompanyName(prices, a.instrument);
     const qty        = +a.qty || 0;
     const curVal     = qty * ltp;
     const investedAmt = qty * (+a.avg_cost || 0);
     const gain       = curVal - investedAmt;
     const gainPct    = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
     const allocPct   = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
+
+    // Company name cell
+    const nameCell = document.querySelector(`[data-live-_name="${a.instrument}"]`);
+    if (nameCell && name) nameCell.innerHTML = `<span style="color:var(--muted);font-size:12px">${name}</span>`;
 
     // Current value cell
     const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
