@@ -1,3 +1,23 @@
+/**
+ * Fetch live NSE prices via /api/prices Cloudflare Function.
+ * Shared by Zerodha and Aionion refresh paths.
+ * Returns { INSTRUMENT: price } map, or null on failure.
+ */
+async function fetchLivePrices(instruments) {
+  const symbols = instruments.map(i => i + '.NS').join(',');
+  try {
+    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const priceMap = await res.json();
+    if (priceMap.error) throw new Error(priceMap.error);
+    console.log('[LivePrices] received:', priceMap);
+    return Object.keys(priceMap).length > 0 ? priceMap : null;
+  } catch (err) {
+    console.warn('[LivePrices] fetch failed:', err.message);
+    return null;
+  }
+}
+
 async function loadDashboardStats(userId) {
   let totalInvested = 0, totalValue = 0, count = 0;
 

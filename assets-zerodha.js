@@ -143,26 +143,6 @@ document.addEventListener('fragments-loaded', () => {
 
 // ══════════════════════════════════════════════════════════════
 
-/**
- * Fetch live NSE prices via our own Cloudflare Pages Function (/api/prices).
- * Server-side fetch means no CORS issues whatsoever.
- * Returns { INSTRUMENT: price } map, or null on failure.
- */
-async function fetchLivePrices(instruments) {
-  const symbols = instruments.map(i => i + '.NS').join(',');
-  try {
-    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const priceMap = await res.json();
-    if (priceMap.error) throw new Error(priceMap.error);
-    console.log('[LivePrices] received:', priceMap);
-    return Object.keys(priceMap).length > 0 ? priceMap : null;
-  } catch (err) {
-    console.warn('[LivePrices] fetch failed:', err.message);
-    return null;
-  }
-}
-
 async function fetchAndRefreshZerodhaPrices(assets) {
   const lastUpdateEl = document.getElementById('zerodha-last-updated');
   const refreshBtn = document.getElementById('zerodha-refresh-btn');
