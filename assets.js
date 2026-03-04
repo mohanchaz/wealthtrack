@@ -378,6 +378,7 @@ function renderAssetsTable(assets, tableName) {
       ? {
         ...a,
         _ticker:   a.nav_symbol ? a.nav_symbol.replace(/\.(NS|BO)$/, '') : null,
+        _live_nav: null,  // patched live by fetchAndRefreshMfPrices
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
         invested:      (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),
@@ -425,7 +426,7 @@ function renderAssetsTable(assets, tableName) {
       const liveKey2 = tableName === 'mf_holdings' ? a.fund_name : a.instrument;
       const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct', '_name'].includes(c.key)) ||
                         (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct', '_name'].includes(c.key)) ||
-                        (tableName === 'mf_holdings'    && ['current_value', '_alloc_pct'].includes(c.key)))
+                        (tableName === 'mf_holdings'    && ['current_value', '_alloc_pct', '_live_nav'].includes(c.key)))
         ? ` data-live-${c.key}="${liveKey2}"`
         : '';
       return `<td${style ? ` style="${style}"` : ''}${liveAttr}>${inner}</td>`;

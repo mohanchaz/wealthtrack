@@ -100,6 +100,7 @@ const ASSET_COLUMNS = {
     { key: 'qty', label: 'Units', align: 'right' },
     { key: '_qty_diff', label: 'Units Diff', align: 'right', fmt: 'qty_diff' },
     { key: 'avg_cost', label: 'Avg NAV', align: 'right', fmt: 'inr' },
+    { key: '_live_nav', label: 'Live NAV', align: 'right', fmt: 'inr', fw: '600' },
     { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
     { key: 'current_value', label: 'Cur. Value', align: 'right', fmt: 'inr', fw: '600' },
     { key: '_alloc_pct', label: 'Allocation', align: 'right', fmt: 'alloc_pct' },

@@ -17,7 +17,7 @@ const MF_ORDERED_MAP = [
   { name: 'HDFC Focused 30 Fund',                          symbol: '0P0000XW75.BO' },
   { name: 'HDFC Nifty 100 Index Fund',                     symbol: '0P0001OF02.BO' },
   { name: 'ICICI Prudential Dividend Yield Equity Fund',   symbol: '0P000134CI.BO' },
-  { name: 'ICICI Prudential Nifty Midcap 150 Index Fund',  symbol: '0P0001NYM0.BO' },
+  { name: 'ICICI Prudential Nifty Midcap 150 Index Fund',  symbol: '0P0001D39P.BO' },
   { name: 'Kotak ELSS Tax Saver Fund',                     symbol: '0P0000XV6Q.BO' },
   { name: 'Motilal Oswal Midcap Fund',                     symbol: '0P0012ALS.BO'  },
   { name: 'Motilal Oswal Midcap Direct Growth',            symbol: '0P0012ALS.BO'  },
@@ -268,6 +268,9 @@ async function fetchAndRefreshMfPrices(assets) {
     var gain        = curVal - investedAmt;
     var gainPct     = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
     var allocPct    = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
+
+    var navCell = document.querySelector('[data-live-_live_nav="' + a.fund_name + '"]');
+    if (navCell) navCell.textContent = INR(nav);
 
     var cvCell = document.querySelector('[data-live-current_value="' + a.fund_name + '"]');
     if (cvCell) cvCell.textContent = INR(curVal);
