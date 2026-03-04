@@ -1,9 +1,8 @@
 -- ══════════════════════════════════════════════════════════════
---  Aionion Stocks tables
---  Run this in Supabase SQL Editor
+--  Aionion Stocks tables — run in Supabase SQL Editor
 -- ══════════════════════════════════════════════════════════════
 
--- 1. Holdings table (mirrors zerodha_stocks)
+-- 1. Holdings (no ltp — value is always qty × avg_cost)
 CREATE TABLE IF NOT EXISTS aionion_stocks (
   id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id      uuid REFERENCES auth.users NOT NULL,
@@ -11,14 +10,12 @@ CREATE TABLE IF NOT EXISTS aionion_stocks (
   qty          numeric NOT NULL DEFAULT 0,
   prev_qty     numeric NOT NULL DEFAULT 0,
   avg_cost     numeric NOT NULL DEFAULT 0,
-  ltp          numeric,
   created_at   timestamptz DEFAULT now(),
   updated_at   timestamptz DEFAULT now(),
   UNIQUE (user_id, instrument)
 );
 
 ALTER TABLE aionion_stocks ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "select_own" ON aionion_stocks FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "insert_own" ON aionion_stocks FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "update_own" ON aionion_stocks FOR UPDATE USING (auth.uid() = user_id);
@@ -34,7 +31,7 @@ CREATE TRIGGER trg_aionion_stocks_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_aionion_stocks_updated_at();
 
 
--- 2. Actual Invested entries (mirrors zerodha_actual_invested)
+-- 2. Actual Invested entries
 CREATE TABLE IF NOT EXISTS aionion_actual_invested (
   id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id      uuid REFERENCES auth.users NOT NULL,
@@ -46,7 +43,6 @@ CREATE TABLE IF NOT EXISTS aionion_actual_invested (
 );
 
 ALTER TABLE aionion_actual_invested ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "select_own" ON aionion_actual_invested FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "insert_own" ON aionion_actual_invested FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "update_own" ON aionion_actual_invested FOR UPDATE USING (auth.uid() = user_id);

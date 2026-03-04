@@ -142,12 +142,102 @@ document.addEventListener('fragments-loaded', () => {
 
 
 // ══════════════════════════════════════════════════════════════
+//  AIONION LIVE PRICE REFRESH
+// ══════════════════════════════════════════════════════════════
 
 /**
- * Fetch live NSE prices via our own Cloudflare Pages Function (/api/prices).
- * Server-side fetch means no CORS issues whatsoever.
- * Returns { INSTRUMENT: price } map, or null on failure.
+ * Fetch live NSE prices for Aionion stocks via /api/prices and
+ * patch the table DOM in-place (same approach as Zerodha).
  */
+async function fetchAndRefreshAionionPrices(assets) {
+  const lastUpdateEl = document.getElementById('aionion-last-updated');
+  const refreshBtn   = document.getElementById('aionion-refresh-btn');
+  if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching live prices…';
+  if (refreshBtn)   refreshBtn.disabled = true;
+
+  const instruments = assets.map(a => a.instrument);
+  const prices = await fetchLivePrices(instruments);
+
+  if (refreshBtn) refreshBtn.disabled = false;
+
+  if (!prices) {
+    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ Could not fetch prices';
+    showToast('Live price fetch failed — check console', 'error');
+    return;
+  }
+
+  let totalValue = 0, totalInvested = 0;
+
+  // First pass — accumulate totals with live prices
+  assets.forEach(a => {
+    const ltp = prices[a.instrument];
+    totalValue    += (+a.qty || 0) * (ltp || +a.avg_cost || 0);
+    totalInvested += (+a.qty || 0) * (+a.avg_cost || 0);
+  });
+
+  // Second pass — update each row's cells in the DOM
+  assets.forEach(a => {
+    const ltp        = prices[a.instrument];
+    if (!ltp) return;
+
+    const qty        = +a.qty || 0;
+    const curVal     = qty * ltp;
+    const investedAmt = qty * (+a.avg_cost || 0);
+    const gain       = curVal - investedAmt;
+    const gainPct    = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
+    const allocPct   = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
+
+    // Current value cell
+    const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
+    if (cvCell) cvCell.textContent = INR(curVal);
+
+    // Allocation % cell
+    const allocCell = document.querySelector(`[data-live-_alloc_pct="${a.instrument}"]`);
+    if (allocCell) {
+      const barWidth = Math.min(allocPct, 100).toFixed(1);
+      allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
+        <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
+          <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
+        </span>
+        <b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b>
+      </span>`;
+    }
+
+    // Gain/Loss badge
+    const gainTd = document.querySelector(`[data-live-gain="${a.instrument}"]`);
+    if (gainTd) {
+      const arrow    = gain >= 0 ? '▲' : '▼';
+      const badgeCls = gain > 0 ? 'pos' : gain < 0 ? 'neg' : 'zero';
+      gainTd.innerHTML = `<span class="gain-badge ${badgeCls}">${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}</span>`;
+    }
+  });
+
+  // Update stat cards with live totals
+  const totalGain    = totalValue - totalInvested;
+  const totalGainPct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('assets-total-value',    INR(totalValue));
+  set('assets-total-invested', INR(totalInvested));
+  const gainEl = document.getElementById('assets-total-gain');
+  if (gainEl) {
+    gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain) + totalGainPct;
+    gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+
+  // Timestamp
+  const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
+}
+
+// Wire Aionion Refresh button
+document.addEventListener('fragments-loaded', () => {
+  document.getElementById('aionion-refresh-btn')?.addEventListener('click', () => {
+    if (_currentAssetFilter === 'Aionion Stocks') {
+      loadAssets(_currentUserId, 'Aionion Stocks');
+    }
+  });
+});
+
 // ══════════════════════════════════════════════════════════════
 //  AIONION STOCKS  — manual add/edit module
 // ══════════════════════════════════════════════════════════════

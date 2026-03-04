@@ -32,16 +32,18 @@ async function loadDashboardStats(userId) {
     count++;
   });
 
-  // Aionion has no ltp — use avg_cost as current value
-  (aionionResult.data || []).forEach(row => {
-    const qty = +row.qty || 0;
+  // Aionion: fetch live prices; fall back to avg_cost if unavailable
+  const aionionAssets = aionionResult.data || [];
+  const aionionInstruments = aionionAssets.map(r => r.instrument);
+  const aionionPrices = aionionInstruments.length ? (await fetchLivePrices(aionionInstruments)) || {} : {};
+  aionionAssets.forEach(row => {
+    const qty      = +row.qty || 0;
+    const ltp      = aionionPrices[row.instrument] || +row.avg_cost || 0;
     const invested = qty * (+row.avg_cost || 0);
     totalInvested += invested;
-    totalValue += invested;
+    totalValue    += qty * ltp;
     count++;
-  });
-
-  const fdActual  = (fdData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  });  = (fdData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const zaiActual = (zaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const aaiActual = (aaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const actualInvested = fdActual + zaiActual + aaiActual;
@@ -129,12 +131,15 @@ async function loadAssets(userId, filter = null) {
       count++;
     });
 
-    // Aionion has no ltp — use avg_cost as current value
-    (aionionResult.data || []).forEach(row => {
-      const qty = +row.qty || 0;
-      const invested = qty * (+row.avg_cost || 0);
-      totalInvested += invested;
-      totalValue += invested;
+    // Aionion: fetch live prices; fall back to avg_cost if unavailable
+    const aionionAssets2 = aionionResult.data || [];
+    const aionionInstruments2 = aionionAssets2.map(r => r.instrument);
+    const aionionPrices2 = aionionInstruments2.length ? (await fetchLivePrices(aionionInstruments2)) || {} : {};
+    aionionAssets2.forEach(row => {
+      const qty      = +row.qty || 0;
+      const ltp      = aionionPrices2[row.instrument] || +row.avg_cost || 0;
+      totalInvested += qty * (+row.avg_cost || 0);
+      totalValue    += qty * ltp;
       count++;
     });
 
@@ -234,7 +239,8 @@ function renderAssetsTable(assets, tableName) {
     document.getElementById('zerodha-last-updated')?.classList.remove('hidden');
     if (addBtn2) addBtn2.classList.add('hidden');
   } else if (tableName === 'aionion_stocks') {
-    // Aionion: only Add Asset, no Import or Refresh
+    document.getElementById('aionion-refresh-btn')?.classList.remove('hidden');
+    document.getElementById('aionion-last-updated')?.classList.remove('hidden');
     if (addBtn2) addBtn2.classList.remove('hidden');
   }
 
@@ -320,14 +326,15 @@ function renderAssetsTable(assets, tableName) {
       if (c.mono) style += 'font-family:monospace;font-size:12px;';
       // Allow HTML (e.g. qty_diff spans) — use innerHTML via template literal
       const inner = c.bold ? `<b>${val}</b>` : val;
-      // For zerodha: tag live-updatable cells with data attributes
-      const liveAttr = (tableName === 'zerodha_stocks' && ['ltp', 'current_value', '_alloc_pct'].includes(c.key))
+      // For zerodha/aionion: tag live-updatable cells with data attributes
+      const liveAttr = ((tableName === 'zerodha_stocks' && ['ltp', 'current_value', '_alloc_pct'].includes(c.key)) ||
+                        (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct'].includes(c.key)))
         ? ` data-live-${c.key}="${a.instrument}"`
         : '';
       return `<td${style ? ` style="${style}"` : ''}${liveAttr}>${inner}</td>`;
     }).join('');
 
-    const gainAttr = tableName === 'zerodha_stocks' ? ` data-live-gain="${a.instrument}"` : '';
+    const gainAttr = (tableName === 'zerodha_stocks' || tableName === 'aionion_stocks') ? ` data-live-gain="${a.instrument}"` : '';
     html += `
       <tr data-id="${a.id}">
         ${cells}
@@ -371,9 +378,12 @@ function renderAssetsTable(assets, tableName) {
     if (aionionSec) aionionSec.classList.add('hidden');
   }
 
-  // Auto-fetch live prices for Zerodha Stocks only
+  // Auto-fetch live prices for stock tables
   if (tableName === 'zerodha_stocks' && assets.length) {
     fetchAndRefreshZerodhaPrices(assets);
+  }
+  if (tableName === 'aionion_stocks' && assets.length) {
+    fetchAndRefreshAionionPrices(assets);
   }
 
   tbody.querySelectorAll('.asset-edit-btn').forEach(btn => {
