@@ -31,8 +31,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-  <!-- config.js and loader.js run immediately (before fragments) -->
-  <script src="config.js"></script>
+  <!-- /config is served by functions/config.js (Cloudflare Pages Function) -->
+  <!-- It injects SUPABASE_URL, SUPABASE_ANON_KEY and `sb` from env vars   -->
+  <script src="/config"></script>
   <script src="loader.js"></script>
 
   <!-- App modules wire up after fragments-loaded event fires -->
