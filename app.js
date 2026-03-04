@@ -1652,9 +1652,11 @@ document.getElementById('add-asset-save-btn').addEventListener('click', async ()
 // ══════════════════════════════════════════════════════════════
 
 let _editingZerodhaId = null;
+let _editingZerodhaCurrentQty = null;  // tracks old qty so prev_qty stays meaningful
 
 function openZerodhaEditModal(row) {
   _editingZerodhaId = row.id;
+  _editingZerodhaCurrentQty = +row.qty || 0;  // remember current qty as the "before" value
   document.getElementById('zerodha-edit-modal-title').textContent = `Edit — ${row.instrument}`;
   document.getElementById('ze-instrument').value = row.instrument ?? '';
   document.getElementById('ze-qty').value = row.qty ?? '';
@@ -1690,8 +1692,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBtn = document.getElementById('zerodha-edit-save-btn');
     saveBtn.textContent = 'Saving\u2026'; saveBtn.disabled = true;
 
+    // If qty changed, shift current qty into prev_qty so the Qty Diff column reflects this edit
+    const updatePayload = { qty, avg_cost: avgCost, ltp: ltp || null };
+    if (qty !== _editingZerodhaCurrentQty) {
+      updatePayload.prev_qty = _editingZerodhaCurrentQty;
+    }
+
     const { error } = await sb.from('zerodha_stocks')
-      .update({ qty, avg_cost: avgCost, ltp: ltp || null })
+      .update(updatePayload)
       .eq('id', _editingZerodhaId);
 
     saveBtn.textContent = '\uD83D\uDCBE Save Changes'; saveBtn.disabled = false;
