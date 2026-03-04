@@ -63,7 +63,8 @@ async function loadDashboardStats(userId) {
     totalInvested += invested;
     totalValue    += qty * ltp;
     count++;
-  });  = (fdData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  });
+  const fdActual  = (fdData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const zaiActual = (zaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const aaiActual = (aaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const actualInvested = fdActual + zaiActual + aaiActual;
