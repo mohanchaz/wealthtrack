@@ -1,0 +1,46 @@
+  <!-- Zerodha Stock Edit Modal -->
+  <div id="zerodha-edit-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:440px">
+      <div class="modal-header">
+        <h3 id="zerodha-edit-modal-title">Edit Stock</h3>
+        <button class="modal-close" id="zerodha-edit-close-btn" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="asset-form-grid">
+
+          <div class="asset-form-group-title">Instrument</div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="ze-instrument">Symbol</label>
+            <input class="modal-input" id="ze-instrument" type="text"
+              style="background:var(--surface2);color:var(--muted);cursor:not-allowed" readonly />
+          </div>
+
+          <div class="asset-form-group-title">Holdings</div>
+
+          <div class="form-group">
+            <label class="form-label" for="ze-qty">Quantity</label>
+            <input class="modal-input" id="ze-qty" type="number" min="0" step="1" placeholder="e.g. 10" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ze-avg-cost">Avg Cost (₹)</label>
+            <input class="modal-input" id="ze-avg-cost" type="number" min="0" step="0.01" placeholder="e.g. 450.00" />
+          </div>
+
+          <div class="asset-form-group-title">Pricing</div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="ze-ltp">LTP (₹)</label>
+            <input class="modal-input" id="ze-ltp" type="number" min="0" step="0.01" placeholder="e.g. 520.00" />
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div style="font-size:12px;color:var(--muted);margin-right:auto">Prices update automatically on Refresh</div>
+        <button class="btn-secondary" id="zerodha-edit-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="zerodha-edit-save-btn">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>

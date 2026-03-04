@@ -1,0 +1,27 @@
+  <!-- FD Actual Invested Modal -->
+  <div id="fd-invested-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:400px">
+      <div class="modal-header">
+        <h2 id="fd-invested-modal-title">Add Entry</h2>
+        <button class="modal-close-btn" id="fd-invested-close-btn">&times;</button>
+      </div>
+      <div class="modal-body" style="display:grid;gap:16px;padding:24px">
+        <div class="form-group full-width">
+          <label class="form-label" for="fdi-date">Date</label>
+          <input class="modal-input" id="fdi-date" type="date" />
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label" for="fdi-amount">Amount Invested (₹)</label>
+          <input class="modal-input" id="fdi-amount" type="number" min="0" step="0.01" placeholder="e.g. 75000" />
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label" for="fdi-notes">Notes (optional)</label>
+          <input class="modal-input" id="fdi-notes" type="text" placeholder="e.g. SBI FD top-up" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-cancel-btn" id="fd-invested-cancel-btn">Cancel</button>
+        <button class="modal-save-btn" id="fd-invested-save-btn">💾 Save Entry</button>
+      </div>
+    </div>
+  </div>

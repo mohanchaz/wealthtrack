@@ -1,0 +1,91 @@
+  <!-- Add / Edit Asset Modal (Cash & Bank FD) -->
+  <div id="add-asset-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:600px">
+      <div class="modal-header">
+        <h3>Add Asset</h3>
+        <button class="modal-close" id="add-asset-close-btn" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="asset-form-grid">
+
+          <div class="asset-form-group-title">Asset Details</div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="af-category">Category / Type</label>
+            <input class="modal-input" id="af-category" type="text" placeholder="e.g. NRE FD, SB Account" />
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="af-platform">Platform / Bank</label>
+            <input class="modal-input" id="af-platform" type="text" placeholder="e.g. Equitas Bank, Zerodha" />
+          </div>
+
+          <div class="asset-form-group-title">Account Reference</div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-account-number">Account Number</label>
+            <input class="modal-input" id="af-account-number" type="text" placeholder="e.g. 30011971029" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-sb-account">SB Account Number</label>
+            <input class="modal-input" id="af-sb-account" type="text" placeholder="e.g. 100049429906" />
+          </div>
+
+          <div class="asset-form-group-title">Value</div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-invested">Amount Invested (₹)</label>
+            <input class="modal-input" id="af-invested" type="number" min="0" step="0.01" placeholder="e.g. 100000" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="af-current">Current Value (₹)</label>
+            <input class="modal-input" id="af-current" type="number" min="0" step="0.01" placeholder="e.g. 110744" />
+          </div>
+
+          <!-- Bank FD extras (shown dynamically) -->
+          <div id="fd-extra-fields" class="hidden" style="display:contents">
+            <div class="asset-form-group-title">FD Details</div>
+
+            <div class="form-group">
+              <label class="form-label" for="af-invested-date">Invested Date</label>
+              <input class="modal-input" id="af-invested-date" type="date" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="af-interest-rate">Interest Rate (%)</label>
+              <input class="modal-input" id="af-interest-rate" type="number" min="0" max="100" step="0.01"
+                placeholder="e.g. 8.25" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="af-maturity-date">Maturity Date</label>
+              <input class="modal-input" id="af-maturity-date" type="date" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="af-maturity-amount">Maturity Amount (₹)</label>
+              <input class="modal-input" id="af-maturity-amount" type="number" min="0" step="0.01"
+                placeholder="e.g. 135089" />
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="af-notes">Notes (optional)</label>
+            <input class="modal-input" id="af-notes" type="text" placeholder="Any notes…" />
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div style="font-size:12px;color:var(--muted);margin-right:auto">All fields except Category are optional</div>
+        <button class="btn-secondary" id="add-asset-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="add-asset-save-btn">💾 Save Asset</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>

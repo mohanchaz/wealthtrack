@@ -1,0 +1,25 @@
+  <!-- Edit Allocation Modal -->
+  <div id="alloc-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Edit Ideal Allocation</h3>
+        <button class="modal-close" id="modal-close-btn" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-col-labels">
+          <div class="modal-col-label">Asset / Item</div>
+          <div class="modal-col-label" style="text-align:right">% Allocation</div>
+          <div></div>
+        </div>
+        <div id="modal-rows"></div>
+        <button class="modal-add-btn" id="modal-add-row-btn">
+          <span>+</span> Add Row
+        </button>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-total-badge" id="modal-total-badge">Total: 0%</div>
+        <button class="btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="modal-save-btn">💾 Save</button>
+      </div>
+    </div>
+  </div>

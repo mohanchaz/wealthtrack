@@ -1,0 +1,78 @@
+  <div id="dashboard-view" class="hidden">
+
+    <!-- Top bar -->
+    <header class="dash-topbar">
+      <div class="dash-logo">
+        <div class="dash-logo-icon">₹</div>
+        <span class="dash-logo-text">FinTrack</span>
+      </div>
+      <div class="dash-topright">
+        <span class="dash-user-name">Hi, <b id="user-name"></b></span>
+        <img id="user-avatar" class="dash-avatar hidden" alt="avatar" />
+        <div id="user-avatar-placeholder" class="dash-avatar-placeholder hidden"></div>
+        <button class="dash-logout" id="logout-btn">Sign out</button>
+      </div>
+    </header>
+
+    <div class="dash-body">
+
+      <!-- Sidebar -->
+      <aside class="dash-sidebar">
+        <div class="sidebar-section-label">Overview</div>
+        <div class="sidebar-item active" data-page="dashboard">
+          <span class="sidebar-icon">⬡</span> Dashboard
+        </div>
+
+        <div class="sidebar-section-label">Wealth</div>
+        <div class="sidebar-item" data-page="assets" id="sidebar-assets">
+          <span class="sidebar-icon">◈</span> Assets
+        </div>
+        <div class="sidebar-sub-group open" id="assets-sub-group">
+          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Cash">
+            <span class="sidebar-sub-icon">💵</span> Cash
+          </div>
+          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Bank FD">
+            <span class="sidebar-sub-icon">🏦</span> Bank FD
+          </div>
+          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Zerodha Stocks">
+            <span class="sidebar-sub-icon">📈</span> Zerodha Stocks
+          </div>
+        </div>
+        <div class="sidebar-item" data-page="liabilities">
+          <span class="sidebar-icon">◉</span> Liabilities
+        </div>
+        <div class="sidebar-item" data-page="allocation">
+          <span class="sidebar-icon">◎</span> Allocation
+        </div>
+
+        <div class="sidebar-section-label">Money Flow</div>
+        <div class="sidebar-item" data-page="transactions">
+          <span class="sidebar-icon">⇅</span> Transactions
+        </div>
+        <div class="sidebar-item" data-page="budget">
+          <span class="sidebar-icon">◷</span> Budget
+        </div>
+
+        <div class="sidebar-section-label">Planning</div>
+        <div class="sidebar-item" data-page="goals">
+          <span class="sidebar-icon">◌</span> Goals
+        </div>
+        <div class="sidebar-item" data-page="snapshots">
+          <span class="sidebar-icon">⊡</span> Snapshots
+        </div>
+
+        <div class="sidebar-section-label">More</div>
+        <div class="sidebar-item" data-page="settings">
+          <span class="sidebar-icon">⚙</span> Settings
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="dash-main anim-fadein">
+
+
+        <!-- pages injected here by loader.js -->
+
+      </main>
+    </div>
+  </div>

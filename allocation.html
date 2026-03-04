@@ -1,0 +1,63 @@
+        <!-- ══ PAGE: ALLOCATION ══════════════════════════════════ -->
+        <div id="page-allocation" class="hidden">
+
+          <div class="page-header">
+            <h1 class="page-title">Ideal Allocation</h1>
+            <p class="page-subtitle">Your target portfolio mix across asset classes</p>
+          </div>
+
+          <div class="dash-grid-2">
+            <!-- Allocation card -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <span class="section-card-title">Allocation</span>
+                <span class="section-card-action" id="edit-alloc-btn">✏️ Edit</span>
+              </div>
+              <div class="section-card-body">
+                <div class="alloc-chart-wrap" id="alloc-chart-wrap" style="display:none">
+                  <canvas id="alloc-chart" width="220" height="220"></canvas>
+                </div>
+                <div class="alloc-legend" id="alloc-legend"></div>
+                <div id="allocations-container">
+                  <div class="spinner"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tips card -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <span class="section-card-title">About Ideal Allocation</span>
+              </div>
+              <div class="section-card-body">
+                <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="font-size:22px">🎯</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Target Mix</div>
+                      <div style="font-size:12.5px;color:var(--muted);line-height:1.65">Set the % you want in each asset
+                        class. This is your long-term financial goal, not current holdings.</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="font-size:22px">✏️</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Customise Freely</div>
+                      <div style="font-size:12.5px;color:var(--muted);line-height:1.65">Click Edit to rename, add, or
+                        remove asset classes. Total must equal 100%.</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="font-size:22px">📊</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Stay on Track</div>
+                      <div style="font-size:12.5px;color:var(--muted);line-height:1.65">Once you add assets, FinTrack
+                        will show how your actual portfolio compares to this target.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /#page-allocation -->
