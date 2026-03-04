@@ -483,7 +483,9 @@ async function importMfFunds(allRows) {
     };
   });
 
-  var res = await sb.from('mf_holdings').upsert(payload, { onConflict: 'user_id,fund_name' });
+  // Delete ALL existing holdings for this user then insert fresh
+  await sb.from('mf_holdings').delete().eq('user_id', _currentUserId);
+  var res = await sb.from('mf_holdings').insert(payload);
 
   confirmBtn.textContent = '\uD83D\uDCE5 Import ' + rows.length + ' Funds';
   confirmBtn.disabled = false;
