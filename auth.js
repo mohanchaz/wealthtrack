@@ -1,7 +1,35 @@
-// ─── Wire up auth listeners after DOM fragments are injected ──
-document.addEventListener('fragments-loaded', () => {
+// ─── Auth bootstrap ───────────────────────────────────────────
+// MUST register onAuthStateChange at the top level — before any
+// async work — so the initial SIGNED_IN event is never missed.
+// If DOM fragments aren't ready yet we buffer the session and
+// flush it once fragments-loaded fires.
 
-  // ─── Google Login ─────────────────────────────────────────────
+let _fragmentsReady = false;
+let _pendingSession = undefined;  // undefined = not yet received
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (_fragmentsReady) {
+    // Fragments are in the DOM — act immediately
+    if (session?.user) {
+      if (_dashboardUserId !== session.user.id) {
+        _dashboardUserId = session.user.id;
+        showDashboard(session.user);
+      }
+    } else {
+      _dashboardUserId = null;
+      showLogin();
+    }
+  } else {
+    // Fragments not ready yet — buffer latest state
+    _pendingSession = session;
+  }
+});
+
+// ─── Wire up buttons + flush buffered session once DOM is ready ─
+document.addEventListener('fragments-loaded', () => {
+  _fragmentsReady = true;
+
+  // ── Google Login ─────────────────────────────────────────────
   getLoginBtn().addEventListener('click', async () => {
     getLoginBtn().textContent = 'Redirecting…';
     getLoginBtn().disabled = true;
@@ -16,36 +44,34 @@ document.addEventListener('fragments-loaded', () => {
     }
   });
 
-  // ─── Logout ───────────────────────────────────────────────────
+  // ── Logout ───────────────────────────────────────────────────
   getLogoutBtn().addEventListener('click', async () => {
     await sb.auth.signOut();
     showToast('Signed out successfully', 'success');
   });
 
-  // ─── Auth state ───────────────────────────────────────────────
-  sb.auth.onAuthStateChange((event, session) => {
+  // ── Flush buffered session (or fetch current one) ─────────────
+  if (_pendingSession !== undefined) {
+    // onAuthStateChange already fired — use its result
+    const session = _pendingSession;
+    _pendingSession = undefined;
     if (session?.user) {
-      if (_dashboardUserId !== session.user.id) {
-        _dashboardUserId = session.user.id;
-        showDashboard(session.user);
-      }
-    } else {
-      _dashboardUserId = null;
-      showLogin();
-    }
-  });
-
-  // ─── Bootstrap: handle session that fired before this listener registered ──
-  // Supabase emits the initial SIGNED_IN event very early — before fragments-loaded
-  // fires. getSession() catches the already-active session so the dashboard loads.
-  sb.auth.getSession().then(({ data: { session } }) => {
-    if (session?.user && _dashboardUserId !== session.user.id) {
       _dashboardUserId = session.user.id;
       showDashboard(session.user);
-    } else if (!session) {
+    } else {
       showLogin();
     }
-  });
+  } else {
+    // onAuthStateChange hasn't fired yet — ask Supabase directly
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        _dashboardUserId = session.user.id;
+        showDashboard(session.user);
+      } else {
+        showLogin();
+      }
+    });
+  }
 
 }); // end fragments-loaded
 
