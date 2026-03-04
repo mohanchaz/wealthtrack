@@ -86,6 +86,7 @@ const ASSET_COLUMNS = {
   ],
   zerodha_stocks: [
     { key: 'instrument', label: 'Instrument', bold: true },
+    { key: '_name', label: 'Company', fmt: 'name' },
     { key: 'qty', label: 'Qty', align: 'right' },
     { key: '_qty_diff', label: 'Qty Diff', align: 'right', fmt: 'qty_diff' },
     { key: 'avg_cost', label: 'Avg Cost', align: 'right', fmt: 'inr' },

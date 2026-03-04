@@ -336,6 +336,7 @@ function renderAssetsTable(assets, tableName) {
     const row = tableName === 'zerodha_stocks'
       ? {
         ...a,
+        _name: null,  // patched live by fetchAndRefreshZerodhaPrices
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
         invested:      (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),  // placeholder; patched by fetchAndRefreshZerodhaPrices
@@ -375,7 +376,7 @@ function renderAssetsTable(assets, tableName) {
       // Allow HTML (e.g. qty_diff spans) — use innerHTML via template literal
       const inner = c.bold ? `<b>${val}</b>` : val;
       // For zerodha/aionion: tag live-updatable cells with data attributes
-      const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct'].includes(c.key)) ||
+      const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct', '_name'].includes(c.key)) ||
                         (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct', '_name'].includes(c.key)))
         ? ` data-live-${c.key}="${a.instrument}"`
         : '';

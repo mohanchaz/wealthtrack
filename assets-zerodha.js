@@ -175,6 +175,7 @@ async function fetchAndRefreshZerodhaPrices(assets) {
     const ltp = getLTP(prices, a.instrument);
     if (!ltp) return;
 
+    const name     = getCompanyName(prices, a.instrument);
     const qty = +a.qty || 0;
     const curVal = qty * ltp;
     const investedAmt = qty * (+a.avg_cost || 0);   // correct: qty × avg_cost
@@ -182,6 +183,10 @@ async function fetchAndRefreshZerodhaPrices(assets) {
     const gain = pnl;
     const gainPct = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
     const allocPct = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
+
+    // Company name cell
+    const nameCell = document.querySelector(`[data-live-_name="${a.instrument}"]`);
+    if (nameCell && name) nameCell.innerHTML = `<span style="color:var(--muted);font-size:12px">${name}</span>`;
 
     // Current value cell
     const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
