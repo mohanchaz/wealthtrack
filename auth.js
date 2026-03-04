@@ -35,6 +35,18 @@ document.addEventListener('fragments-loaded', () => {
     }
   });
 
+  // ─── Bootstrap: handle session that fired before this listener registered ──
+  // Supabase emits the initial SIGNED_IN event very early — before fragments-loaded
+  // fires. getSession() catches the already-active session so the dashboard loads.
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (session?.user && _dashboardUserId !== session.user.id) {
+      _dashboardUserId = session.user.id;
+      showDashboard(session.user);
+    } else if (!session) {
+      showLogin();
+    }
+  });
+
 }); // end fragments-loaded
 
 // ─── Show Login ───────────────────────────────────────────────
