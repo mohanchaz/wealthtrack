@@ -36,6 +36,9 @@
       modalAddAsset,
       modalAionionInvested,
       modalAionionEdit,
+      modalMfImport,
+      modalMfInvested,
+      modalMfEdit,
     ] = await Promise.all([
       loadHTML('pages/login.html'),
       loadHTML('pages/dashboard-shell.html'),
@@ -50,6 +53,9 @@
       loadHTML('modals/add-asset.html'),
       loadHTML('modals/aionion-invested.html'),
       loadHTML('modals/aionion-edit.html'),
+      loadHTML('modals/mf-import.html'),
+      loadHTML('modals/mf-invested.html'),
+      loadHTML('modals/mf-edit.html'),
     ]);
 
     // 1. Inject login / auth view
@@ -81,6 +87,9 @@
     await append(modalAddAsset);
     await append(modalAionionInvested);
     await append(modalAionionEdit);
+    await append(modalMfImport);
+    await append(modalMfInvested);
+    await append(modalMfEdit);
 
     // 4. Signal that HTML is ready — app scripts may now safely query the DOM
     document.dispatchEvent(new Event('fragments-loaded'));
