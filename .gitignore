@@ -1,2 +1,4 @@
 .fdactualinvested.schema
 .app.js
+# Supabase credentials — never commit this file
+config.js
