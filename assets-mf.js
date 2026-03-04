@@ -323,8 +323,10 @@ function parseMfCSV(text) {
   var header = lines[0].split(',').map(function(h) { return h.trim().replace(/^"|"$/g, ''); });
 
   function find() {
-    for (var i = 0; i < arguments.length; i++) {
-      var idx = header.findIndex(function(h) { return h.toLowerCase().indexOf(arguments[i].toLowerCase()) !== -1; }.bind(null, arguments[i]));
+    var needles = Array.prototype.slice.call(arguments);
+    for (var i = 0; i < needles.length; i++) {
+      var needle = needles[i].toLowerCase();
+      var idx = header.findIndex(function(h) { return h.toLowerCase().indexOf(needle) !== -1; });
       if (idx !== -1) return idx;
     }
     return -1;
