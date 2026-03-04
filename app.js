@@ -575,10 +575,9 @@ async function loadAssets(userId, filter = null) {
     if (monthlySec) monthlySec.classList.add('hidden');
     if (zerodhaSec) zerodhaSec.classList.add('hidden');
 
-    // Hide toolbar and layout row on overview — only stat tiles visible
-    const toolbar = document.getElementById('assets-toolbar');
+    // Hide the whole layout row on overview — only stat tiles visible
+    // (toolbar is inside the layout row so no need to hide it separately)
     const layoutRow = document.getElementById('assets-layout-row');
-    if (toolbar) toolbar.classList.add('hidden');
     if (layoutRow) layoutRow.classList.add('hidden');
 
     // Hide the Actual Invested stat card and reset table headers to default
