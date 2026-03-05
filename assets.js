@@ -18,6 +18,24 @@ async function fetchLivePrices(instruments) {
   }
 }
 
+/**
+ * Same as fetchLivePrices but passes symbols exactly as-is (no .NS appended).
+ * Used for MF and Gold where symbols already include .BO / .NS suffix.
+ */
+async function fetchLivePricesRaw(symbols) {
+  try {
+    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols.join(','))}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const priceMap = await res.json();
+    if (priceMap.error) throw new Error(priceMap.error);
+    console.log('[LivePricesRaw] received:', priceMap);
+    return Object.keys(priceMap).length > 0 ? priceMap : null;
+  } catch (err) {
+    console.warn('[LivePricesRaw] fetch failed:', err.message);
+    return null;
+  }
+}
+
 // Helper — extract just the price from a priceMap entry (handles both old plain numbers and new {price,name} objects)
 function getLTP(priceMap, instrument) {
   const entry = priceMap?.[instrument];

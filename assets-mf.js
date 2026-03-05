@@ -143,7 +143,7 @@ async function fetchAndRefreshMfPrices(assets) {
     return;
   }
 
-  const prices = await fetchLivePrices(symbols);
+  const prices = await fetchLivePricesRaw(symbols);
 
   if (refreshBtn) refreshBtn.disabled = false;
 
