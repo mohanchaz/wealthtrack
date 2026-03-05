@@ -268,7 +268,7 @@ document.addEventListener('fragments-loaded', () => {
     } else {
       showToast(_editingAmcMfId ? 'Fund updated \u2705' : 'Fund added \ud83c\udf89', 'success');
       closeAmcMfEditModal();
-      loadAssets(_currentUserId, 'AMC MF');
+      loadAssets(_currentUserId, 'AMC Mutual Funds');
     }
   });
 

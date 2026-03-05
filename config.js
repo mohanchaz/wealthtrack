@@ -56,9 +56,9 @@ const INR = v => '₹' + Number(v || 0).toLocaleString('en-IN', { minimumFractio
 // Map asset-class name → Supabase table name
 const ASSET_TABLES = {
   'Cash': 'cash_assets',
-  'Bank FD': 'bank_fd_assets',
+  'Fixed Deposits': 'bank_fd_assets',
   'Bonds': 'bonds',
-  'AMC MF': 'amc_mf_holdings',
+  'AMC Mutual Funds': 'amc_mf_holdings',
   'Zerodha Stocks': 'zerodha_stocks',
   'Aionion Stocks': 'aionion_stocks',
   'Aionion Gold':   'aionion_gold',
