@@ -705,7 +705,7 @@
     }
 
     .sidebar-sub-group.open {
-      max-height: 300px;
+      max-height: 600px;
     }
 
     .sidebar-sub-item {
