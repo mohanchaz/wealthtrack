@@ -548,10 +548,8 @@ function renderAssetsTable(assets, tableName) {
   const zerodhaSec = document.getElementById('zerodha-monthly-summary');
   const aionionSec = document.getElementById('aionion-monthly-summary');
   const mfSec      = document.getElementById('mf-monthly-summary');
-  const goldSec    = document.getElementById('gold-monthly-summary');
-
-  const aionionGoldSec = document.getElementById('aionion-gold-monthly-summary');
-  const allSecs = [fdSec, zerodhaSec, aionionSec, aionionGoldSec, mfSec, goldSec];
+  // Gold sections have no actual invested panel
+  const allSecs = [fdSec, zerodhaSec, aionionSec, mfSec];
   allSecs.forEach(s => s?.classList.add('hidden'));
 
   if (tableName === 'bank_fd_assets') {
@@ -567,17 +565,13 @@ function renderAssetsTable(assets, tableName) {
     if (aionionSec) aionionSec.classList.remove('hidden');
     loadAionionActualInvested(_currentUserId);
   } else if (tableName === 'aionion_gold') {
-    if (actualCard) actualCard.classList.remove('hidden');
-    if (aionionGoldSec) aionionGoldSec.classList.remove('hidden');
-    loadAionionGoldActualInvested(_currentUserId);
+    if (actualCard) actualCard.classList.add('hidden');
   } else if (tableName === 'mf_holdings') {
     if (actualCard) actualCard.classList.remove('hidden');
     if (mfSec)      mfSec.classList.remove('hidden');
     loadMfActualInvested(_currentUserId);
   } else if (tableName === 'gold_holdings') {
-    if (actualCard) actualCard.classList.remove('hidden');
-    if (goldSec)    goldSec.classList.remove('hidden');
-    loadGoldActualInvested(_currentUserId);
+    if (actualCard) actualCard.classList.add('hidden');
   } else {
     if (actualCard) actualCard.classList.add('hidden');
   }

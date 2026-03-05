@@ -20,13 +20,30 @@ document.addEventListener('fragments-loaded', () => {
     zerodhaChevron?.classList.toggle('open');
   });
 
+  // ── Aionion nested group — open by default ────────────────────
+  const aionionGroup   = document.getElementById('aionion-nav-group');
+  const aionionChevron = document.getElementById('aionion-nav-chevron');
+  const aionionHeader  = document.getElementById('aionion-nav-header');
+  if (aionionGroup)   aionionGroup.classList.add('open');
+  if (aionionChevron) aionionChevron.classList.add('open');
+
+  aionionHeader?.addEventListener('click', () => {
+    aionionGroup?.classList.toggle('open');
+    aionionChevron?.classList.toggle('open');
+  });
+
   // ── Set active sidebar item ───────────────────────────────────
   function setActiveSidebarItem(el) {
     document.querySelectorAll('.sidebar-item, .sidebar-sub-item, .sidebar-nested-item, .sidebar-nested-header').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
     // If a nested item is active, also highlight the parent header
     if (el.classList.contains('sidebar-nested-item')) {
-      zerodhaHeader?.classList.add('active');
+      const filter = el.dataset.assetFilter || '';
+      if (['Zerodha Stocks', 'Mutual Funds', 'Gold'].includes(filter)) {
+        zerodhaHeader?.classList.add('active');
+      } else if (['Aionion Stocks', 'Aionion Gold'].includes(filter)) {
+        aionionHeader?.classList.add('active');
+      }
     }
   }
 
@@ -58,10 +75,16 @@ document.addEventListener('fragments-loaded', () => {
     item.addEventListener('click', e => {
       e.stopPropagation();
       setActiveSidebarItem(item);
-      // Ensure Zerodha group stays open when a child is selected
-      zerodhaGroup?.classList.add('open');
-      zerodhaChevron?.classList.add('open');
-      navigateTo('page-assets', item.dataset.assetFilter);
+      const filter = item.dataset.assetFilter || '';
+      // Keep the correct group open
+      if (['Zerodha Stocks', 'Mutual Funds', 'Gold'].includes(filter)) {
+        zerodhaGroup?.classList.add('open');
+        zerodhaChevron?.classList.add('open');
+      } else if (['Aionion Stocks', 'Aionion Gold'].includes(filter)) {
+        aionionGroup?.classList.add('open');
+        aionionChevron?.classList.add('open');
+      }
+      navigateTo('page-assets', filter);
     });
   });
 
