@@ -751,7 +751,7 @@ function renderAssetsTable(assets, tableName) {
     if (addBtn2) addBtn2.classList.add('hidden');
   } else if (tableName === 'amc_mf_holdings') {
     document.getElementById('amc-mf-last-updated')?.classList.remove('hidden');
-    if (addBtn2) addBtn2.classList.add('hidden');
+    if (addBtn2) addBtn2.classList.remove('hidden');
   }
 
   // Update thead dynamically
@@ -960,7 +960,6 @@ function renderAssetsTable(assets, tableName) {
   } else if (tableName === 'gold_holdings') {
     if (actualCard) actualCard.classList.add('hidden');
   } else if (tableName === 'amc_mf_holdings') {
-    const amcMfSec = document.getElementById('amc-mf-monthly-summary');
     if (actualCard) actualCard.classList.remove('hidden');
     if (amcMfSec)   amcMfSec.classList.remove('hidden');
     loadAmcMfActualInvested(_currentUserId);
