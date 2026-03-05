@@ -156,14 +156,11 @@ async function fetchAndRefreshMfPrices(assets) {
   let totalValue = 0, totalInvested = 0;
 
   assets.forEach(a => {
-    const liveNav = a.nav_symbol ? getLTP(prices, a.nav_symbol) : null;
-    const qty = +a.qty || 0;
-    totalInvested += qty * (+a.avg_cost || 0);
-    totalValue    += qty * (liveNav || +a.avg_cost || 0);
+    const liveNav = a.nav_symbol ? getLTP(prices, a.nav_symbol.replace(/\.(NS|BO)$/, '')) : null;
   });
 
   assets.forEach(a => {
-    const liveNav = a.nav_symbol ? getLTP(prices, a.nav_symbol) : null;
+    const liveNav = a.nav_symbol ? getLTP(prices, a.nav_symbol.replace(/\.(NS|BO)$/, '')) : null;
     if (!liveNav) return;
 
     const qty         = +a.qty || 0;
