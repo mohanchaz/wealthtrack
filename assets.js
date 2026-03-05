@@ -552,7 +552,7 @@ async function loadAssets(userId, filter = null) {
     : tableName === 'gold_holdings'
     ? 'id,user_id,holding_name,holding_type,qty,avg_cost,yahoo_symbol,imported_at'
     : tableName === 'bonds'
-    ? 'id,user_id,name,platform,isin,bond_id,sb_account_number,invested,current_value,face_value,interest_rate,purchase_date,maturity_date,created_at'
+    ? 'id,user_id,name,platform,isin,bond_id,sb_account_number,invested,face_value,interest_rate,purchase_date,maturity_date,created_at'
     : '*';
   const { data, error } = await sb
     .from(tableName)
@@ -632,6 +632,8 @@ function renderAssetsTable(assets, tableName) {
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
     : tableName === 'gold_holdings'
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
+    : tableName === 'bonds'
+    ? assets.reduce((s, a) => s + (+a.face_value || +a.invested || 0), 0)
     : assets.reduce((s, a) => s + (+a.current_value || 0), 0);
   const totalGain = totalValue - totalInvested;
 
@@ -707,6 +709,11 @@ function renderAssetsTable(assets, tableName) {
         invested:      (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),
         _alloc_pct:    totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
+      }
+      : tableName === 'bonds'
+      ? {
+        ...a,
+        current_value: +a.face_value || +a.invested || 0,
       }
       : a;
 
