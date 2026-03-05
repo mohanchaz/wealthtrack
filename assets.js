@@ -145,10 +145,172 @@ async function loadDashboardStats(userId) {
   set('dash-actual-invested-sub', entryLabel);
 }
 
+// ── Group Overview (Zerodha / Aionion) ───────────────────────
+
+async function loadGroupOverview(userId, group) {
+  // Show/hide panels
+  document.getElementById('assets-layout-row')?.classList.add('hidden');
+  document.getElementById('group-overview-panel')?.classList.remove('hidden');
+  document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+  ['zerodha','aionion','aionion-gold','mf','gold'].forEach(p => {
+    document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
+    document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
+    document.getElementById(`${p}-last-updated`)?.classList.add('hidden');
+  });
+  document.getElementById('add-asset-btn')?.classList.add('hidden');
+  document.getElementById('assets-toolbar-label').textContent = `${group} Overview`;
+
+  const subtitle = document.querySelector('#page-assets .page-subtitle');
+  if (subtitle) subtitle.textContent = `${group} — all holdings at a glance`;
+
+  const totalsEl = document.getElementById('group-overview-totals');
+  const bodyEl   = document.getElementById('group-overview-body');
+  if (totalsEl) totalsEl.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted2)">Loading…</div>`;
+  if (bodyEl)   bodyEl.innerHTML   = '';
+
+  // Define sub-categories per group
+  const subCats = group === 'Zerodha'
+    ? [
+        { label: 'Stocks',       table: 'zerodha_stocks',  type: 'stock',  actualTable: 'zerodha_actual_invested',  icon: '📊' },
+        { label: 'Mutual Funds', table: 'mf_holdings',     type: 'mf',     actualTable: 'mf_actual_invested',       icon: '💹' },
+        { label: 'Gold',         table: 'gold_holdings',   type: 'gold',   actualTable: null,                       icon: '🥇' },
+      ]
+    : [
+        { label: 'Stocks',       table: 'aionion_stocks',  type: 'stock',  actualTable: 'aionion_actual_invested',  icon: '📈' },
+        { label: 'Gold',         table: 'aionion_gold',    type: 'astock', actualTable: null,                       icon: '🥇' },
+      ];
+
+  // Fetch all holdings + actual invested in parallel
+  const holdingsQueries = subCats.map(sc => {
+    if (sc.type === 'mf')     return sb.from(sc.table).select('qty, avg_cost').eq('user_id', userId);
+    if (sc.type === 'gold')   return sb.from(sc.table).select('qty, avg_cost').eq('user_id', userId);
+    return sb.from(sc.table).select('qty, avg_cost, instrument').eq('user_id', userId);
+  });
+  const actualQueries = subCats.map(sc =>
+    sc.actualTable
+      ? sb.from(sc.actualTable).select('amount').eq('user_id', userId)
+      : Promise.resolve({ data: [] })
+  );
+
+  const [holdingsResults, actualResults] = await Promise.all([
+    Promise.all(holdingsQueries),
+    Promise.all(actualQueries),
+  ]);
+
+  // For stock tables, fetch live prices
+  const rows = [];
+  for (let i = 0; i < subCats.length; i++) {
+    const sc       = subCats[i];
+    const holdings = holdingsResults[i].data || [];
+    const actual   = (actualResults[i].data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+
+    let invested = 0, curVal = 0;
+
+    if (sc.type === 'stock' || sc.type === 'astock') {
+      const instruments = holdings.map(r => r.instrument);
+      const prices = instruments.length ? (await fetchLivePrices(instruments)) || {} : {};
+      holdings.forEach(r => {
+        const qty = +r.qty || 0;
+        const ltp = getLTP(prices, r.instrument) || +r.avg_cost || 0;
+        invested += qty * (+r.avg_cost || 0);
+        curVal   += qty * ltp;
+      });
+    } else {
+      holdings.forEach(r => {
+        const qty = +r.qty || 0;
+        invested += qty * (+r.avg_cost || 0);
+        curVal   += qty * (+r.avg_cost || 0); // placeholder — no live price
+      });
+    }
+
+    rows.push({ ...sc, invested, curVal, actual });
+  }
+
+  // Totals
+  const totalInvested = rows.reduce((s, r) => s + r.invested, 0);
+  const totalCurVal   = rows.reduce((s, r) => s + r.curVal,   0);
+  const totalActual   = rows.reduce((s, r) => s + r.actual,   0);
+  const totalGain     = totalCurVal - totalInvested;
+  const totalActualGain = totalCurVal - totalActual;
+
+  // Update top stat cards
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('assets-total-invested', INR(totalInvested));
+  set('assets-total-value',    INR(totalCurVal));
+  set('assets-count', rows.length);
+  const gainEl = document.getElementById('assets-total-gain');
+  if (gainEl) {
+    const pct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
+    gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain) + pct;
+    gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+
+  // Summary tile row
+  const tileStyle = (color) => `background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px`;
+  const gainColor = (v) => v > 0 ? 'var(--green)' : v < 0 ? 'var(--danger)' : 'var(--muted)';
+  const fmtGain = (v, base) => {
+    const pct = base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
+    return `<b style="color:${gainColor(v)}">${v >= 0 ? '+' : ''}${INR(v)}${pct}</b>`;
+  };
+
+  totalsEl.innerHTML = [
+    { label: 'Total Invested',      val: `<b style="color:var(--accent)">${INR(totalInvested)}</b>` },
+    { label: 'Current Value',       val: `<b style="color:var(--teal)">${INR(totalCurVal)}</b>` },
+    { label: 'Gain / Loss',         val: fmtGain(totalGain, totalInvested) },
+    { label: 'Actual Invested',     val: totalActual > 0 ? `<b style="color:var(--green)">${INR(totalActual)}</b>` : `<span style="color:var(--muted2)">—</span>` },
+    { label: 'Actual Gain / Loss',  val: totalActual > 0 ? fmtGain(totalActualGain, totalActual) : `<span style="color:var(--muted2)">—</span>` },
+  ].map(t => `<div style="${tileStyle()}">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);margin-bottom:6px">${t.label}</div>
+    <div style="font-size:18px">${t.val}</div>
+  </div>`).join('');
+
+  // Per-row breakdown
+  const tdS = 'padding:12px 16px;border-bottom:1px solid var(--border)';
+  bodyEl.innerHTML = rows.map((r, i) => {
+    const gain       = r.curVal - r.invested;
+    const gainPct    = r.invested > 0 ? ` (${((gain / r.invested) * 100).toFixed(1)}%)` : '';
+    const actualGain = r.curVal - r.actual;
+    const actualGainPct = r.actual > 0 ? ` (${((actualGain / r.actual) * 100).toFixed(1)}%)` : '';
+    const rowBg = i % 2 === 0 ? '#fff' : 'var(--surface2)';
+    const filter = group === 'Zerodha'
+      ? (r.label === 'Stocks' ? 'Zerodha Stocks' : r.label === 'Mutual Funds' ? 'Mutual Funds' : 'Gold')
+      : (r.label === 'Stocks' ? 'Aionion Stocks' : 'Aionion Gold');
+
+    return `<tr style="background:${rowBg};cursor:pointer" class="group-overview-row" data-filter="${filter}">
+      <td style="${tdS}">
+        <span style="font-size:15px;margin-right:8px">${r.icon}</span>
+        <b>${r.label}</b>
+      </td>
+      <td style="${tdS};text-align:right">${INR(r.invested)}</td>
+      <td style="${tdS};text-align:right;font-weight:600">${INR(r.curVal)}</td>
+      <td style="${tdS};text-align:right;color:${gainColor(gain)};font-weight:600">
+        ${gain >= 0 ? '+' : ''}${INR(gain)}<span style="font-size:11px;color:${gainColor(gain)}">${gainPct}</span>
+      </td>
+      <td style="${tdS};text-align:right">${r.actual > 0 ? INR(r.actual) : '<span style="color:var(--muted2)">—</span>'}</td>
+      <td style="${tdS};text-align:right;font-weight:600;color:${r.actual > 0 ? gainColor(actualGain) : 'var(--muted2)'}">
+        ${r.actual > 0 ? (actualGain >= 0 ? '+' : '') + INR(actualGain) + `<span style="font-size:11px">${actualGainPct}</span>` : '—'}
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Click row → drill into sub-category
+  bodyEl.querySelectorAll('.group-overview-row').forEach(row => {
+    row.addEventListener('click', () => loadAssets(_currentUserId, row.dataset.filter));
+  });
+}
+
 async function loadAssets(userId, filter = null) {
   const tbody = document.getElementById('assets-table-body');
   const addBtn = document.getElementById('add-asset-btn');
   const toolbarLabel = document.getElementById('assets-toolbar-label');
+
+  // Group overview mode — intercept before normal table rendering
+  if (filter === 'Zerodha' || filter === 'Aionion') {
+    _currentAssetFilter = filter;
+    _currentAssetTable  = null;
+    await loadGroupOverview(userId, filter);
+    return;
+  }
 
   tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
 
@@ -172,6 +334,7 @@ async function loadAssets(userId, filter = null) {
     // (toolbar is inside the layout row so no need to hide it separately)
     const layoutRow = document.getElementById('assets-layout-row');
     if (layoutRow) layoutRow.classList.add('hidden');
+    document.getElementById('group-overview-panel')?.classList.add('hidden');
 
     // Hide the Actual Invested stat card and reset table headers to default
     const actualOverviewCard = document.getElementById('assets-actual-invested-card');
@@ -312,9 +475,10 @@ async function loadAssets(userId, filter = null) {
   if (toolbarLabel) toolbarLabel.textContent = `Showing ${filter} assets`;
   if (addBtn) addBtn.classList.remove('hidden');
 
-  // Show layout row when a category is selected
+  // Show layout row when a category is selected; hide group overview
   const activeLayoutRow = document.getElementById('assets-layout-row');
   if (activeLayoutRow) activeLayoutRow.classList.remove('hidden');
+  document.getElementById('group-overview-panel')?.classList.add('hidden');
 
   const isStockTable = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'aionion_gold' || tableName === 'mf_holdings' || tableName === 'gold_holdings';
   const orderCol = isStockTable ? (tableName === 'mf_holdings' ? 'fund_name' : tableName === 'gold_holdings' ? 'holding_name' : 'instrument') : 'created_at';

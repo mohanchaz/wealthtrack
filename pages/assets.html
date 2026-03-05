@@ -246,4 +246,28 @@
             </div><!-- /right panel -->
           </div><!-- /assets-layout-row -->
 
+          <!-- Group Overview Panel (shown when clicking Zerodha/Aionion header) -->
+          <div id="group-overview-panel" class="hidden" style="margin-top:8px">
+
+            <!-- Summary totals row -->
+            <div id="group-overview-totals" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px"></div>
+
+            <!-- Per-sub-category breakdown table -->
+            <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm)">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--surface2)">
+                    <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);border-bottom:1px solid var(--border)">Category</th>
+                    <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);border-bottom:1px solid var(--border)">Invested</th>
+                    <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);border-bottom:1px solid var(--border)">Current Value</th>
+                    <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);border-bottom:1px solid var(--border)">Gain / Loss</th>
+                    <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);border-bottom:1px solid var(--border)">Actual Invested</th>
+                    <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);border-bottom:1px solid var(--border)">Actual Gain / Loss</th>
+                  </tr>
+                </thead>
+                <tbody id="group-overview-body"></tbody>
+              </table>
+            </div>
+          </div>
+
         </div><!-- /#page-assets -->

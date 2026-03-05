@@ -18,6 +18,9 @@ document.addEventListener('fragments-loaded', () => {
   zerodhaHeader?.addEventListener('click', () => {
     zerodhaGroup?.classList.toggle('open');
     zerodhaChevron?.classList.toggle('open');
+    // Navigate to Zerodha group overview
+    setActiveSidebarItem(zerodhaHeader);
+    navigateTo('page-assets', 'Zerodha');
   });
 
   // ── Aionion nested group — open by default ────────────────────
@@ -30,6 +33,9 @@ document.addEventListener('fragments-loaded', () => {
   aionionHeader?.addEventListener('click', () => {
     aionionGroup?.classList.toggle('open');
     aionionChevron?.classList.toggle('open');
+    // Navigate to Aionion group overview
+    setActiveSidebarItem(aionionHeader);
+    navigateTo('page-assets', 'Aionion');
   });
 
   // ── Set active sidebar item ───────────────────────────────────
