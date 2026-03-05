@@ -61,15 +61,7 @@ function renderZerodhaActualInvested(rows) {
       <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-zai-id="${r.id}" data-zai-date="${r.entry_date}" data-zai-amount="${r.amount}"
-          class="zai-edit-btn" title="Edit">✏️</button>
-        <span class="zai-delete-wrap" data-zai-id="${r.id}" style="display:inline-flex;align-items:center;gap:4px">
-          <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" class="zai-delete-btn" title="Delete">🗑</button>
-          <span class="zai-confirm-inline hidden" style="display:inline-flex;align-items:center;gap:4px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;padding:2px 6px">
-            <span style="font-size:11px;color:#c00;font-weight:600">Delete?</span>
-            <button class="zai-confirm-yes" style="font-size:11px;font-weight:700;color:#fff;background:#e03b3b;border:none;border-radius:4px;padding:1px 7px;cursor:pointer">Yes</button>
-            <button class="zai-confirm-no" style="font-size:11px;font-weight:600;color:#666;background:none;border:none;cursor:pointer;padding:1px 4px">No</button>
-          </span>
-        </span>
+          class="zai-edit-btn" title="Edit">✏️</button></span>
       </td>
     </tr>`;
   }).join('') +
@@ -86,29 +78,6 @@ function renderZerodhaActualInvested(rows) {
       id: btn.dataset.zaiId, entry_date: btn.dataset.zaiDate,
       amount: btn.dataset.zaiAmount
     }));
-  });
-  body.querySelectorAll('.zai-delete-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.zai-delete-wrap');
-      btn.classList.add('hidden');
-      wrap.querySelector('.zai-confirm-inline').classList.remove('hidden');
-    });
-  });
-  body.querySelectorAll('.zai-confirm-no').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.zai-delete-wrap');
-      wrap.querySelector('.zai-delete-btn').classList.remove('hidden');
-      wrap.querySelector('.zai-confirm-inline').classList.add('hidden');
-    });
-  });
-  body.querySelectorAll('.zai-confirm-yes').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.closest('.zai-delete-wrap').dataset.zaiId;
-      const { error } = await sb.from('zerodha_actual_invested').delete().eq('id', id);
-      if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
-      showToast('Entry deleted', 'success');
-      loadZerodhaActualInvested(_currentUserId);
-    });
   });
 }
 
@@ -168,7 +137,6 @@ document.addEventListener('fragments-loaded', () => {
       loadZerodhaActualInvested(_currentUserId);
     }
   });
-});
 
 
 // ══════════════════════════════════════════════════════════════
@@ -232,7 +200,6 @@ async function fetchAndRefreshZerodhaPrices(assets) {
       allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
         <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
           <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
-        </span>
         <b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b>
       </span>`;
     }
@@ -270,7 +237,6 @@ document.addEventListener('fragments-loaded', () => {
       loadAssets(_currentUserId, 'Zerodha Stocks');
     }
   });
-});
 
 // ══════════════════════════════════════════════════════════════
 //  ZERODHA STOCKS  — CSV import module
@@ -488,7 +454,6 @@ document.addEventListener('fragments-loaded', () => {
   document.getElementById('zerodha-import-confirm-btn')?.addEventListener('click', () => {
     if (_zerodhaPreviewRows.length) importZerodhaStocks(_zerodhaPreviewRows);
   });
-});
 
 
 //  ZERODHA STOCK EDIT MODAL
@@ -552,9 +517,13 @@ document.addEventListener('fragments-loaded', () => {
       loadAssets(_currentUserId, _currentAssetFilter);
     }
   });
-});
 
 // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+
+});
+});
+});
+});
 // ── Actual Invested bulk-select wiring for zerodha ─────────────────
 (function() {
   var _sel = false;

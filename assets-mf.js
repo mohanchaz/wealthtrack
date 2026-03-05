@@ -64,15 +64,7 @@ function renderMfActualInvested(rows) {
       <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-mfai-id="${r.id}" data-mfai-date="${r.entry_date}" data-mfai-amount="${r.amount}"
-          class="mfai-edit-btn" title="Edit">\u270f\ufe0f</button>
-        <span class="mfai-delete-wrap" data-mfai-id="${r.id}" style="display:inline-flex;align-items:center;gap:4px">
-          <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" class="mfai-delete-btn" title="Delete">🗑</button>
-          <span class="mfai-confirm-inline hidden" style="display:inline-flex;align-items:center;gap:4px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;padding:2px 6px">
-            <span style="font-size:11px;color:#c00;font-weight:600">Delete?</span>
-            <button class="mfai-confirm-yes" style="font-size:11px;font-weight:700;color:#fff;background:#e03b3b;border:none;border-radius:4px;padding:1px 7px;cursor:pointer">Yes</button>
-            <button class="mfai-confirm-no" style="font-size:11px;font-weight:600;color:#666;background:none;border:none;cursor:pointer;padding:1px 4px">No</button>
-          </span>
-        </span>
+          class="mfai-edit-btn" title="Edit">\u270f\ufe0f</button></span>
       </td>
     </tr>`;
   }).join('') +
@@ -88,29 +80,6 @@ function renderMfActualInvested(rows) {
     btn.addEventListener('click', () => openMfaiModal({
       id: btn.dataset.mfaiId, entry_date: btn.dataset.mfaiDate, amount: btn.dataset.mfaiAmount
     }));
-  });
-  body.querySelectorAll('.mfai-delete-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.mfai-delete-wrap');
-      btn.classList.add('hidden');
-      wrap.querySelector('.mfai-confirm-inline').classList.remove('hidden');
-    });
-  });
-  body.querySelectorAll('.mfai-confirm-no').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.mfai-delete-wrap');
-      wrap.querySelector('.mfai-delete-btn').classList.remove('hidden');
-      wrap.querySelector('.mfai-confirm-inline').classList.add('hidden');
-    });
-  });
-  body.querySelectorAll('.mfai-confirm-yes').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.closest('.mfai-delete-wrap').dataset.mfaiId;
-      const { error } = await sb.from('mf_actual_invested').delete().eq('id', id);
-      if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
-      showToast('Entry deleted', 'success');
-      loadMfActualInvested(_currentUserId);
-    });
   });
 }
 
@@ -157,7 +126,6 @@ document.addEventListener('fragments-loaded', () => {
     if (error) { showToast('Save failed: ' + error.message, 'error'); }
     else { showToast(_editingMfaiId ? 'Entry updated \u2705' : 'Entry added \ud83c\udf89', 'success'); closeMfaiModal(); loadMfActualInvested(_currentUserId); }
   });
-});
 
 // ── Live NAV Refresh ──────────────────────────────────────────
 
@@ -251,7 +219,6 @@ document.addEventListener('fragments-loaded', () => {
   refreshBtn && refreshBtn.addEventListener('click', () => {
     if (_currentAssetFilter === 'Mutual Funds') loadAssets(_currentUserId, 'Mutual Funds');
   });
-});
 
 // ── CSV Import ────────────────────────────────────────────────
 
@@ -515,7 +482,6 @@ document.addEventListener('fragments-loaded', function() {
   document.getElementById('mf-import-confirm-btn') && document.getElementById('mf-import-confirm-btn').addEventListener('click', function() {
     if (_mfPreviewRows.length) importMfHoldings(_mfPreviewRows);
   });
-});
 
 // ── Edit Modal ────────────────────────────────────────────────
 
@@ -557,6 +523,10 @@ document.addEventListener('fragments-loaded', function() {
     if (error) { showToast('Save failed: ' + error.message, 'error'); }
     else { showToast('Fund updated \u2705', 'success'); closeMfEditModal(); loadAssets(_currentUserId, _currentAssetFilter); }
   });
+
+});
+});
+});
 });
 // ── Actual Invested bulk-select wiring for mf ─────────────────
 (function() {

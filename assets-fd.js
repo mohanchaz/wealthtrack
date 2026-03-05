@@ -60,15 +60,7 @@ function renderFdActualInvested(rows) {
         <td class="fdi-cb-wrap" data-id="${r.id}" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="fdi-cb" data-id="${r.id}" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>
       <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${dateStr}</td>
       <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
-        <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" data-fdi-id="${r.id}" data-fdi-date="${r.entry_date}" data-fdi-amount="${r.amount}" class="fdi-edit-btn" title="Edit">✏️</button>
-        <span class="fdi-delete-wrap" data-fdi-id="${r.id}" style="display:inline-flex;align-items:center;gap:4px">
-          <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" class="fdi-delete-btn" title="Delete">🗑</button>
-          <span class="fdi-confirm-inline hidden" style="display:inline-flex;align-items:center;gap:4px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;padding:2px 6px">
-            <span style="font-size:11px;color:#c00;font-weight:600">Delete?</span>
-            <button class="fdi-confirm-yes" style="font-size:11px;font-weight:700;color:#fff;background:#e03b3b;border:none;border-radius:4px;padding:1px 7px;cursor:pointer">Yes</button>
-            <button class="fdi-confirm-no" style="font-size:11px;font-weight:600;color:#666;background:none;border:none;cursor:pointer;padding:1px 4px">No</button>
-          </span>
-        </span>
+        <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" data-fdi-id="${r.id}" data-fdi-date="${r.entry_date}" data-fdi-amount="${r.amount}" class="fdi-edit-btn" title="Edit">✏️</button></span>
       </td>
     </tr>`;
   }).join('') +
@@ -85,26 +77,6 @@ function renderFdActualInvested(rows) {
       id: btn.dataset.fdiId, entry_date: btn.dataset.fdiDate,
       amount: btn.dataset.fdiAmount
     }));
-  });
-  body.querySelectorAll('.fdi-delete-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.fdi-delete-wrap');
-      btn.classList.add('hidden');
-      wrap.querySelector('.fdi-confirm-inline').classList.remove('hidden');
-    });
-  });
-  body.querySelectorAll('.fdi-confirm-no').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.fdi-delete-wrap');
-      wrap.querySelector('.fdi-delete-btn').classList.remove('hidden');
-      wrap.querySelector('.fdi-confirm-inline').classList.add('hidden');
-    });
-  });
-  body.querySelectorAll('.fdi-confirm-yes').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.closest('.fdi-delete-wrap').dataset.fdiId;
-      await deleteFdInvested(id);
-    });
   });
 }
 

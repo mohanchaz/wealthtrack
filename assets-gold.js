@@ -79,15 +79,7 @@ function renderGoldActualInvested(rows) {
       <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-gai-id="${r.id}" data-gai-date="${r.entry_date}" data-gai-amount="${r.amount}"
-          class="gai-edit-btn" title="Edit">✏️</button>
-        <span class="gai-delete-wrap" data-gai-id="${r.id}" style="display:inline-flex;align-items:center;gap:4px">
-          <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" class="gai-delete-btn" title="Delete">🗑</button>
-          <span class="gai-confirm-inline hidden" style="display:inline-flex;align-items:center;gap:4px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;padding:2px 6px">
-            <span style="font-size:11px;color:#c00;font-weight:600">Delete?</span>
-            <button class="gai-confirm-yes" style="font-size:11px;font-weight:700;color:#fff;background:#e03b3b;border:none;border-radius:4px;padding:1px 7px;cursor:pointer">Yes</button>
-            <button class="gai-confirm-no" style="font-size:11px;font-weight:600;color:#666;background:none;border:none;cursor:pointer;padding:1px 4px">No</button>
-          </span>
-        </span>
+          class="gai-edit-btn" title="Edit">✏️</button></span>
       </td>
     </tr>`;
   }).join('') +
@@ -104,29 +96,6 @@ function renderGoldActualInvested(rows) {
       id: btn.dataset.gaiId, entry_date: btn.dataset.gaiDate,
       amount: btn.dataset.gaiAmount
     }));
-  });
-  body.querySelectorAll('.gai-delete-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.gai-delete-wrap');
-      btn.classList.add('hidden');
-      wrap.querySelector('.gai-confirm-inline').classList.remove('hidden');
-    });
-  });
-  body.querySelectorAll('.gai-confirm-no').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.gai-delete-wrap');
-      wrap.querySelector('.gai-delete-btn').classList.remove('hidden');
-      wrap.querySelector('.gai-confirm-inline').classList.add('hidden');
-    });
-  });
-  body.querySelectorAll('.gai-confirm-yes').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.closest('.gai-delete-wrap').dataset.gaiId;
-      const { error } = await sb.from('gold_actual_invested').delete().eq('id', id);
-      if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
-      showToast('Entry deleted', 'success');
-      loadGoldActualInvested(_currentUserId);
-    });
   });
 }
 
@@ -183,7 +152,6 @@ document.addEventListener('fragments-loaded', () => {
       loadGoldActualInvested(_currentUserId);
     }
   });
-});
 
 // ── Gold Live Price Refresh ───────────────────────────────────
 
@@ -260,7 +228,6 @@ async function fetchAndRefreshGoldPrices(assets) {
       allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
         <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
           <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
-        </span>
         <b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b>
       </span>`;
     }
@@ -292,7 +259,6 @@ document.addEventListener('fragments-loaded', () => {
   document.getElementById('gold-refresh-btn')?.addEventListener('click', () => {
     if (_currentAssetFilter === 'Gold') loadAssets(_currentUserId, 'Gold');
   });
-});
 
 // ── Gold CSV Parse ────────────────────────────────────────────
 
@@ -486,7 +452,6 @@ document.addEventListener('fragments-loaded', () => {
   document.getElementById('gold-import-confirm-btn')?.addEventListener('click', () => {
     if (_goldPreviewRows.length) importGoldHoldings(_goldPreviewRows);
   });
-});
 
 // ── Gold Edit Modal ───────────────────────────────────────────
 
@@ -542,6 +507,10 @@ document.addEventListener('fragments-loaded', () => {
       loadAssets(_currentUserId, _currentAssetFilter);
     }
   });
+
+});
+});
+});
 });
 // ── Actual Invested bulk-select wiring for gold ─────────────────
 (function() {

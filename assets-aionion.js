@@ -61,15 +61,7 @@ function renderAionionActualInvested(rows) {
       <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-zai-id="${r.id}" data-aai-date="${r.entry_date}" data-aai-amount="${r.amount}"
-          class="zai-edit-btn" title="Edit">✏️</button>
-        <span class="aai-delete-wrap" data-zai-id="${r.id}" style="display:inline-flex;align-items:center;gap:4px">
-          <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" class="zai-delete-btn" title="Delete">🗑</button>
-          <span class="aai-confirm-inline hidden" style="display:inline-flex;align-items:center;gap:4px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;padding:2px 6px">
-            <span style="font-size:11px;color:#c00;font-weight:600">Delete?</span>
-            <button class="aai-confirm-yes" style="font-size:11px;font-weight:700;color:#fff;background:#e03b3b;border:none;border-radius:4px;padding:1px 7px;cursor:pointer">Yes</button>
-            <button class="aai-confirm-no" style="font-size:11px;font-weight:600;color:#666;background:none;border:none;cursor:pointer;padding:1px 4px">No</button>
-          </span>
-        </span>
+          class="zai-edit-btn" title="Edit">✏️</button></span>
       </td>
     </tr>`;
   }).join('') +
@@ -86,29 +78,6 @@ function renderAionionActualInvested(rows) {
       id: btn.dataset.zaiId, entry_date: btn.dataset.zaiDate,
       amount: btn.dataset.zaiAmount
     }));
-  });
-  body.querySelectorAll('.zai-delete-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.aai-delete-wrap');
-      btn.classList.add('hidden');
-      wrap.querySelector('.aai-confirm-inline').classList.remove('hidden');
-    });
-  });
-  body.querySelectorAll('.aai-confirm-no').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const wrap = btn.closest('.aai-delete-wrap');
-      wrap.querySelector('.zai-delete-btn').classList.remove('hidden');
-      wrap.querySelector('.aai-confirm-inline').classList.add('hidden');
-    });
-  });
-  body.querySelectorAll('.aai-confirm-yes').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.closest('.aai-delete-wrap').dataset.zaiId;
-      const { error } = await sb.from('aionion_actual_invested').delete().eq('id', id);
-      if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
-      showToast('Entry deleted', 'success');
-      loadAionionActualInvested(_currentUserId);
-    });
   });
 }
 
@@ -168,7 +137,6 @@ document.addEventListener('fragments-loaded', () => {
       loadAionionActualInvested(_currentUserId);
     }
   });
-});
 
 
 // ══════════════════════════════════════════════════════════════
@@ -236,7 +204,6 @@ async function fetchAndRefreshAionionPrices(assets) {
       allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
         <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
           <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
-        </span>
         <b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b>
       </span>`;
     }
@@ -274,7 +241,6 @@ document.addEventListener('fragments-loaded', () => {
       loadAssets(_currentUserId, 'Aionion Stocks');
     }
   });
-});
 
 // ══════════════════════════════════════════════════════════════
 //  AIONION STOCKS  — manual add/edit module
@@ -489,7 +455,6 @@ document.addEventListener('fragments-loaded', () => {
   document.getElementById('aionion-import-confirm-btn')?.addEventListener('click', () => {
     if (_aionionPreviewRows.length) importAionionStocks(_aionionPreviewRows);
   });
-});
 
 
 //  AIONION STOCK EDIT MODAL
@@ -568,9 +533,13 @@ document.addEventListener('fragments-loaded', () => {
     }
 
   });
-});
 
 // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+
+});
+});
+});
+});
 // ── Actual Invested bulk-select wiring for aionion ─────────────────
 (function() {
   var _sel = false;
