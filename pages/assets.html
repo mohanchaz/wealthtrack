@@ -96,10 +96,21 @@
 
               <!-- Bulk delete bar -->
               <div id="bulk-delete-bar" class="hidden" style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;margin-bottom:10px">
-                <span id="bulk-delete-count" style="font-size:13px;font-weight:600;color:var(--text)">0 selected</span>
-                <div style="display:flex;gap:8px">
-                  <button id="bulk-cancel-btn" class="btn-secondary" style="font-size:12px;padding:5px 12px">Cancel</button>
-                  <button id="bulk-delete-confirm-btn" class="btn-primary" style="font-size:12px;padding:5px 12px;background:var(--danger)" disabled>🗑 Delete Selected</button>
+                <!-- Normal state -->
+                <div id="bulk-normal-state" style="display:flex;align-items:center;justify-content:space-between;width:100%">
+                  <span id="bulk-delete-count" style="font-size:13px;font-weight:600;color:var(--text)">0 selected</span>
+                  <div style="display:flex;gap:8px">
+                    <button id="bulk-cancel-btn" class="btn-secondary" style="font-size:12px;padding:5px 12px">Cancel</button>
+                    <button id="bulk-delete-confirm-btn" class="btn-primary" style="font-size:12px;padding:5px 12px;background:var(--danger)" disabled>🗑 Delete Selected</button>
+                  </div>
+                </div>
+                <!-- Confirm state -->
+                <div id="bulk-confirm-state" style="display:none;align-items:center;justify-content:space-between;width:100%">
+                  <span style="font-size:13px;font-weight:600;color:var(--danger)">⚠️ Delete <span id="bulk-confirm-count">0</span> entries? This cannot be undone.</span>
+                  <div style="display:flex;gap:8px">
+                    <button id="bulk-confirm-no-btn" class="btn-secondary" style="font-size:12px;padding:5px 12px">No, keep</button>
+                    <button id="bulk-confirm-yes-btn" class="btn-primary" style="font-size:12px;padding:5px 14px;background:var(--danger)">Yes, delete</button>
+                  </div>
                 </div>
               </div>
 

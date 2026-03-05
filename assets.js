@@ -1227,6 +1227,8 @@ document.addEventListener('fragments-loaded', () => {
       btn.style.color = '#0d9488';
     }
     document.getElementById('bulk-delete-bar')?.classList.add('hidden');
+    document.getElementById('bulk-normal-state').style.display = 'flex';
+    document.getElementById('bulk-confirm-state').style.display = 'none';
     document.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = 'none');
     document.querySelectorAll('.asset-row-checkbox').forEach(c => c.checked = false);
     updateBulkBar();
@@ -1246,20 +1248,34 @@ document.addEventListener('fragments-loaded', () => {
 
   document.getElementById('bulk-cancel-btn')?.addEventListener('click', exitSelectMode);
 
-  document.getElementById('bulk-delete-confirm-btn')?.addEventListener('click', async () => {
+  document.getElementById('bulk-delete-confirm-btn')?.addEventListener('click', () => {
+    const n = document.querySelectorAll('.asset-row-checkbox:checked').length;
+    if (!n) return;
+    // Switch to confirm state
+    document.getElementById('bulk-normal-state').style.display = 'none';
+    document.getElementById('bulk-confirm-state').style.display = 'flex';
+    document.getElementById('bulk-confirm-count').textContent = n === 1 ? '1 entry' : `${n} entries`;
+  });
+
+  document.getElementById('bulk-confirm-no-btn')?.addEventListener('click', () => {
+    document.getElementById('bulk-normal-state').style.display = 'flex';
+    document.getElementById('bulk-confirm-state').style.display = 'none';
+  });
+
+  document.getElementById('bulk-confirm-yes-btn')?.addEventListener('click', async () => {
     const checked = [...document.querySelectorAll('.asset-row-checkbox:checked')];
     if (!checked.length) return;
     const n = checked.length;
-    if (!confirm(`Delete ${n} ${n === 1 ? 'entry' : 'entries'}? This cannot be undone.`)) return;
-    const confirmBtn = document.getElementById('bulk-delete-confirm-btn');
-    confirmBtn.textContent = 'Deleting…'; confirmBtn.disabled = true;
+    const yesBtn = document.getElementById('bulk-confirm-yes-btn');
+    yesBtn.textContent = 'Deleting…'; yesBtn.disabled = true;
     let anyError = false;
     for (const cb of checked) {
       const { error } = await sb.from(cb.dataset.table).delete().eq('id', cb.dataset.id);
       if (error) { showToast('Delete failed: ' + error.message, 'error'); anyError = true; }
     }
-    // Reset button before DOM is replaced by loadAssets
-    confirmBtn.textContent = '🗑 Delete Selected'; confirmBtn.disabled = false;
+    yesBtn.textContent = 'Yes, delete'; yesBtn.disabled = false;
+    document.getElementById('bulk-normal-state').style.display = 'flex';
+    document.getElementById('bulk-confirm-state').style.display = 'none';
     if (!anyError) showToast(`${n} ${n === 1 ? 'entry' : 'entries'} deleted`, 'success');
     exitSelectMode();
     loadAssets(_currentUserId, _currentAssetFilter);
