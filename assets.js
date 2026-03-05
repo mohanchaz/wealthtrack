@@ -1253,11 +1253,14 @@ document.addEventListener('fragments-loaded', () => {
     if (!confirm(`Delete ${n} ${n === 1 ? 'entry' : 'entries'}? This cannot be undone.`)) return;
     const confirmBtn = document.getElementById('bulk-delete-confirm-btn');
     confirmBtn.textContent = 'Deleting…'; confirmBtn.disabled = true;
+    let anyError = false;
     for (const cb of checked) {
       const { error } = await sb.from(cb.dataset.table).delete().eq('id', cb.dataset.id);
-      if (error) { showToast('Delete failed: ' + error.message, 'error'); }
+      if (error) { showToast('Delete failed: ' + error.message, 'error'); anyError = true; }
     }
-    showToast(`${n} ${n === 1 ? 'entry' : 'entries'} deleted`, 'success');
+    // Reset button before DOM is replaced by loadAssets
+    confirmBtn.textContent = '🗑 Delete Selected'; confirmBtn.disabled = false;
+    if (!anyError) showToast(`${n} ${n === 1 ? 'entry' : 'entries'} deleted`, 'success');
     exitSelectMode();
     loadAssets(_currentUserId, _currentAssetFilter);
   });
