@@ -59,6 +59,7 @@ const ASSET_TABLES = {
   'Bank FD': 'bank_fd_assets',
   'Zerodha Stocks': 'zerodha_stocks',
   'Aionion Stocks': 'aionion_stocks',
+  'Aionion Gold':   'aionion_gold',
   'Mutual Funds': 'mf_holdings',
   'Gold': 'gold_holdings',
 };
@@ -122,6 +123,15 @@ const ASSET_COLUMNS = {
     { key: '_name', label: 'Company', fmt: 'name' },
     { key: 'qty', label: 'Qty', align: 'right' },
     { key: '_qty_diff', label: 'Qty Diff', align: 'right', fmt: 'qty_diff' },
+    { key: 'avg_cost', label: 'Avg Cost', align: 'right', fmt: 'inr' },
+    { key: '_ltp', label: 'LTP', align: 'right', fmt: 'inr', fw: '600' },
+    { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
+    { key: 'current_value', label: 'Cur. Value', align: 'right', fmt: 'inr', fw: '600' },
+    { key: '_alloc_pct', label: 'Allocation', align: 'right', fmt: 'alloc_pct' },
+  ],
+  aionion_gold: [
+    { key: 'instrument', label: 'Instrument', bold: true },
+    { key: 'qty', label: 'Qty', align: 'right' },
     { key: 'avg_cost', label: 'Avg Cost', align: 'right', fmt: 'inr' },
     { key: '_ltp', label: 'LTP', align: 'right', fmt: 'inr', fw: '600' },
     { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },

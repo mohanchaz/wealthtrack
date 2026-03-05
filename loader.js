@@ -36,6 +36,8 @@
       modalAddAsset,
       modalAionionInvested,
       modalAionionEdit,
+      modalAionionGoldEdit,
+      modalAionionGoldInvested,
       modalMfImport,
       modalMfInvested,
       modalMfEdit,
@@ -56,6 +58,8 @@
       loadHTML('modals/add-asset.html'),
       loadHTML('modals/aionion-invested.html'),
       loadHTML('modals/aionion-edit.html'),
+      loadHTML('modals/aionion-gold-edit.html'),
+      loadHTML('modals/aionion-gold-invested.html'),
       loadHTML('modals/mf-import.html'),
       loadHTML('modals/mf-invested.html'),
       loadHTML('modals/mf-edit.html'),
@@ -93,6 +97,8 @@
     await append(modalAddAsset);
     await append(modalAionionInvested);
     await append(modalAionionEdit);
+    await append(modalAionionGoldEdit);
+    await append(modalAionionGoldInvested);
     await append(modalMfImport);
     await append(modalMfInvested);
     await append(modalMfEdit);
