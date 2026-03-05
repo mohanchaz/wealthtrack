@@ -60,6 +60,7 @@ const ASSET_TABLES = {
   'Zerodha Stocks': 'zerodha_stocks',
   'Aionion Stocks': 'aionion_stocks',
   'Mutual Funds': 'mf_holdings',
+  'Gold': 'gold_holdings',
 };
 
 // Per-table column definitions
@@ -106,6 +107,16 @@ const ASSET_COLUMNS = {
     { key: 'current_value', label: 'Cur. Value', align: 'right', fmt: 'inr', fw: '600' },
     { key: '_alloc_pct', label: 'Allocation', align: 'right', fmt: 'alloc_pct' },
   ],
+  gold_holdings: [
+    { key: 'holding_name', label: 'Name', bold: true },
+    { key: 'holding_type', label: 'Type', fmt: 'gold_type' },
+    { key: 'qty', label: 'Qty / Units', align: 'right' },
+    { key: 'avg_cost', label: 'Avg Cost', align: 'right', fmt: 'inr' },
+    { key: '_ltp', label: 'LTP / NAV', align: 'right', fmt: 'inr', fw: '600' },
+    { key: 'invested', label: 'Invested', align: 'right', fmt: 'inr' },
+    { key: 'current_value', label: 'Cur. Value', align: 'right', fmt: 'inr', fw: '600' },
+    { key: '_alloc_pct', label: 'Allocation', align: 'right', fmt: 'alloc_pct' },
+  ],
   aionion_stocks: [
     { key: 'instrument', label: 'Instrument', bold: true },
     { key: '_name', label: 'Company', fmt: 'name' },
@@ -123,6 +134,9 @@ function formatCell(val, fmt) {
   if (val === null || val === undefined || val === '') return '—';
   switch (fmt) {
     case 'name': return `<span style="color:var(--muted);font-size:12px">${val || '—'}</span>`;
+    case 'gold_type': return val === 'ETF'
+      ? `<span style="background:#fff3cd;color:#856404;padding:1px 7px;border-radius:20px;font-size:11px;font-weight:600">ETF</span>`
+      : `<span style="background:var(--accentbg);color:var(--accent);padding:1px 7px;border-radius:20px;font-size:11px;font-weight:600">MF</span>`;
     case 'fund_name': {
       const parts = (val || '').split('||');
       const name   = parts[0] || val;

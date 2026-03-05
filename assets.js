@@ -37,19 +37,21 @@ async function loadDashboardStats(userId) {
 
   // zerodha_stocks doesn't store invested/current_value — must compute from qty * avg_cost / ltp
   const nonStockTables = Object.entries(ASSET_TABLES)
-    .filter(([, t]) => t !== 'zerodha_stocks' && t !== 'aionion_stocks' && t !== 'mf_holdings').map(([, t]) => t);
+    .filter(([, t]) => t !== 'zerodha_stocks' && t !== 'aionion_stocks' && t !== 'mf_holdings' && t !== 'gold_holdings').map(([, t]) => t);
 
-  const [assetResults, zerodhaResult, aionionResult, mfResult, { data: fdData }, { data: zaiData }, { data: aaiData }, { data: mfaiData }] = await Promise.all([
+  const [assetResults, zerodhaResult, aionionResult, mfResult, goldResult, { data: fdData }, { data: zaiData }, { data: aaiData }, { data: mfaiData }, { data: gaiData }] = await Promise.all([
     Promise.all(nonStockTables.map(table =>
       sb.from(table).select('invested, current_value').eq('user_id', userId)
     )),
     sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
     sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
     sb.from('mf_holdings').select('qty, avg_cost').eq('user_id', userId),
+    sb.from('gold_holdings').select('qty, avg_cost').eq('user_id', userId),
     sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
     sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
     sb.from('aionion_actual_invested').select('amount').eq('user_id', userId),
-    sb.from('mf_actual_invested').select('amount').eq('user_id', userId)
+    sb.from('mf_actual_invested').select('amount').eq('user_id', userId),
+    sb.from('gold_actual_invested').select('amount').eq('user_id', userId)
   ]);
 
   assetResults.forEach(({ data }) => {
@@ -94,16 +96,27 @@ async function loadDashboardStats(userId) {
     count++;
   });
 
+  // Gold: use avg_cost as current value placeholder
+  (goldResult.data || []).forEach(row => {
+    const qty = +row.qty || 0;
+    const invested = qty * (+row.avg_cost || 0);
+    totalInvested += invested;
+    totalValue    += invested;
+    count++;
+  });
+
   const fdActual  = (fdData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const zaiActual = (zaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const aaiActual = (aaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const mfaiActual = (mfaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const actualInvested = fdActual + zaiActual + aaiActual + mfaiActual;
+  const gaiActual  = (gaiData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const actualInvested = fdActual + zaiActual + aaiActual + mfaiActual + gaiActual;
   const fdCount  = (fdData  || []).length;
   const zaiCount = (zaiData || []).length;
   const aaiCount = (aaiData || []).length;
   const mfaiCount = (mfaiData || []).length;
-  const entryLabel = `${fdCount} FD · ${zaiCount} Zerodha · ${aaiCount} Aionion · ${mfaiCount} MF entr${(fdCount + zaiCount + aaiCount + mfaiCount) !== 1 ? 'ies' : 'y'}`;
+  const gaiCount  = (gaiData  || []).length;
+  const entryLabel = `${fdCount} FD · ${zaiCount} Zerodha · ${aaiCount} Aionion · ${mfaiCount} MF · ${gaiCount} Gold entr${(fdCount + zaiCount + aaiCount + mfaiCount + gaiCount) !== 1 ? 'ies' : 'y'}`;
 
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   set('dash-net-worth', INR(totalValue));
@@ -158,15 +171,16 @@ async function loadAssets(userId, filter = null) {
     let totalInvested = 0, totalValue = 0, count = 0;
 
     const nonStockTables2 = Object.entries(ASSET_TABLES)
-      .filter(([, t]) => t !== 'zerodha_stocks' && t !== 'aionion_stocks' && t !== 'mf_holdings').map(([, t]) => t);
+      .filter(([, t]) => t !== 'zerodha_stocks' && t !== 'aionion_stocks' && t !== 'mf_holdings' && t !== 'gold_holdings').map(([, t]) => t);
 
-    const [otherResults, zerodhaResult, aionionResult, mfResult2] = await Promise.all([
+    const [otherResults, zerodhaResult, aionionResult, mfResult2, goldResult2] = await Promise.all([
       Promise.all(nonStockTables2.map(t =>
         sb.from(t).select('invested, current_value').eq('user_id', userId)
       )),
       sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
       sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
-      sb.from('mf_holdings').select('qty, avg_cost').eq('user_id', userId)
+      sb.from('mf_holdings').select('qty, avg_cost').eq('user_id', userId),
+      sb.from('gold_holdings').select('qty, avg_cost').eq('user_id', userId)
     ]);
 
     otherResults.forEach(({ data }) => {
@@ -210,6 +224,16 @@ async function loadAssets(userId, filter = null) {
       totalValue    += invested;
       count++;
     });
+
+    // Gold: use avg_cost as current value placeholder
+    (goldResult2.data || []).forEach(row => {
+      const qty = +row.qty || 0;
+      const invested = qty * (+row.avg_cost || 0);
+      totalInvested += invested;
+      totalValue    += invested;
+      count++;
+    });
+
     const gainPct = totalInvested > 0 ? ` (${((gain / totalInvested) * 100).toFixed(1)}%)` : '';
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -261,8 +285,8 @@ async function loadAssets(userId, filter = null) {
   const activeLayoutRow = document.getElementById('assets-layout-row');
   if (activeLayoutRow) activeLayoutRow.classList.remove('hidden');
 
-  const isStockTable = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'mf_holdings';
-  const orderCol = isStockTable ? (tableName === 'mf_holdings' ? 'fund_name' : 'instrument') : 'created_at';
+  const isStockTable = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'mf_holdings' || tableName === 'gold_holdings';
+  const orderCol = isStockTable ? (tableName === 'mf_holdings' ? 'fund_name' : tableName === 'gold_holdings' ? 'holding_name' : 'instrument') : 'created_at';
   const orderAsc = isStockTable;
 
   const selectCols = tableName === 'aionion_stocks'
@@ -271,6 +295,8 @@ async function loadAssets(userId, filter = null) {
     ? 'id,user_id,instrument,qty,prev_qty,avg_cost,imported_at'
     : tableName === 'mf_holdings'
     ? 'id,user_id,fund_name,qty,prev_qty,avg_cost,nav_symbol,imported_at'
+    : tableName === 'gold_holdings'
+    ? 'id,user_id,holding_name,holding_type,qty,avg_cost,yahoo_symbol,imported_at'
     : '*';
   const { data, error } = await sb
     .from(tableName)
@@ -294,10 +320,10 @@ function renderAssetsTable(assets, tableName) {
   const cols = ASSET_COLUMNS[tableName] || ASSET_COLUMNS['cash_assets'];
   const colCount = cols.length + 2; // +gain +delete
 
-  const isStockTable2 = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'mf_holdings';
+  const isStockTable2 = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'mf_holdings' || tableName === 'gold_holdings';
 
   // Hide all broker toolbar buttons first, then show only relevant ones
-  ['zerodha', 'aionion', 'mf'].forEach(p => {
+  ['zerodha', 'aionion', 'mf', 'gold'].forEach(p => {
     document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-last-updated`)?.classList.add('hidden');
@@ -316,6 +342,11 @@ function renderAssetsTable(assets, tableName) {
     document.getElementById('mf-import-btn')?.classList.remove('hidden');
     document.getElementById('mf-refresh-btn')?.classList.remove('hidden');
     document.getElementById('mf-last-updated')?.classList.remove('hidden');
+    if (addBtn2) addBtn2.classList.add('hidden');
+  } else if (tableName === 'gold_holdings') {
+    document.getElementById('gold-import-btn')?.classList.remove('hidden');
+    document.getElementById('gold-refresh-btn')?.classList.remove('hidden');
+    document.getElementById('gold-last-updated')?.classList.remove('hidden');
     if (addBtn2) addBtn2.classList.add('hidden');
   }
 
@@ -337,6 +368,8 @@ function renderAssetsTable(assets, tableName) {
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
     : tableName === 'mf_holdings'
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
+    : tableName === 'gold_holdings'
+    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
     : assets.reduce((s, a) => s + (+a.current_value || 0), 0);
   const totalGain = totalValue - totalInvested;
 
@@ -357,6 +390,8 @@ function renderAssetsTable(assets, tableName) {
         ? 'No holdings yet — click <b>📥 Import CSV</b> to import your Zerodha portfolio'
         : tableName === 'mf_holdings'
         ? 'No funds yet — click <b>📥 Import CSV</b> to import from your Zerodha holdings'
+        : tableName === 'gold_holdings'
+        ? 'No gold yet — click <b>📥 Import CSV</b> to import from your Zerodha holdings'
         : 'No entries yet.<br/>Click <b>+ Add Asset</b> to get started.'}
       </div></td></tr>`;
     return;
@@ -395,6 +430,14 @@ function renderAssetsTable(assets, tableName) {
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),
         _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
       }
+      : tableName === 'gold_holdings'
+      ? {
+        ...a,
+        _ltp:          null,  // patched live by fetchAndRefreshGoldPrices
+        invested:      (+a.qty || 0) * (+a.avg_cost || 0),
+        current_value: (+a.qty || 0) * (+a.avg_cost || 0),
+        _alloc_pct:    totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
+      }
       : a;
 
     const invested = +row.invested || 0;
@@ -425,17 +468,20 @@ function renderAssetsTable(assets, tableName) {
         inner = c.bold ? `<b>${val}</b>` : val;
       }
       // For zerodha/aionion: tag live-updatable cells with data attributes
-      const liveKey2 = tableName === 'mf_holdings' ? a.fund_name : a.instrument;
+      const liveKey2 = tableName === 'mf_holdings' ? a.fund_name
+        : tableName === 'gold_holdings' ? a.holding_name
+        : a.instrument;
       const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct', '_name', '_ltp'].includes(c.key)) ||
                         (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct', '_name', '_ltp'].includes(c.key)) ||
-                        (tableName === 'mf_holdings'    && ['current_value', '_alloc_pct', '_live_nav'].includes(c.key)))
+                        (tableName === 'mf_holdings'    && ['current_value', '_alloc_pct', '_live_nav'].includes(c.key)) ||
+                        (tableName === 'gold_holdings'  && ['current_value', '_alloc_pct', '_ltp'].includes(c.key)))
         ? ` data-live-${c.key}="${liveKey2}"`
         : '';
       return `<td${style ? ` style="${style}"` : ''}${liveAttr}>${inner}</td>`;
     }).join('');
 
-    const liveKey  = tableName === 'mf_holdings' ? a.fund_name : a.instrument;
-    const gainAttr = (tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'mf_holdings') ? ` data-live-gain="${liveKey}"` : '';
+    const liveKey  = tableName === 'mf_holdings' ? a.fund_name : tableName === 'gold_holdings' ? a.holding_name : a.instrument;
+    const gainAttr = (tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'mf_holdings' || tableName === 'gold_holdings') ? ` data-live-gain="${liveKey}"` : '';
     html += `
       <tr data-id="${a.id}">
         ${cells}
@@ -450,57 +496,44 @@ function renderAssetsTable(assets, tableName) {
 
   // Show correct Actual Invested section; hide the other
   const actualCard = document.getElementById('assets-actual-invested-card');
-  const fdSec = document.getElementById('assets-monthly-summary');
+  const fdSec      = document.getElementById('assets-monthly-summary');
   const zerodhaSec = document.getElementById('zerodha-monthly-summary');
-
   const aionionSec = document.getElementById('aionion-monthly-summary');
   const mfSec      = document.getElementById('mf-monthly-summary');
+  const goldSec    = document.getElementById('gold-monthly-summary');
+
+  const allSecs = [fdSec, zerodhaSec, aionionSec, mfSec, goldSec];
+  allSecs.forEach(s => s?.classList.add('hidden'));
+
   if (tableName === 'bank_fd_assets') {
     if (actualCard) actualCard.classList.remove('hidden');
     if (fdSec)      fdSec.classList.remove('hidden');
-    if (zerodhaSec) zerodhaSec.classList.add('hidden');
-    if (aionionSec) aionionSec.classList.add('hidden');
-    if (mfSec)      mfSec.classList.add('hidden');
     loadFdActualInvested(_currentUserId);
   } else if (tableName === 'zerodha_stocks') {
     if (actualCard) actualCard.classList.remove('hidden');
-    if (fdSec)      fdSec.classList.add('hidden');
     if (zerodhaSec) zerodhaSec.classList.remove('hidden');
-    if (aionionSec) aionionSec.classList.add('hidden');
-    if (mfSec)      mfSec.classList.add('hidden');
     loadZerodhaActualInvested(_currentUserId);
   } else if (tableName === 'aionion_stocks') {
     if (actualCard) actualCard.classList.remove('hidden');
-    if (fdSec)      fdSec.classList.add('hidden');
-    if (zerodhaSec) zerodhaSec.classList.add('hidden');
     if (aionionSec) aionionSec.classList.remove('hidden');
-    if (mfSec)      mfSec.classList.add('hidden');
     loadAionionActualInvested(_currentUserId);
   } else if (tableName === 'mf_holdings') {
     if (actualCard) actualCard.classList.remove('hidden');
-    if (fdSec)      fdSec.classList.add('hidden');
-    if (zerodhaSec) zerodhaSec.classList.add('hidden');
-    if (aionionSec) aionionSec.classList.add('hidden');
     if (mfSec)      mfSec.classList.remove('hidden');
     loadMfActualInvested(_currentUserId);
+  } else if (tableName === 'gold_holdings') {
+    if (actualCard) actualCard.classList.remove('hidden');
+    if (goldSec)    goldSec.classList.remove('hidden');
+    loadGoldActualInvested(_currentUserId);
   } else {
     if (actualCard) actualCard.classList.add('hidden');
-    if (fdSec)      fdSec.classList.add('hidden');
-    if (zerodhaSec) zerodhaSec.classList.add('hidden');
-    if (aionionSec) aionionSec.classList.add('hidden');
-    if (mfSec)      mfSec.classList.add('hidden');
   }
 
-  // Auto-fetch live prices for stock tables
-  if (tableName === 'zerodha_stocks' && assets.length) {
-    fetchAndRefreshZerodhaPrices(assets);
-  }
-  if (tableName === 'aionion_stocks' && assets.length) {
-    fetchAndRefreshAionionPrices(assets);
-  }
-  if (tableName === 'mf_holdings' && assets.length) {
-    fetchAndRefreshMfPrices(assets);
-  }
+  // Auto-fetch live prices
+  if (tableName === 'zerodha_stocks' && assets.length) fetchAndRefreshZerodhaPrices(assets);
+  if (tableName === 'aionion_stocks' && assets.length) fetchAndRefreshAionionPrices(assets);
+  if (tableName === 'mf_holdings'    && assets.length) fetchAndRefreshMfPrices(assets);
+  if (tableName === 'gold_holdings'  && assets.length) fetchAndRefreshGoldPrices(assets);
 
   tbody.querySelectorAll('.asset-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -548,6 +581,10 @@ function openEditAssetModal(row, tableName) {
   }
   if (tableName === 'mf_holdings') {
     openMfEditModal(row);
+    return;
+  }
+  if (tableName === 'gold_holdings') {
+    openGoldEditModal(row);
     return;
   }
 
