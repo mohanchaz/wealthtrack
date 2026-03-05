@@ -63,7 +63,7 @@ document.addEventListener('fragments-loaded', () => {
       bond_id:           bond_id  || null,
       sb_account_number: sb_account || null,
       invested,
-      current_value:     invested,   // no live price — mirrors invested
+      current_value:     isNaN(face_value) ? invested : face_value,
       face_value:        isNaN(face_value)  ? null : face_value,
       interest_rate:     isNaN(interest)    ? null : interest,
       purchase_date:     purchase_dt || null,
