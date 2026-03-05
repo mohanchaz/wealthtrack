@@ -58,14 +58,21 @@ function renderAmcMfActualInvested(rows) {
     const d       = new Date(r.entry_date);
     const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     return '<tr style="background:' + (i % 2 === 0 ? '#fff' : 'var(--surface2)') + '">' +
+      '<td class="amcmfai-cb-wrap" data-id="' + r.id + '" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="amcmfai-cb" data-id="' + r.id + '" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>' +
       '<td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">' + dateStr + '</td>' +
       '<td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">' + INR(r.amount) + '</td>' +
       '<td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">' +
         '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" ' +
           'data-id="' + r.id + '" data-date="' + r.entry_date + '" data-amount="' + r.amount + '" ' +
           'class="amcmfai-edit-btn" title="Edit">\u270f\ufe0f</button>' +
-        '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" ' +
-          'data-id="' + r.id + '" class="amcmfai-delete-btn" title="Delete">\ud83d\uddd1</button>' +
+        '<span class="amcmfai-delete-wrap" data-id="' + r.id + '" style="display:inline-flex;align-items:center;gap:4px">' +
+          '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" class="amcmfai-delete-btn" title="Delete">🗑</button>' +
+          '<span class="amcmfai-confirm-inline hidden" style="display:inline-flex;align-items:center;gap:4px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;padding:2px 6px">' +
+            '<span style="font-size:11px;color:#c00;font-weight:600">Delete?</span>' +
+            '<button class="amcmfai-confirm-yes" style="font-size:11px;font-weight:700;color:#fff;background:#e03b3b;border:none;border-radius:4px;padding:1px 7px;cursor:pointer">Yes</button>' +
+            '<button class="amcmfai-confirm-no" style="font-size:11px;font-weight:600;color:#666;background:none;border:none;cursor:pointer;padding:1px 4px">No</button>' +
+          '</span>' +
+        '</span>' +
       '</td>' +
     '</tr>';
   }).join('') +
@@ -74,15 +81,31 @@ function renderAmcMfActualInvested(rows) {
     '<td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">' + INR(grand) + '</td>' +
     '<td></td></tr>';
 
+
+  if (window['_amcmf_bindCheckboxes']) window['_amcmf_bindCheckboxes']();
   body.querySelectorAll('.amcmfai-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => openAmcMfaiModal({
       id: btn.dataset.id, entry_date: btn.dataset.date, amount: btn.dataset.amount
     }));
   });
   body.querySelectorAll('.amcmfai-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrap = btn.closest('.amcmfai-delete-wrap');
+      btn.classList.add('hidden');
+      wrap.querySelector('.amcmfai-confirm-inline').classList.remove('hidden');
+    });
+  });
+  body.querySelectorAll('.amcmfai-confirm-no').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrap = btn.closest('.amcmfai-delete-wrap');
+      wrap.querySelector('.amcmfai-delete-btn').classList.remove('hidden');
+      wrap.querySelector('.amcmfai-confirm-inline').classList.add('hidden');
+    });
+  });
+  body.querySelectorAll('.amcmfai-confirm-yes').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Delete this entry?')) return;
-      const { error } = await sb.from('amc_mf_actual_invested').delete().eq('id', btn.dataset.id);
+      const id = btn.closest('.amcmfai-delete-wrap').dataset.id;
+      const { error } = await sb.from('amc_mf_actual_invested').delete().eq('id', id);
       if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
       showToast('Entry deleted', 'success');
       loadAmcMfActualInvested(_currentUserId);
@@ -322,3 +345,85 @@ document.addEventListener('fragments-loaded', () => {
     }
   });
 });
+// ── Actual Invested bulk-select wiring for amcmf ─────────────────
+(function() {
+  var _sel = false;
+  var SEL_ICON = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function _enter() {
+    _sel = true;
+    var btn = document.getElementById('amcmf-select-btn');
+    if (btn) { btn.innerHTML = '\u2715 Cancel'; btn.style.background = 'var(--surface2)'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--muted2)'; }
+    document.getElementById('amcmf-bulk-bar')?.classList.remove('hidden');
+    document.querySelectorAll('.amcmfai-cb-wrap').forEach(function(c) { c.style.display = ''; });
+    _upd();
+  }
+
+  function _exit() {
+    _sel = false;
+    var btn = document.getElementById('amcmf-select-btn');
+    if (btn) { btn.innerHTML = SEL_ICON + ' Select'; btn.style.background = 'rgba(20,184,166,0.1)'; btn.style.borderColor = 'rgba(20,184,166,0.3)'; btn.style.color = '#0d9488'; }
+    document.getElementById('amcmf-bulk-bar')?.classList.add('hidden');
+    document.getElementById('amcmf-bulk-normal').style.display = 'flex';
+    document.getElementById('amcmf-bulk-confirm').style.display = 'none';
+    document.querySelectorAll('.amcmfai-cb-wrap').forEach(function(c) { c.style.display = 'none'; });
+    document.querySelectorAll('.amcmfai-cb').forEach(function(c) { c.checked = false; });
+    _upd();
+  }
+
+  function _upd() {
+    var n = document.querySelectorAll('.amcmfai-cb:checked').length;
+    var countEl = document.getElementById('amcmf-bulk-count');
+    var delBtn = document.getElementById('amcmf-bulk-delete');
+    if (countEl) countEl.textContent = n + ' selected';
+    if (delBtn) delBtn.disabled = n === 0;
+  }
+
+  document.addEventListener('fragments-loaded', function() {
+    document.getElementById('amcmf-select-btn')?.addEventListener('click', function() {
+      if (_sel) _exit(); else _enter();
+    });
+    document.getElementById('amcmf-bulk-cancel')?.addEventListener('click', _exit);
+
+    document.getElementById('amcmf-bulk-delete')?.addEventListener('click', function() {
+      var n = document.querySelectorAll('.amcmfai-cb:checked').length;
+      if (!n) return;
+      document.getElementById('amcmf-bulk-normal').style.display = 'none';
+      document.getElementById('amcmf-bulk-confirm').style.display = 'flex';
+      document.getElementById('amcmf-bulk-confirm-count').textContent = n === 1 ? '1 entry' : n + ' entries';
+    });
+
+    document.getElementById('amcmf-bulk-no')?.addEventListener('click', function() {
+      document.getElementById('amcmf-bulk-normal').style.display = 'flex';
+      document.getElementById('amcmf-bulk-confirm').style.display = 'none';
+    });
+
+    document.getElementById('amcmf-bulk-yes')?.addEventListener('click', async function() {
+      var checked = [...document.querySelectorAll('.amcmfai-cb:checked')];
+      if (!checked.length) return;
+      var yesBtn = document.getElementById('amcmf-bulk-yes');
+      yesBtn.textContent = 'Deleting\u2026'; yesBtn.disabled = true;
+      var anyErr = false;
+      for (var cb of checked) {
+        var r = await sb.from('amc_mf_actual_invested').delete().eq('id', cb.dataset.id);
+        if (r.error) { showToast('Delete failed: ' + r.error.message, 'error'); anyErr = true; }
+      }
+      yesBtn.textContent = 'Yes, delete'; yesBtn.disabled = false;
+      if (!anyErr) showToast(checked.length + ' ' + (checked.length === 1 ? 'entry' : 'entries') + ' deleted', 'success');
+      _exit();
+      loadAmcMfActualInvested(_currentUserId);
+    });
+  });
+
+  // Called after each render to re-wire checkboxes
+  window['_amcmf_bindCheckboxes'] = function() {
+    document.querySelectorAll('.amcmfai-cb').forEach(function(cb) {
+      cb.addEventListener('change', _upd);
+    });
+    // Hide all checkbox cells by default unless in select mode
+    document.querySelectorAll('.amcmfai-cb-wrap').forEach(function(c) {
+      c.style.display = _sel ? '' : 'none';
+    });
+    if (_sel) _upd();
+  };
+})();

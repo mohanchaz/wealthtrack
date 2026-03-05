@@ -58,14 +58,21 @@ function renderMfActualInvested(rows) {
     const d       = new Date(r.entry_date);
     const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
+        <td class="mfai-cb-wrap" data-id="${r.id}" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="mfai-cb" data-id="${r.id}" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>
       <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${dateStr}</td>
       <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>
       <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-mfai-id="${r.id}" data-mfai-date="${r.entry_date}" data-mfai-amount="${r.amount}"
           class="mfai-edit-btn" title="Edit">\u270f\ufe0f</button>
-        <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
-          data-mfai-id="${r.id}" class="mfai-delete-btn" title="Delete">\ud83d\uddd1</button>
+        <span class="mfai-delete-wrap" data-mfai-id="${r.id}" style="display:inline-flex;align-items:center;gap:4px">
+          <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" class="mfai-delete-btn" title="Delete">🗑</button>
+          <span class="mfai-confirm-inline hidden" style="display:inline-flex;align-items:center;gap:4px;background:#fff5f5;border:1px solid #fcc;border-radius:6px;padding:2px 6px">
+            <span style="font-size:11px;color:#c00;font-weight:600">Delete?</span>
+            <button class="mfai-confirm-yes" style="font-size:11px;font-weight:700;color:#fff;background:#e03b3b;border:none;border-radius:4px;padding:1px 7px;cursor:pointer">Yes</button>
+            <button class="mfai-confirm-no" style="font-size:11px;font-weight:600;color:#666;background:none;border:none;cursor:pointer;padding:1px 4px">No</button>
+          </span>
+        </span>
       </td>
     </tr>`;
   }).join('') +
@@ -75,15 +82,31 @@ function renderMfActualInvested(rows) {
     <td></td>
   </tr>`;
 
+
+  if (window['_mf_bindCheckboxes']) window['_mf_bindCheckboxes']();
   body.querySelectorAll('.mfai-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => openMfaiModal({
       id: btn.dataset.mfaiId, entry_date: btn.dataset.mfaiDate, amount: btn.dataset.mfaiAmount
     }));
   });
   body.querySelectorAll('.mfai-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrap = btn.closest('.mfai-delete-wrap');
+      btn.classList.add('hidden');
+      wrap.querySelector('.mfai-confirm-inline').classList.remove('hidden');
+    });
+  });
+  body.querySelectorAll('.mfai-confirm-no').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrap = btn.closest('.mfai-delete-wrap');
+      wrap.querySelector('.mfai-delete-btn').classList.remove('hidden');
+      wrap.querySelector('.mfai-confirm-inline').classList.add('hidden');
+    });
+  });
+  body.querySelectorAll('.mfai-confirm-yes').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Delete this entry?')) return;
-      const { error } = await sb.from('mf_actual_invested').delete().eq('id', btn.dataset.mfaiId);
+      const id = btn.closest('.mfai-delete-wrap').dataset.mfaiId;
+      const { error } = await sb.from('mf_actual_invested').delete().eq('id', id);
       if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
       showToast('Entry deleted', 'success');
       loadMfActualInvested(_currentUserId);
@@ -535,3 +558,85 @@ document.addEventListener('fragments-loaded', function() {
     else { showToast('Fund updated \u2705', 'success'); closeMfEditModal(); loadAssets(_currentUserId, _currentAssetFilter); }
   });
 });
+// ── Actual Invested bulk-select wiring for mf ─────────────────
+(function() {
+  var _sel = false;
+  var SEL_ICON = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function _enter() {
+    _sel = true;
+    var btn = document.getElementById('mf-select-btn');
+    if (btn) { btn.innerHTML = '\u2715 Cancel'; btn.style.background = 'var(--surface2)'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--muted2)'; }
+    document.getElementById('mf-bulk-bar')?.classList.remove('hidden');
+    document.querySelectorAll('.mfai-cb-wrap').forEach(function(c) { c.style.display = ''; });
+    _upd();
+  }
+
+  function _exit() {
+    _sel = false;
+    var btn = document.getElementById('mf-select-btn');
+    if (btn) { btn.innerHTML = SEL_ICON + ' Select'; btn.style.background = 'rgba(20,184,166,0.1)'; btn.style.borderColor = 'rgba(20,184,166,0.3)'; btn.style.color = '#0d9488'; }
+    document.getElementById('mf-bulk-bar')?.classList.add('hidden');
+    document.getElementById('mf-bulk-normal').style.display = 'flex';
+    document.getElementById('mf-bulk-confirm').style.display = 'none';
+    document.querySelectorAll('.mfai-cb-wrap').forEach(function(c) { c.style.display = 'none'; });
+    document.querySelectorAll('.mfai-cb').forEach(function(c) { c.checked = false; });
+    _upd();
+  }
+
+  function _upd() {
+    var n = document.querySelectorAll('.mfai-cb:checked').length;
+    var countEl = document.getElementById('mf-bulk-count');
+    var delBtn = document.getElementById('mf-bulk-delete');
+    if (countEl) countEl.textContent = n + ' selected';
+    if (delBtn) delBtn.disabled = n === 0;
+  }
+
+  document.addEventListener('fragments-loaded', function() {
+    document.getElementById('mf-select-btn')?.addEventListener('click', function() {
+      if (_sel) _exit(); else _enter();
+    });
+    document.getElementById('mf-bulk-cancel')?.addEventListener('click', _exit);
+
+    document.getElementById('mf-bulk-delete')?.addEventListener('click', function() {
+      var n = document.querySelectorAll('.mfai-cb:checked').length;
+      if (!n) return;
+      document.getElementById('mf-bulk-normal').style.display = 'none';
+      document.getElementById('mf-bulk-confirm').style.display = 'flex';
+      document.getElementById('mf-bulk-confirm-count').textContent = n === 1 ? '1 entry' : n + ' entries';
+    });
+
+    document.getElementById('mf-bulk-no')?.addEventListener('click', function() {
+      document.getElementById('mf-bulk-normal').style.display = 'flex';
+      document.getElementById('mf-bulk-confirm').style.display = 'none';
+    });
+
+    document.getElementById('mf-bulk-yes')?.addEventListener('click', async function() {
+      var checked = [...document.querySelectorAll('.mfai-cb:checked')];
+      if (!checked.length) return;
+      var yesBtn = document.getElementById('mf-bulk-yes');
+      yesBtn.textContent = 'Deleting\u2026'; yesBtn.disabled = true;
+      var anyErr = false;
+      for (var cb of checked) {
+        var r = await sb.from('mf_actual_invested').delete().eq('id', cb.dataset.id);
+        if (r.error) { showToast('Delete failed: ' + r.error.message, 'error'); anyErr = true; }
+      }
+      yesBtn.textContent = 'Yes, delete'; yesBtn.disabled = false;
+      if (!anyErr) showToast(checked.length + ' ' + (checked.length === 1 ? 'entry' : 'entries') + ' deleted', 'success');
+      _exit();
+      loadMfActualInvested(_currentUserId);
+    });
+  });
+
+  // Called after each render to re-wire checkboxes
+  window['_mf_bindCheckboxes'] = function() {
+    document.querySelectorAll('.mfai-cb').forEach(function(cb) {
+      cb.addEventListener('change', _upd);
+    });
+    // Hide all checkbox cells by default unless in select mode
+    document.querySelectorAll('.mfai-cb-wrap').forEach(function(c) {
+      c.style.display = _sel ? '' : 'none';
+    });
+    if (_sel) _upd();
+  };
+})();
