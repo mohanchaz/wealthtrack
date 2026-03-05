@@ -365,152 +365,272 @@ async function loadAssets(userId, filter = null) {
   const subtitle = document.querySelector('#page-assets .page-subtitle');
 
   if (!filter) {
-    _currentAssetTable = null;
+    _currentAssetTable  = null;
     _currentAssetFilter = null;
-    if (subtitle) subtitle.textContent = 'Your assets overview';
-    if (toolbarLabel) toolbarLabel.textContent = 'Select a category from the sidebar to view assets';
+    if (subtitle) subtitle.textContent = 'All Assets — overview';
+    if (toolbarLabel) toolbarLabel.textContent = 'All Assets';
     if (addBtn) addBtn.classList.add('hidden');
 
-    // Hide the Actual Invested sections on overview
-    const monthlySec = document.getElementById('assets-monthly-summary');
-    const zerodhaSec = document.getElementById('zerodha-monthly-summary');
-    if (monthlySec) monthlySec.classList.add('hidden');
-    if (zerodhaSec) zerodhaSec.classList.add('hidden');
-
-    // Hide the whole layout row on overview — only stat tiles visible
-    // (toolbar is inside the layout row so no need to hide it separately)
-    const layoutRow = document.getElementById('assets-layout-row');
-    if (layoutRow) layoutRow.classList.add('hidden');
-    document.getElementById('group-overview-panel')?.classList.add('hidden');
+    // Show group overview panel, hide table layout
+    document.getElementById('assets-layout-row')?.classList.add('hidden');
+    document.getElementById('group-overview-panel')?.classList.remove('hidden');
     document.querySelector('.assets-summary-row')?.classList.remove('hidden');
+    document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+    ['assets-monthly-summary','zerodha-monthly-summary','aionion-monthly-summary','mf-monthly-summary'].forEach(id =>
+      document.getElementById(id)?.classList.add('hidden')
+    );
+    ['zerodha','aionion','aionion-gold','mf','gold'].forEach(p => {
+      document.getElementById(p + '-import-btn')?.classList.add('hidden');
+      document.getElementById(p + '-refresh-btn')?.classList.add('hidden');
+      document.getElementById(p + '-last-updated')?.classList.add('hidden');
+    });
 
-    // Hide the Actual Invested stat card and reset table headers to default
-    const actualOverviewCard = document.getElementById('assets-actual-invested-card');
-    if (actualOverviewCard) actualOverviewCard.classList.add('hidden');
-    const overviewThead = document.getElementById('assets-thead-row');
-    if (overviewThead) {
-      const defaultCols = ASSET_COLUMNS['cash_assets'];
-      overviewThead.innerHTML =
-        defaultCols.map(c => `<th${c.align ? ` style="text-align:${c.align}"` : ''}>${c.label}</th>`).join('') +
-        `<th style="text-align:right">Gain / Loss</th><th></th>`;
-    }
+    const totalsEl = document.getElementById('group-overview-totals');
+    const bodyEl   = document.getElementById('group-overview-body');
+    if (totalsEl) totalsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted2)">Loading\u2026</div>';
+    if (bodyEl)   bodyEl.innerHTML   = '';
 
-    // Aggregate totals from all known asset tables
-    // zerodha_stocks doesn't store invested/current_value — compute from qty * avg_cost / ltp
-    let totalInvested = 0, totalValue = 0, count = 0;
-
-    const nonStockTables2 = Object.entries(ASSET_TABLES)
-      .filter(([, t]) => t !== 'zerodha_stocks' && t !== 'aionion_stocks' && t !== 'aionion_gold' && t !== 'mf_holdings' && t !== 'gold_holdings').map(([, t]) => t);
-
-    const [otherResults, zerodhaResult, aionionResult, aionionGoldResult2, mfResult2, goldResult2] = await Promise.all([
-      Promise.all(nonStockTables2.map(t =>
-        sb.from(t).select('invested, current_value').eq('user_id', userId)
-      )),
-      sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
-      sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
-      sb.from('aionion_gold').select('qty, avg_cost, instrument').eq('user_id', userId),
-      sb.from('mf_holdings').select('qty, avg_cost').eq('user_id', userId),
-      sb.from('gold_holdings').select('qty, avg_cost').eq('user_id', userId)
-    ]);
-
-    otherResults.forEach(({ data }) => {
-      if (!data) return;
-      data.forEach(row => {
-        totalInvested += +row.invested || 0;
-        totalValue += +row.current_value || 0;
-        count++;
+    // ── Helpers ────────────────────────────────────────────────
+    async function fetchStockSub(table, actualTable) {
+      const { data } = await sb.from(table).select('qty, avg_cost, instrument').eq('user_id', userId);
+      const rows = data || [];
+      const prices = rows.length ? (await fetchLivePrices(rows.map(r => r.instrument))) || {} : {};
+      let inv = 0, cur = 0;
+      rows.forEach(r => {
+        const qty = +r.qty || 0;
+        inv += qty * (+r.avg_cost || 0);
+        cur += qty * (getLTP(prices, r.instrument) || +r.avg_cost || 0);
       });
-    });
-
-    // Zerodha: fetch live prices; fall back to avg_cost if unavailable
-    const zerodhaAssets2 = zerodhaResult.data || [];
-    const zerodhaInstruments2 = zerodhaAssets2.map(r => r.instrument);
-    const zerodhaPrices2 = zerodhaInstruments2.length ? (await fetchLivePrices(zerodhaInstruments2)) || {} : {};
-    zerodhaAssets2.forEach(row => {
-      const qty = +row.qty || 0;
-      const ltp = getLTP(zerodhaPrices2, row.instrument) || +row.avg_cost || 0;
-      totalInvested += qty * (+row.avg_cost || 0);
-      totalValue    += qty * ltp;
-      count++;
-    });
-
-    // Aionion: fetch live prices; fall back to avg_cost if unavailable
-    const aionionAssets2 = aionionResult.data || [];
-    const aionionInstruments2 = aionionAssets2.map(r => r.instrument);
-    const aionionPrices2 = aionionInstruments2.length ? (await fetchLivePrices(aionionInstruments2)) || {} : {};
-    aionionAssets2.forEach(row => {
-      const qty      = +row.qty || 0;
-      const ltp      = getLTP(aionionPrices2, row.instrument) || +row.avg_cost || 0;
-      totalInvested += qty * (+row.avg_cost || 0);
-      totalValue    += qty * ltp;
-      count++;
-    });
-
-    // Aionion Gold
-    const agAssets2 = aionionGoldResult2.data || [];
-    const agInstruments2 = agAssets2.map(r => r.instrument);
-    const agPrices2 = agInstruments2.length ? (await fetchLivePrices(agInstruments2)) || {} : {};
-    agAssets2.forEach(row => {
-      const qty = +row.qty || 0;
-      const ltp = getLTP(agPrices2, row.instrument) || +row.avg_cost || 0;
-      totalInvested += qty * (+row.avg_cost || 0);
-      totalValue    += qty * ltp;
-      count++;
-    });
-
-    // MF: use avg_cost as current value placeholder
-    (mfResult2.data || []).forEach(row => {
-      const qty = +row.qty || 0;
-      const invested = qty * (+row.avg_cost || 0);
-      totalInvested += invested;
-      totalValue    += invested;
-      count++;
-    });
-
-    // Gold: use avg_cost as current value placeholder
-    (goldResult2.data || []).forEach(row => {
-      const qty = +row.qty || 0;
-      const invested = qty * (+row.avg_cost || 0);
-      totalInvested += invested;
-      totalValue    += invested;
-      count++;
-    });
-
-    const gainPct = totalInvested > 0 ? ` (${((gain / totalInvested) * 100).toFixed(1)}%)` : '';
-
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    set('assets-total-invested', INR(totalInvested));
-    set('assets-total-value', INR(totalValue));
-    const cEl2 = document.getElementById('assets-count-inline'); if(cEl2) cEl2.textContent = count + ' holding' + (count !== 1 ? 's' : '');
-    const gainEl = document.getElementById('assets-total-gain');
-    if (gainEl) {
-      gainEl.textContent = (gain >= 0 ? '+' : '') + INR(gain) + gainPct;
-      gainEl.style.color = gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)';
+      let actual = 0;
+      if (actualTable) {
+        const { data: ad } = await sb.from(actualTable).select('amount').eq('user_id', userId);
+        actual = (ad || []).reduce((s, r) => s + (+r.amount || 0), 0);
+      }
+      return { inv, cur, actual };
     }
 
-    // Also fetch both actual_invested totals for the Actual Invested tile
-    const [{ data: fdData2 }, { data: zaiData2 }, { data: aaiData2 }] = await Promise.all([
-      sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
-      sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
-      sb.from('aionion_actual_invested').select('amount').eq('user_id', userId)
-    ]);
-    const actualInvested =
-      (fdData2 || []).reduce((s, r) => s + (+r.amount || 0), 0) +
-      (zaiData2 || []).reduce((s, r) => s + (+r.amount || 0), 0) +
-      (aaiData2 || []).reduce((s, r) => s + (+r.amount || 0), 0);
-    set('assets-actual-invested', INR(actualInvested));
+    async function fetchMfSub(actualTable) {
+      const { data } = await sb.from('mf_holdings').select('qty, avg_cost, nav_symbol').eq('user_id', userId);
+      const rows = data || [];
+      const syms = rows.filter(r => r.nav_symbol).map(r => r.nav_symbol);
+      const prices = syms.length ? (await fetchLivePricesRaw(syms)) || {} : {};
+      let inv = 0, cur = 0;
+      rows.forEach(r => {
+        const qty = +r.qty || 0;
+        const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
+        inv += qty * (+r.avg_cost || 0);
+        cur += qty * (key ? getLTP(prices, key) : null || +r.avg_cost || 0);
+      });
+      let actual = 0;
+      if (actualTable) {
+        const { data: ad } = await sb.from(actualTable).select('amount').eq('user_id', userId);
+        actual = (ad || []).reduce((s, r) => s + (+r.amount || 0), 0);
+      }
+      return { inv, cur, actual };
+    }
 
-    // Clear the spinner — show "select a category" prompt
-    tbody.innerHTML = `<tr><td colspan="8">
-      <div class="assets-empty">
-        <div class="empty-icon">👈</div>
-        Pick a category from the sidebar<br/>
-        <span style="font-size:12px;color:var(--muted2)">e.g. Assets → Cash</span>
-      </div></td></tr>`;
+    async function fetchGoldSub(table) {
+      const { data } = await sb.from(table).select('qty, avg_cost, yahoo_symbol').eq('user_id', userId);
+      const rows = data || [];
+      const symSet = [...new Set(rows.filter(r => r.yahoo_symbol).map(r => r.yahoo_symbol))];
+      let prices = {};
+      if (symSet.length) {
+        try {
+          const res = await fetch('/api/prices?symbols=' + encodeURIComponent(symSet.join(',')));
+          if (res.ok) { const raw = await res.json(); if (!raw.error) prices = raw; }
+        } catch(e) {}
+      }
+      let inv = 0, cur = 0;
+      rows.forEach(r => {
+        const qty = +r.qty || 0;
+        const key = r.yahoo_symbol ? r.yahoo_symbol.replace(/\.(NS|BO)$/, '') : null;
+        inv += qty * (+r.avg_cost || 0);
+        cur += qty * (key ? getLTP(prices, key) : null || +r.avg_cost || 0);
+      });
+      return { inv, cur, actual: 0 };
+    }
+
+    // ── Fetch all categories in parallel where possible ────────
+    const [
+      cashResult,
+      fdResult, fdActual,
+      bondsResult,
+      zerodhaStocksRes, zerodhaActualRes,
+      mfRes, mfActualRes,
+      goldRes,
+      aionionStocksRes, aionionActualRes,
+      aionionGoldRes,
+    ] = await Promise.all([
+      sb.from('cash_assets').select('invested, current_value').eq('user_id', userId),
+      sb.from('bank_fd_assets').select('invested, current_value').eq('user_id', userId),
+      sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('bonds').select('invested, face_value').eq('user_id', userId),
+      sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
+      sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('mf_holdings').select('qty, avg_cost, nav_symbol').eq('user_id', userId),
+      sb.from('mf_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('gold_holdings').select('qty, avg_cost, yahoo_symbol').eq('user_id', userId),
+      sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
+      sb.from('aionion_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('aionion_gold').select('qty, avg_cost, instrument').eq('user_id', userId),
+    ]);
+
+    // Cash
+    let cashInv = 0, cashCur = 0;
+    (cashResult.data || []).forEach(r => { cashInv += +r.invested || 0; cashCur += +r.current_value || 0; });
+
+    // Bank FD
+    let fdInv = 0, fdCur = 0;
+    (fdResult.data || []).forEach(r => { fdInv += +r.invested || 0; fdCur += +r.current_value || 0; });
+    const fdActualTotal = (fdActual.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+
+    // Bonds
+    let bondsInv = 0, bondsCur = 0;
+    (bondsResult.data || []).forEach(r => { bondsInv += +r.invested || 0; bondsCur += +r.face_value || +r.invested || 0; });
+
+    // Zerodha stocks (needs live prices)
+    const zerodhaRows = zerodhaStocksRes.data || [];
+    const zPrices = zerodhaRows.length ? (await fetchLivePrices(zerodhaRows.map(r => r.instrument))) || {} : {};
+    let zInv = 0, zCur = 0;
+    zerodhaRows.forEach(r => {
+      const qty = +r.qty || 0;
+      zInv += qty * (+r.avg_cost || 0);
+      zCur += qty * (getLTP(zPrices, r.instrument) || +r.avg_cost || 0);
+    });
+
+    // MF (needs live NAV)
+    const mfRows = mfRes.data || [];
+    const mfSyms = mfRows.filter(r => r.nav_symbol).map(r => r.nav_symbol);
+    const mfPrices = mfSyms.length ? (await fetchLivePricesRaw(mfSyms)) || {} : {};
+    let mfInv = 0, mfCur = 0;
+    mfRows.forEach(r => {
+      const qty = +r.qty || 0;
+      const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
+      const nav = key ? getLTP(mfPrices, key) : null;
+      mfInv += qty * (+r.avg_cost || 0);
+      mfCur += qty * (nav || +r.avg_cost || 0);
+    });
+
+    // Gold (needs live price)
+    const goldRows = goldRes.data || [];
+    const goldSymSet = [...new Set(goldRows.filter(r => r.yahoo_symbol).map(r => r.yahoo_symbol))];
+    let goldPrices = {};
+    if (goldSymSet.length) {
+      try {
+        const gres = await fetch('/api/prices?symbols=' + encodeURIComponent(goldSymSet.join(',')));
+        if (gres.ok) { const raw = await gres.json(); if (!raw.error) goldPrices = raw; }
+      } catch(e) {}
+    }
+    let goldInv = 0, goldCur = 0;
+    goldRows.forEach(r => {
+      const qty = +r.qty || 0;
+      const key = r.yahoo_symbol ? r.yahoo_symbol.replace(/\.(NS|BO)$/, '') : null;
+      goldInv += qty * (+r.avg_cost || 0);
+      goldCur += qty * (key ? getLTP(goldPrices, key) : null || +r.avg_cost || 0);
+    });
+
+    // Aionion stocks
+    const aionionRows = aionionStocksRes.data || [];
+    const aPrices = aionionRows.length ? (await fetchLivePrices(aionionRows.map(r => r.instrument))) || {} : {};
+    let aInv = 0, aCur = 0;
+    aionionRows.forEach(r => {
+      const qty = +r.qty || 0;
+      aInv += qty * (+r.avg_cost || 0);
+      aCur += qty * (getLTP(aPrices, r.instrument) || +r.avg_cost || 0);
+    });
+
+    // Aionion gold
+    const agRows = aionionGoldRes.data || [];
+    const agPrices = agRows.length ? (await fetchLivePrices(agRows.map(r => r.instrument))) || {} : {};
+    let agInv = 0, agCur = 0;
+    agRows.forEach(r => {
+      const qty = +r.qty || 0;
+      agInv += qty * (+r.avg_cost || 0);
+      agCur += qty * (getLTP(agPrices, r.instrument) || +r.avg_cost || 0);
+    });
+
+    const zerodhaActualTotal  = (zerodhaActualRes.data  || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const mfActualTotal       = (mfActualRes.data       || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const aionionActualTotal  = (aionionActualRes.data  || []).reduce((s, r) => s + (+r.amount || 0), 0);
+
+    // ── Build category rows ────────────────────────────────────
+    const catRows = [
+      { label: 'Cash',    icon: '💵', filter: 'Cash',    inv: cashInv,            cur: cashCur,                       actual: 0 },
+      { label: 'Bank FD', icon: '🏦', filter: 'Bank FD', inv: fdInv,              cur: fdCur,                         actual: fdActualTotal },
+      { label: 'Bonds',   icon: '📜', filter: 'Bonds',   inv: bondsInv,           cur: bondsCur,                      actual: 0 },
+      { label: 'Zerodha', icon: '📈', filter: 'Zerodha', inv: zInv + mfInv + goldInv, cur: zCur + mfCur + goldCur,   actual: zerodhaActualTotal + mfActualTotal },
+      { label: 'Aionion', icon: '📊', filter: 'Aionion', inv: aInv + agInv,       cur: aCur + agCur,                  actual: aionionActualTotal },
+    ].filter(r => r.inv > 0 || r.cur > 0);
+
+    // ── Grand totals ───────────────────────────────────────────
+    const grandInv        = catRows.reduce((s, r) => s + r.inv, 0);
+    const grandCur        = catRows.reduce((s, r) => s + r.cur, 0);
+    const grandActual     = catRows.reduce((s, r) => s + r.actual, 0);
+    const grandGain       = grandCur - grandInv;
+    const grandActualGain = grandCur - grandActual;
+
+    // Update top stat tiles
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('assets-total-invested', INR(grandInv));
+    setEl('assets-total-value',    INR(grandCur));
+    const cElA = document.getElementById('assets-count-inline');
+    if (cElA) cElA.textContent = '';
+    const gainElA = document.getElementById('assets-total-gain');
+    if (gainElA) {
+      const pct = grandInv > 0 ? ' (' + ((grandGain / grandInv) * 100).toFixed(1) + '%)' : '';
+      gainElA.textContent = (grandGain >= 0 ? '+' : '') + INR(grandGain) + pct;
+      gainElA.style.color = grandGain > 0 ? 'var(--green)' : grandGain < 0 ? 'var(--danger)' : 'var(--muted)';
+    }
+
+    // ── Render summary tiles ───────────────────────────────────
+    const gainColor = v => v > 0 ? 'var(--green)' : v < 0 ? 'var(--danger)' : 'var(--muted)';
+    const fmtGain   = (v, base) => {
+      const pct = base > 0 ? ' (' + ((v / base) * 100).toFixed(1) + '%)' : '';
+      return '<b style="color:' + gainColor(v) + '">' + (v >= 0 ? '+' : '') + INR(v) + pct + '</b>';
+    };
+    totalsEl.innerHTML = [
+      { label: 'Total Invested',     val: '<b style="color:var(--accent)">'  + INR(grandInv)    + '</b>' },
+      { label: 'Current Value',      val: '<b style="color:var(--teal)">'    + INR(grandCur)    + '</b>' },
+      { label: 'Gain / Loss',        val: fmtGain(grandGain, grandInv) },
+      { label: 'Actual Invested',    val: grandActual > 0 ? '<b style="color:var(--green)">' + INR(grandActual) + '</b>' : '<span style="color:var(--muted2)">—</span>' },
+      { label: 'Actual Gain / Loss', val: grandActual > 0 ? fmtGain(grandActualGain, grandActual) : '<span style="color:var(--muted2)">—</span>' },
+    ].map(t =>
+      '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px">' +
+        '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);margin-bottom:6px">' + t.label + '</div>' +
+        '<div style="font-size:18px">' + t.val + '</div>' +
+      '</div>'
+    ).join('');
+
+    // ── Render breakdown table ─────────────────────────────────
+    const tdS = 'padding:12px 16px;border-bottom:1px solid var(--border)';
+    bodyEl.innerHTML = catRows.map((r, i) => {
+      const gain          = r.cur - r.inv;
+      const gainPct       = r.inv > 0    ? ' (' + ((gain / r.inv) * 100).toFixed(1) + '%)'           : '';
+      const actualGain    = r.cur - r.actual;
+      const actualGainPct = r.actual > 0 ? ' (' + ((actualGain / r.actual) * 100).toFixed(1) + '%)' : '';
+      const rowBg         = i % 2 === 0  ? '#fff' : 'var(--surface2)';
+      return '<tr style="background:' + rowBg + ';cursor:pointer" class="group-overview-row" data-filter="' + r.filter + '">' +
+        '<td style="' + tdS + '"><span style="font-size:15px;margin-right:8px">' + r.icon + '</span><b>' + r.label + '</b></td>' +
+        '<td style="' + tdS + ';text-align:right">' + INR(r.inv) + '</td>' +
+        '<td style="' + tdS + ';text-align:right;font-weight:600">' + INR(r.cur) + '</td>' +
+        '<td style="' + tdS + ';text-align:right;color:' + gainColor(gain) + ';font-weight:600">' +
+          (gain >= 0 ? '+' : '') + INR(gain) + '<span style="font-size:11px">' + gainPct + '</span>' +
+        '</td>' +
+        '<td style="' + tdS + ';text-align:right">' + (r.actual > 0 ? INR(r.actual) : '<span style="color:var(--muted2)">—</span>') + '</td>' +
+        '<td style="' + tdS + ';text-align:right;font-weight:600;color:' + (r.actual > 0 ? gainColor(actualGain) : 'var(--muted2)') + '">' +
+          (r.actual > 0 ? (actualGain >= 0 ? '+' : '') + INR(actualGain) + '<span style="font-size:11px">' + actualGainPct + '</span>' : '—') +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    bodyEl.querySelectorAll('.group-overview-row').forEach(row => {
+      row.addEventListener('click', () => loadAssets(_currentUserId, row.dataset.filter));
+    });
+
     return;
   }
 
-  const tableName = ASSET_TABLES[filter];
+    const tableName = ASSET_TABLES[filter];
   if (!tableName) {
     if (addBtn) addBtn.classList.add('hidden');
     tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">🚧</div>${filter} — coming soon!</div></td></tr>`;
