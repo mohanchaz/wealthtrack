@@ -57,6 +57,7 @@ const INR = v => '₹' + Number(v || 0).toLocaleString('en-IN', { minimumFractio
 const ASSET_TABLES = {
   'Cash': 'cash_assets',
   'Bank FD': 'bank_fd_assets',
+  'Bonds': 'bonds',
   'Zerodha Stocks': 'zerodha_stocks',
   'Aionion Stocks': 'aionion_stocks',
   'Aionion Gold':   'aionion_gold',
@@ -86,6 +87,18 @@ const ASSET_COLUMNS = {
     { key: 'interest_rate', label: 'Interest', align: 'right', fmt: 'pct' },
     { key: 'maturity_date', label: 'Maturity Date', align: 'right', fmt: 'date' },
     { key: 'maturity_amount', label: 'Maturity Amt', align: 'right', fmt: 'inr' },
+  ],
+  bonds: [
+    { key: 'name',             label: 'Name',           bold: true },
+    { key: 'platform',         label: 'Platform' },
+    { key: 'isin',             label: 'ISIN',           mono: true },
+    { key: 'bond_id',          label: 'ID',             mono: true },
+    { key: 'sb_account_number',label: 'SB Account',     mono: true },
+    { key: 'invested',         label: 'Invested',       align: 'right', fmt: 'inr' },
+    { key: 'interest_rate',    label: 'Interest',       align: 'right', fmt: 'pct' },
+    { key: 'face_value',       label: 'Face Value',     align: 'right', fmt: 'inr' },
+    { key: 'purchase_date',    label: 'Purchase Date',  align: 'right', fmt: 'date' },
+    { key: 'maturity_date',    label: 'Maturity Date',  align: 'right', fmt: 'date' },
   ],
   zerodha_stocks: [
     { key: 'instrument', label: 'Instrument', bold: true },

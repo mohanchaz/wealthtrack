@@ -66,6 +66,7 @@
       loadHTML('modals/gold-import.html'),
       loadHTML('modals/gold-invested.html'),
       loadHTML('modals/gold-edit.html'),
+      loadHTML('modals/bonds-edit.html'),
     ]);
 
     // 1. Inject login / auth view

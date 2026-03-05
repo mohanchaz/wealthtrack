@@ -1,0 +1,72 @@
+  <!-- Bonds Edit / Add Modal -->
+  <div id="bonds-edit-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:520px">
+      <div class="modal-header">
+        <h3 id="bonds-edit-modal-title">Add Bond</h3>
+        <button class="modal-close" id="bonds-edit-close-btn" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="asset-form-grid">
+
+          <div class="asset-form-group-title">Issuer</div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="bond-name">Name</label>
+            <input class="modal-input" id="bond-name" type="text" placeholder="e.g. HDFC Ltd NCD Series X" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bond-platform">Platform</label>
+            <input class="modal-input" id="bond-platform" type="text" placeholder="e.g. Zerodha, Groww" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bond-isin">ISIN</label>
+            <input class="modal-input" id="bond-isin" type="text" placeholder="e.g. INE001A07QW1" style="font-family:monospace" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bond-id">ID</label>
+            <input class="modal-input" id="bond-id-field" type="text" placeholder="e.g. BOND-2024-001" style="font-family:monospace" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bond-sb-account">SB Account Number</label>
+            <input class="modal-input" id="bond-sb-account" type="text" placeholder="e.g. 123456789012" style="font-family:monospace" />
+          </div>
+
+          <div class="asset-form-group-title">Investment</div>
+
+          <div class="form-group">
+            <label class="form-label" for="bond-invested">Invested Amount (₹)</label>
+            <input class="modal-input" id="bond-invested" type="number" min="0" step="0.01" placeholder="e.g. 100000" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bond-face-value">Face Value (₹)</label>
+            <input class="modal-input" id="bond-face-value" type="number" min="0" step="0.01" placeholder="e.g. 1000" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bond-interest">Interest Rate (%)</label>
+            <input class="modal-input" id="bond-interest" type="number" min="0" max="100" step="0.01" placeholder="e.g. 9.5" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bond-purchase-date">Purchase Date</label>
+            <input class="modal-input" id="bond-purchase-date" type="date" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bond-maturity-date">Maturity Date</label>
+            <input class="modal-input" id="bond-maturity-date" type="date" />
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="bonds-edit-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="bonds-edit-save-btn">💾 Save</button>
+      </div>
+    </div>
+  </div>

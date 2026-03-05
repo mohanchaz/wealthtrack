@@ -530,8 +530,10 @@ async function loadAssets(userId, filter = null) {
   document.querySelector('.assets-summary-row')?.classList.remove('hidden');
 
   const isStockTable = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'aionion_gold' || tableName === 'mf_holdings' || tableName === 'gold_holdings';
-  const orderCol = isStockTable ? (tableName === 'mf_holdings' ? 'fund_name' : tableName === 'gold_holdings' ? 'holding_name' : 'instrument') : 'created_at';
-  const orderAsc = isStockTable;
+  const orderCol = tableName === 'bonds' ? 'name'
+    : isStockTable ? (tableName === 'mf_holdings' ? 'fund_name' : tableName === 'gold_holdings' ? 'holding_name' : 'instrument')
+    : 'created_at';
+  const orderAsc = isStockTable || tableName === 'bonds';
 
   const selectCols = tableName === 'aionion_stocks'
     ? 'id,user_id,instrument,qty,prev_qty,avg_cost,created_at,updated_at'
@@ -543,6 +545,8 @@ async function loadAssets(userId, filter = null) {
     ? 'id,user_id,instrument,qty,avg_cost'
     : tableName === 'gold_holdings'
     ? 'id,user_id,holding_name,holding_type,qty,avg_cost,yahoo_symbol,imported_at'
+    : tableName === 'bonds'
+    ? 'id,user_id,name,platform,isin,bond_id,sb_account_number,invested,current_value,face_value,interest_rate,purchase_date,maturity_date,created_at'
     : '*';
   const { data, error } = await sb
     .from(tableName)
@@ -852,6 +856,10 @@ function openEditAssetModal(row, tableName) {
     openGoldEditModal(row);
     return;
   }
+  if (tableName === 'bonds') {
+    openBondModal(row);
+    return;
+  }
 
   _editingAssetId = row.id;
   _editingAssetTable = tableName;
@@ -939,6 +947,10 @@ document.addEventListener('fragments-loaded', () => {
     }
     if (_currentAssetFilter === 'Aionion Gold') {
       openAionionGoldEditModal(null);
+      return;
+    }
+    if (_currentAssetFilter === 'Bonds') {
+      openBondModal(null);
       return;
     }
     openAddAssetModal();
