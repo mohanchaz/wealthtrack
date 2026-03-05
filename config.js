@@ -104,7 +104,6 @@ const ASSET_COLUMNS = {
   amc_mf_holdings: [
     { key: '_name',      label: 'Fund Name',  bold: true, fmt: 'name' },
     { key: 'platform',   label: 'Platform' },
-    { key: 'nav_symbol', label: 'Ticker',     mono: true },
     { key: 'qty',        label: 'Units',      align: 'right' },
     { key: 'avg_cost',   label: 'Avg NAV',    align: 'right', fmt: 'inr' },
     { key: '_live_nav',  label: 'Live NAV',   align: 'right' },
