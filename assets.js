@@ -374,7 +374,7 @@ async function loadAssets(userId, filter = null) {
     // Show group overview panel, hide table layout
     document.getElementById('assets-layout-row')?.classList.add('hidden');
     document.getElementById('group-overview-panel')?.classList.remove('hidden');
-    document.querySelector('.assets-summary-row')?.classList.remove('hidden');
+    document.querySelector('.assets-summary-row')?.classList.add('hidden');
     document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
     ['assets-monthly-summary','zerodha-monthly-summary','aionion-monthly-summary','mf-monthly-summary'].forEach(id =>
       document.getElementById(id)?.classList.add('hidden')
@@ -555,9 +555,9 @@ async function loadAssets(userId, filter = null) {
 
     // ── Build category rows ────────────────────────────────────
     const catRows = [
-      { label: 'Cash',    icon: '💵', filter: 'Cash',    inv: cashInv,            cur: cashCur,                       actual: 0 },
-      { label: 'Bank FD', icon: '🏦', filter: 'Bank FD', inv: fdInv,              cur: fdCur,                         actual: fdActualTotal },
-      { label: 'Bonds',   icon: '📜', filter: 'Bonds',   inv: bondsInv,           cur: bondsCur,                      actual: 0 },
+      { label: 'Cash',    icon: '💵', filter: 'Cash',    inv: cashInv,                cur: cashCur,                       actual: cashInv },
+      { label: 'Bank FD', icon: '🏦', filter: 'Bank FD', inv: fdInv,                  cur: fdCur,                         actual: fdActualTotal },
+      { label: 'Bonds',   icon: '📜', filter: 'Bonds',   inv: bondsInv,               cur: bondsCur,                      actual: bondsInv },
       { label: 'Zerodha', icon: '📈', filter: 'Zerodha', inv: zInv + mfInv + goldInv, cur: zCur + mfCur + goldCur,   actual: zerodhaActualTotal + mfActualTotal },
       { label: 'Aionion', icon: '📊', filter: 'Aionion', inv: aInv + agInv,       cur: aCur + agCur,                  actual: aionionActualTotal },
     ].filter(r => r.inv > 0 || r.cur > 0);
