@@ -170,6 +170,7 @@ async function loadGroupOverview(userId, group) {
   document.getElementById('assets-layout-row')?.classList.add('hidden');
   document.getElementById('group-overview-panel')?.classList.remove('hidden');
   document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+  document.querySelector('.assets-summary-row')?.classList.add('hidden');
   ['zerodha','aionion','aionion-gold','mf','gold'].forEach(p => {
     document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
@@ -200,8 +201,8 @@ async function loadGroupOverview(userId, group) {
 
   // Fetch all holdings + actual invested in parallel
   const holdingsQueries = subCats.map(sc => {
-    if (sc.type === 'mf')     return sb.from(sc.table).select('qty, avg_cost').eq('user_id', userId);
-    if (sc.type === 'gold')   return sb.from(sc.table).select('qty, avg_cost').eq('user_id', userId);
+    if (sc.type === 'mf')     return sb.from(sc.table).select('qty, avg_cost, nav_symbol').eq('user_id', userId);
+    if (sc.type === 'gold')   return sb.from(sc.table).select('qty, avg_cost, yahoo_symbol').eq('user_id', userId);
     return sb.from(sc.table).select('qty, avg_cost, instrument').eq('user_id', userId);
   });
   const actualQueries = subCats.map(sc =>
@@ -233,11 +234,39 @@ async function loadGroupOverview(userId, group) {
         invested += qty * (+r.avg_cost || 0);
         curVal   += qty * ltp;
       });
+    } else if (sc.type === 'mf') {
+      // Fetch live NAV for MF using nav_symbol
+      const symbols = holdings.filter(r => r.nav_symbol).map(r => r.nav_symbol);
+      const prices  = symbols.length ? (await fetchLivePricesRaw(symbols)) || {} : {};
+      holdings.forEach(r => {
+        const qty = +r.qty || 0;
+        const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
+        const liveNav = key ? getLTP(prices, key) : null;
+        invested += qty * (+r.avg_cost || 0);
+        curVal   += qty * (liveNav || +r.avg_cost || 0);
+      });
+    } else if (sc.type === 'gold') {
+      // Fetch live price for gold using yahoo_symbol
+      const symbolSet = [...new Set(holdings.filter(r => r.yahoo_symbol).map(r => r.yahoo_symbol))];
+      let prices = {};
+      if (symbolSet.length) {
+        try {
+          const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbolSet.join(','))}`);
+          if (res.ok) { const raw = await res.json(); if (!raw.error) prices = raw; }
+        } catch(e) {}
+      }
+      holdings.forEach(r => {
+        const qty = +r.qty || 0;
+        const key = r.yahoo_symbol ? r.yahoo_symbol.replace(/\.(NS|BO)$/, '') : null;
+        const livePrice = key ? getLTP(prices, key) : null;
+        invested += qty * (+r.avg_cost || 0);
+        curVal   += qty * (livePrice || +r.avg_cost || 0);
+      });
     } else {
       holdings.forEach(r => {
         const qty = +r.qty || 0;
         invested += qty * (+r.avg_cost || 0);
-        curVal   += qty * (+r.avg_cost || 0); // placeholder — no live price
+        curVal   += qty * (+r.avg_cost || 0);
       });
     }
 
@@ -353,6 +382,7 @@ async function loadAssets(userId, filter = null) {
     const layoutRow = document.getElementById('assets-layout-row');
     if (layoutRow) layoutRow.classList.add('hidden');
     document.getElementById('group-overview-panel')?.classList.add('hidden');
+    document.querySelector('.assets-summary-row')?.classList.remove('hidden');
 
     // Hide the Actual Invested stat card and reset table headers to default
     const actualOverviewCard = document.getElementById('assets-actual-invested-card');
@@ -497,6 +527,7 @@ async function loadAssets(userId, filter = null) {
   const activeLayoutRow = document.getElementById('assets-layout-row');
   if (activeLayoutRow) activeLayoutRow.classList.remove('hidden');
   document.getElementById('group-overview-panel')?.classList.add('hidden');
+  document.querySelector('.assets-summary-row')?.classList.remove('hidden');
 
   const isStockTable = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'aionion_gold' || tableName === 'mf_holdings' || tableName === 'gold_holdings';
   const orderCol = isStockTable ? (tableName === 'mf_holdings' ? 'fund_name' : tableName === 'gold_holdings' ? 'holding_name' : 'instrument') : 'created_at';
