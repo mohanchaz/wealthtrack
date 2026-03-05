@@ -45,6 +45,8 @@
       modalGoldInvested,
       modalGoldEdit,
       modalBondsEdit,
+      modalAmcMfEdit,
+      modalAmcMfInvested,
     ] = await Promise.all([
       loadHTML('pages/login.html'),
       loadHTML('pages/dashboard-shell.html'),
@@ -68,6 +70,8 @@
       loadHTML('modals/gold-invested.html'),
       loadHTML('modals/gold-edit.html'),
       loadHTML('modals/bonds-edit.html'),
+      loadHTML('modals/amc-mf-edit.html'),
+      loadHTML('modals/amc-mf-invested.html'),
     ]);
 
     // 1. Inject login / auth view
@@ -108,6 +112,8 @@
     await append(modalGoldInvested);
     await append(modalGoldEdit);
     await append(modalBondsEdit);
+    await append(modalAmcMfEdit);
+    await append(modalAmcMfInvested);
 
     // 4. Signal that HTML is ready — app scripts may now safely query the DOM
     document.dispatchEvent(new Event('fragments-loaded'));
