@@ -39,7 +39,7 @@ function renderAionionActualInvested(rows) {
   const curValEl = document.getElementById('assets-total-value');
   const currentValue = curValEl ? parseFloat(curValEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   const actualGain = currentValue - grand;
-  const gainPct = grand > 0 ? \` (${((actualGain / grand) * 100).toFixed(1)}%)\` : '';
+  const gainPct = grand > 0 ? ` (${((actualGain / grand) * 100).toFixed(1)}%)` : '';
   const gainColor = actualGain > 0 ? 'var(--green)' : actualGain < 0 ? 'var(--danger)' : 'var(--muted)';
   const gainLabel = (actualGain >= 0 ? '+' : '') + INR(actualGain) + gainPct;
 
