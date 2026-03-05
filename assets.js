@@ -1225,9 +1225,13 @@ document.addEventListener('fragments-loaded', () => {
       account_number: document.getElementById('af-account-number').value.trim() || null,
       sb_account_number: document.getElementById('af-sb-account').value.trim() || null,
       invested: parseFloat(document.getElementById('af-invested').value) || 0,
-      current_value: (isFDTable ? (parseFloat(document.getElementById('af-invested').value) || 0) : parseFloat(document.getElementById('af-current').value) || 0),
       notes: document.getElementById('af-notes').value.trim() || null,
     };
+
+    // current_value only for tables that have it (not FD/EF which use invested as value)
+    if (!isFDTable) {
+      payload.current_value = parseFloat(document.getElementById('af-current').value) || 0;
+    }
 
     // Bank FD extras
     if (_currentAssetFilter === 'Fixed Deposits' || _currentAssetFilter === 'Emergency Funds') {
