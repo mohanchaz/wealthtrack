@@ -775,8 +775,10 @@ function renderAssetsTable(assets, tableName) {
   document.getElementById('select-btn-row')?.classList.remove('hidden');
   const selBtn = document.getElementById('select-assets-btn');
   if (selBtn) {
-    selBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 12L11.2 13.7L14.5 10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Select`;
-    selBtn.style.color = 'var(--danger, #e53e3e)';
+    selBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Select`;
+    selBtn.style.color = '#0d9488';
+    selBtn.style.background = 'rgba(20,184,166,0.1)';
+    selBtn.style.borderColor = 'rgba(20,184,166,0.3)';
   }
 
   const addBtn2 = document.getElementById('add-asset-btn');
@@ -1209,7 +1211,7 @@ document.addEventListener('fragments-loaded', () => {
   function enterSelectMode() {
     _selectMode = true;
     const btn = document.getElementById('select-assets-btn');
-    if (btn) { btn.innerHTML = '✕ Cancel'; btn.style.color = 'var(--muted2)'; btn.style.background = 'var(--surface2)'; btn.style.borderColor = 'var(--border)'; }
+    if (btn) { btn.innerHTML = '✕ Cancel'; btn.style.background = 'var(--surface2)'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--muted2)'; }
     document.getElementById('bulk-delete-bar').classList.remove('hidden');
     document.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = '');
     updateBulkBar();
@@ -1219,10 +1221,10 @@ document.addEventListener('fragments-loaded', () => {
     _selectMode = false;
     const btn = document.getElementById('select-assets-btn');
     if (btn) {
-      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 12L11.2 13.7L14.5 10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Select`;
-      btn.style.color = 'var(--danger, #e53e3e)';
-      btn.style.background = 'linear-gradient(135deg, #fff5f5 0%, #fff 100%)';
-      btn.style.borderColor = 'rgba(229,62,62,0.35)';
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Select`;
+      btn.style.background = 'rgba(20,184,166,0.1)';
+      btn.style.borderColor = 'rgba(20,184,166,0.3)';
+      btn.style.color = '#0d9488';
     }
     document.getElementById('bulk-delete-bar')?.classList.add('hidden');
     document.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = 'none');
