@@ -46,8 +46,6 @@ function renderZerodhaActualInvested(rows) {
   const gainTile = document.getElementById('assets-actual-gain');
   if (gainTile) { gainTile.textContent = gainLabel; gainTile.style.color = gainColor; }
 
-  const panelGainEl = document.getElementById('assets-actual-gain-zerodha');
-  if (panelGainEl) { panelGainEl.textContent = gainLabel; panelGainEl.style.color = gainColor; }
 
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;

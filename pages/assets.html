@@ -23,7 +23,10 @@
             <div class="assets-stat-card hidden" id="assets-actual-invested-card">
               <div class="assets-stat-label">Actual Invested</div>
               <div class="assets-stat-value" id="assets-actual-invested" style="color:var(--green)">—</div>
-              <div id="assets-actual-gain" style="font-size:12px;margin-top:4px;font-weight:600">—</div>
+            </div>
+            <div class="assets-stat-card hidden" id="assets-actual-gain-card">
+              <div class="assets-stat-label">Actual Gain / Loss</div>
+              <div class="assets-stat-value" id="assets-actual-gain">—</div>
             </div>
           </div>
 
@@ -103,7 +106,6 @@
                   <div>
                     <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual Invested</h3>
                     <div id="assets-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
-                    <div id="assets-actual-gain-fd" style="font-size:11.5px;font-weight:600;margin-top:2px"></div>
                   </div>
                   <button id="fd-invested-add-btn" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
                 </div>
@@ -127,7 +129,6 @@
                   <div>
                     <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual Invested</h3>
                     <div id="zerodha-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
-                    <div id="assets-actual-gain-zerodha" style="font-size:11.5px;font-weight:600;margin-top:2px"></div>
                   </div>
                   <button id="zerodha-invested-add-btn" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
                 </div>
@@ -152,7 +153,6 @@
                   <div>
                     <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual Invested</h3>
                     <div id="aionion-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
-                    <div id="assets-actual-gain-aionion" style="font-size:11.5px;font-weight:600;margin-top:2px"></div>
                   </div>
                   <button id="aionion-invested-add-btn" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
                 </div>
@@ -176,7 +176,6 @@
                   <div>
                     <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual Invested</h3>
                     <div id="aionion-gold-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
-                    <div id="assets-actual-gain-aionion-gold" style="font-size:11.5px;font-weight:600;margin-top:2px"></div>
                   </div>
                   <button id="aionion-gold-invested-add-btn" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
                 </div>
@@ -200,7 +199,6 @@
                   <div>
                     <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual Invested</h3>
                     <div id="mf-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
-                    <div id="assets-actual-gain-mf" style="font-size:11.5px;font-weight:600;margin-top:2px"></div>
                   </div>
                   <button id="mf-invested-add-btn" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
                 </div>
@@ -224,7 +222,6 @@
                   <div>
                     <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual Invested</h3>
                     <div id="gold-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
-                    <div id="assets-actual-gain-gold" style="font-size:11.5px;font-weight:600;margin-top:2px"></div>
                   </div>
                   <button id="gold-invested-add-btn" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
                 </div>
@@ -248,7 +245,6 @@
                   <div>
                     <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual Invested</h3>
                     <div id="amc-mf-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
-                    <div id="assets-actual-gain-amc-mf" style="font-size:11.5px;font-weight:600;margin-top:2px"></div>
                   </div>
                   <button id="amc-mf-invested-add-btn" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
                 </div>

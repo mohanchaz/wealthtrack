@@ -187,6 +187,7 @@ async function loadGroupOverview(userId, group) {
   document.getElementById('assets-layout-row')?.classList.add('hidden');
   document.getElementById('group-overview-panel')?.classList.remove('hidden');
   document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+  document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
   document.querySelector('.assets-summary-row')?.classList.add('hidden');
   ['zerodha','aionion','aionion-gold','mf','gold','amc-mf'].forEach(p => {
     document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
@@ -393,6 +394,7 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('group-overview-panel')?.classList.remove('hidden');
     document.querySelector('.assets-summary-row')?.classList.add('hidden');
     document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+  document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
     ['assets-monthly-summary','zerodha-monthly-summary','aionion-monthly-summary','mf-monthly-summary'].forEach(id =>
       document.getElementById(id)?.classList.add('hidden')
     );
@@ -693,6 +695,7 @@ async function loadAssets(userId, filter = null) {
 
   // Pre-emptively hide all actual invested panels — renderAssetsTable will re-show the right one
   document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+  document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
   ['assets-monthly-summary','zerodha-monthly-summary','aionion-monthly-summary','mf-monthly-summary','amc-mf-monthly-summary'].forEach(id => {
     document.getElementById(id)?.classList.add('hidden');
   });
@@ -965,26 +968,31 @@ function renderAssetsTable(assets, tableName) {
 
   if (tableName === 'bank_fd_assets') {
     if (actualCard) actualCard.classList.remove('hidden');
+    document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
     if (fdSec)      fdSec.classList.remove('hidden');
     loadFdActualInvested(_currentUserId);
   } else if (tableName === 'zerodha_stocks') {
     if (actualCard) actualCard.classList.remove('hidden');
+    document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
     if (zerodhaSec) zerodhaSec.classList.remove('hidden');
     loadZerodhaActualInvested(_currentUserId);
   } else if (tableName === 'aionion_stocks') {
     if (actualCard) actualCard.classList.remove('hidden');
+    document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
     if (aionionSec) aionionSec.classList.remove('hidden');
     loadAionionActualInvested(_currentUserId);
   } else if (tableName === 'aionion_gold') {
     if (actualCard) actualCard.classList.add('hidden');
   } else if (tableName === 'mf_holdings') {
     if (actualCard) actualCard.classList.remove('hidden');
+    document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
     if (mfSec)      mfSec.classList.remove('hidden');
     loadMfActualInvested(_currentUserId);
   } else if (tableName === 'gold_holdings') {
     if (actualCard) actualCard.classList.add('hidden');
   } else if (tableName === 'amc_mf_holdings') {
     if (actualCard) actualCard.classList.remove('hidden');
+    document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
     if (amcMfSec)   amcMfSec.classList.remove('hidden');
     loadAmcMfActualInvested(_currentUserId);
   } else {
