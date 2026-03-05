@@ -193,6 +193,9 @@ async function fetchAndRefreshAionionPrices(assets) {
     if (nameCell && name) nameCell.innerHTML = `<span style="color:var(--muted);font-size:12px">${name}</span>`;
 
     // Current value cell
+    const ltpCell = document.querySelector(`[data-live-_ltp="${a.instrument}"]`);
+    if (ltpCell) ltpCell.textContent = INR(ltp);
+
     const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
     if (cvCell) cvCell.textContent = INR(curVal);
 

@@ -369,6 +369,7 @@ function renderAssetsTable(assets, tableName) {
       ? {
         ...a,
         _name: null,  // patched live by fetchAndRefreshZerodhaPrices
+        _ltp: null,   // patched live by fetchAndRefreshZerodhaPrices
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
         invested:      (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),  // placeholder; patched by fetchAndRefreshZerodhaPrices
@@ -388,6 +389,7 @@ function renderAssetsTable(assets, tableName) {
       ? {
         ...a,
         _name: null,  // patched live by fetchAndRefreshAionionPrices
+        _ltp: null,   // patched live by fetchAndRefreshAionionPrices
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
         invested:      (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),
@@ -424,8 +426,8 @@ function renderAssetsTable(assets, tableName) {
       }
       // For zerodha/aionion: tag live-updatable cells with data attributes
       const liveKey2 = tableName === 'mf_holdings' ? a.fund_name : a.instrument;
-      const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct', '_name'].includes(c.key)) ||
-                        (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct', '_name'].includes(c.key)) ||
+      const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct', '_name', '_ltp'].includes(c.key)) ||
+                        (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct', '_name', '_ltp'].includes(c.key)) ||
                         (tableName === 'mf_holdings'    && ['current_value', '_alloc_pct', '_live_nav'].includes(c.key)))
         ? ` data-live-${c.key}="${liveKey2}"`
         : '';
