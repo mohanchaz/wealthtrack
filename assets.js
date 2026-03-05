@@ -193,6 +193,8 @@ async function loadGroupOverview(userId, group) {
   document.getElementById('group-overview-panel')?.classList.remove('hidden');
   document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
   document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
+  document.getElementById('select-btn-row')?.classList.add('hidden');
+  document.getElementById('bulk-delete-bar')?.classList.add('hidden');
   document.querySelector('.assets-summary-row')?.classList.add('hidden');
   ['zerodha','aionion','aionion-gold','mf','gold','amc-mf'].forEach(p => {
     document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
@@ -770,8 +772,12 @@ function renderAssetsTable(assets, tableName) {
   // Reset select mode on every new table load
   document.getElementById('bulk-delete-bar')?.classList.add('hidden');
   document.querySelectorAll('.asset-row-checkbox').forEach(c => c.checked = false);
+  document.getElementById('select-btn-row')?.classList.remove('hidden');
   const selBtn = document.getElementById('select-assets-btn');
-  if (selBtn) { selBtn.textContent = '☑ Select'; selBtn.classList.remove('hidden'); }
+  if (selBtn) {
+    selBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 12L11.2 13.7L14.5 10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Select`;
+    selBtn.style.color = 'var(--danger, #e53e3e)';
+  }
 
   const addBtn2 = document.getElementById('add-asset-btn');
   if (tableName === 'zerodha_stocks') {
@@ -1202,7 +1208,8 @@ document.addEventListener('fragments-loaded', () => {
 
   function enterSelectMode() {
     _selectMode = true;
-    document.getElementById('select-assets-btn').textContent = '✕ Cancel';
+    const btn = document.getElementById('select-assets-btn');
+    if (btn) { btn.innerHTML = '✕ Cancel'; btn.style.color = 'var(--muted2)'; btn.style.background = 'var(--surface2)'; btn.style.borderColor = 'var(--border)'; }
     document.getElementById('bulk-delete-bar').classList.remove('hidden');
     document.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = '');
     updateBulkBar();
@@ -1211,7 +1218,12 @@ document.addEventListener('fragments-loaded', () => {
   function exitSelectMode() {
     _selectMode = false;
     const btn = document.getElementById('select-assets-btn');
-    if (btn) btn.textContent = '☑ Select';
+    if (btn) {
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 12L11.2 13.7L14.5 10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Select`;
+      btn.style.color = 'var(--danger, #e53e3e)';
+      btn.style.background = 'linear-gradient(135deg, #fff5f5 0%, #fff 100%)';
+      btn.style.borderColor = 'rgba(229,62,62,0.35)';
+    }
     document.getElementById('bulk-delete-bar')?.classList.add('hidden');
     document.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = 'none');
     document.querySelectorAll('.asset-row-checkbox').forEach(c => c.checked = false);
