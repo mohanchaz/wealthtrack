@@ -32,9 +32,22 @@ function renderZerodhaActualInvested(rows) {
   const grand = rows.reduce((s, r) => s + (+r.amount || 0), 0);
   if (totalEl) totalEl.textContent = `Total: ${INR(grand)}`;
 
-  // Also update the stat tile on the assets page
+  // Also update the stat tile and gain/loss on the assets page
   const statTile = document.getElementById('assets-actual-invested');
   if (statTile) statTile.textContent = INR(grand);
+
+  const curValEl = document.getElementById('assets-total-value');
+  const currentValue = curValEl ? parseFloat(curValEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
+  const actualGain = currentValue - grand;
+  const gainPct = grand > 0 ? \` (${((actualGain / grand) * 100).toFixed(1)}%)\` : '';
+  const gainColor = actualGain > 0 ? 'var(--green)' : actualGain < 0 ? 'var(--danger)' : 'var(--muted)';
+  const gainLabel = (actualGain >= 0 ? '+' : '') + INR(actualGain) + gainPct;
+
+  const gainTile = document.getElementById('assets-actual-gain');
+  if (gainTile) { gainTile.textContent = gainLabel; gainTile.style.color = gainColor; }
+
+  const panelGainEl = document.getElementById('assets-actual-gain-zerodha');
+  if (panelGainEl) { panelGainEl.textContent = gainLabel; panelGainEl.style.color = gainColor; }
 
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
