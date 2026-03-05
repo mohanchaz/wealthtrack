@@ -28,7 +28,7 @@ async function loadGoldActualInvested(userId) {
   section.classList.remove('hidden');
 
   const body = document.getElementById('gold-monthly-body');
-  if (body) body.innerHTML = `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+  if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
 
   const { data, error } = await sb
     .from('gold_actual_invested')
@@ -37,7 +37,7 @@ async function loadGoldActualInvested(userId) {
     .order('entry_date', { ascending: false });
 
   if (error) {
-    if (body) body.innerHTML = `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--danger)">${error.message}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--danger)">${error.message}</td></tr>`;
     return;
   }
   renderGoldActualInvested(data || []);
@@ -55,7 +55,7 @@ function renderGoldActualInvested(rows) {
   if (statTile) statTile.textContent = INR(grand);
 
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="4" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
+    body.innerHTML = `<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
     return;
   }
 
@@ -64,11 +64,9 @@ function renderGoldActualInvested(rows) {
     const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
       <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${dateStr}</td>
-      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>
-      <td style="padding:9px 14px;color:var(--muted2);font-size:12px;border-bottom:1px solid var(--border)">${r.notes || ''}</td>
-      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
+      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
-          data-gai-id="${r.id}" data-gai-date="${r.entry_date}" data-gai-amount="${r.amount}" data-gai-notes="${r.notes || ''}"
+          data-gai-id="${r.id}" data-gai-date="${r.entry_date}" data-gai-amount="${r.amount}"
           class="gai-edit-btn" title="Edit">✏️</button>
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-gai-id="${r.id}" class="gai-delete-btn" title="Delete">🗑</button>
@@ -84,7 +82,7 @@ function renderGoldActualInvested(rows) {
   body.querySelectorAll('.gai-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => openGaiModal({
       id: btn.dataset.gaiId, entry_date: btn.dataset.gaiDate,
-      amount: btn.dataset.gaiAmount, notes: btn.dataset.gaiNotes
+      amount: btn.dataset.gaiAmount
     }));
   });
   body.querySelectorAll('.gai-delete-btn').forEach(btn => {
@@ -104,7 +102,6 @@ function openGaiModal(row = null) {
   if (titleEl) titleEl.textContent = row ? 'Edit Entry' : 'Add Entry';
   document.getElementById('gai-date').value   = row?.entry_date || '';
   document.getElementById('gai-amount').value = row?.amount    || '';
-  document.getElementById('gai-notes').value  = row?.notes     || '';
   document.getElementById('gold-invested-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -125,7 +122,6 @@ document.addEventListener('fragments-loaded', () => {
   document.getElementById('gold-invested-save-btn')?.addEventListener('click', async () => {
     const date   = document.getElementById('gai-date').value;
     const amount = parseFloat(document.getElementById('gai-amount').value);
-    const notes  = document.getElementById('gai-notes').value.trim() || null;
 
     if (!date)                  { showToast('Date is required', 'error'); return; }
     if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
@@ -133,7 +129,7 @@ document.addEventListener('fragments-loaded', () => {
     const saveBtn = document.getElementById('gold-invested-save-btn');
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-    const payload = { entry_date: date, amount, notes };
+    const payload = { entry_date: date, amount };
     let op;
     if (_editingGaiId) {
       op = sb.from('gold_actual_invested').update(payload).eq('id', _editingGaiId);
@@ -315,7 +311,7 @@ function parseGoldCSV(text) {
       invested:      num(cols[iInvested]),
       current_value: num(cols[iCurVal]),
       pnl:           num(cols[iPnL]),
-      yahoo_symbol:  resolveGoldSymbol(name),
+      yahoo_symbol:  resolveGoldSymbol(name)
     });
   }
   return holdings;
@@ -425,7 +421,7 @@ async function importGoldHoldings(allRows) {
     qty:          r.qty,
     avg_cost:     r.avg_cost,
     yahoo_symbol: r.yahoo_symbol || null,
-    imported_at:  new Date().toISOString(),
+    imported_at:  new Date().toISOString()
   }));
 
   const { error } = await sb.from('gold_holdings').insert(payload);

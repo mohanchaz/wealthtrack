@@ -9,7 +9,7 @@ async function loadAionionActualInvested(userId) {
   section.classList.remove('hidden');
 
   const body = document.getElementById('aionion-monthly-body');
-  if (body) body.innerHTML = `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+  if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
 
   const { data, error } = await sb
     .from('aionion_actual_invested')
@@ -18,7 +18,7 @@ async function loadAionionActualInvested(userId) {
     .order('entry_date', { ascending: false });
 
   if (error) {
-    if (body) body.innerHTML = `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--danger)">${error.message}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--danger)">${error.message}</td></tr>`;
     return;
   }
   renderAionionActualInvested(data || []);
@@ -37,7 +37,7 @@ function renderAionionActualInvested(rows) {
   if (statTile) statTile.textContent = INR(grand);
 
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="4" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
+    body.innerHTML = `<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
     return;
   }
 
@@ -46,11 +46,9 @@ function renderAionionActualInvested(rows) {
     const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
       <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${dateStr}</td>
-      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>
-      <td style="padding:9px 14px;color:var(--muted2);font-size:12px;border-bottom:1px solid var(--border)">${r.notes || ''}</td>
-      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
+      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
-          data-zai-id="${r.id}" data-aai-date="${r.entry_date}" data-aai-amount="${r.amount}" data-aai-notes="${r.notes || ''}"
+          data-zai-id="${r.id}" data-aai-date="${r.entry_date}" data-aai-amount="${r.amount}"
           class="zai-edit-btn" title="Edit">✏️</button>
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-zai-id="${r.id}" class="zai-delete-btn" title="Delete">🗑</button>
@@ -66,7 +64,7 @@ function renderAionionActualInvested(rows) {
   body.querySelectorAll('.zai-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => openAaiModal({
       id: btn.dataset.zaiId, entry_date: btn.dataset.zaiDate,
-      amount: btn.dataset.zaiAmount, notes: btn.dataset.zaiNotes
+      amount: btn.dataset.zaiAmount
     }));
   });
   body.querySelectorAll('.zai-delete-btn').forEach(btn => {
@@ -88,7 +86,6 @@ function openAaiModal(row = null) {
   if (saveBtn) saveBtn.textContent = '💾 Save Entry';
   document.getElementById('aai-date').value   = row?.entry_date || '';
   document.getElementById('aai-amount').value = row?.amount    || '';
-  document.getElementById('aai-notes').value  = row?.notes     || '';
   document.getElementById('aionion-invested-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -110,7 +107,6 @@ document.addEventListener('fragments-loaded', () => {
   document.getElementById('aionion-invested-save-btn')?.addEventListener('click', async () => {
     const date   = document.getElementById('aai-date').value;
     const amount = parseFloat(document.getElementById('aai-amount').value);
-    const notes  = document.getElementById('aai-notes').value.trim() || null;
 
     if (!date)              { showToast('Date is required', 'error'); return; }
     if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
@@ -118,7 +114,7 @@ document.addEventListener('fragments-loaded', () => {
     const saveBtn = document.getElementById('aionion-invested-save-btn');
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-    const payload = { entry_date: date, amount, notes };
+    const payload = { entry_date: date, amount };
     let op;
     if (_editingAaiId) {
       op = sb.from('aionion_actual_invested').update(payload).eq('id', _editingAaiId);
@@ -306,7 +302,7 @@ function parseAionionCSV(text) {
       current_value: num(cols[iCurVal]),
       pnl: num(cols[iPnL]),
       net_chg: num(cols[iNetChg]),
-      day_chg: num(cols[iDayChg]),
+      day_chg: num(cols[iDayChg])
     });
   }
   return stocks;
@@ -425,7 +421,7 @@ async function importAionionStocks(allRows) {
     qty: r.qty,
     prev_qty: prevQtyMap[r.instrument] ?? 0,
     avg_cost: r.avg_cost,
-    imported_at: new Date().toISOString(),
+    imported_at: new Date().toISOString()
   }));
 
   const { error } = await sb
@@ -518,7 +514,7 @@ document.addEventListener('fragments-loaded', () => {
     let error;
     if (isAddMode) {
       ({ error } = await sb.from('aionion_stocks').insert({
-        user_id: _currentUserId, instrument, qty, prev_qty: 0, avg_cost: avgCost,
+        user_id: _currentUserId, instrument, qty, prev_qty: 0, avg_cost: avgCost
       }));
     } else {
       const payload = { qty, avg_cost: avgCost };

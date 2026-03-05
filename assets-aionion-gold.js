@@ -12,7 +12,7 @@ async function loadAionionGoldActualInvested(userId) {
   section.classList.remove('hidden');
 
   const body = document.getElementById('aionion-gold-monthly-body');
-  if (body) body.innerHTML = `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+  if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
 
   const { data, error } = await sb
     .from('aionion_gold_actual_invested')
@@ -21,7 +21,7 @@ async function loadAionionGoldActualInvested(userId) {
     .order('entry_date', { ascending: false });
 
   if (error) {
-    if (body) body.innerHTML = `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--danger)">${error.message}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--danger)">${error.message}</td></tr>`;
     return;
   }
   renderAionionGoldActualInvested(data || []);
@@ -39,7 +39,7 @@ function renderAionionGoldActualInvested(rows) {
   if (statTile) statTile.textContent = INR(grand);
 
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="4" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
+    body.innerHTML = `<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
     return;
   }
 
@@ -48,11 +48,9 @@ function renderAionionGoldActualInvested(rows) {
     const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
       <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${dateStr}</td>
-      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>
-      <td style="padding:9px 14px;color:var(--muted2);font-size:12px;border-bottom:1px solid var(--border)">${r.notes || ''}</td>
-      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
+      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
-          data-agai-id="${r.id}" data-agai-date="${r.entry_date}" data-agai-amount="${r.amount}" data-agai-notes="${r.notes || ''}"
+          data-agai-id="${r.id}" data-agai-date="${r.entry_date}" data-agai-amount="${r.amount}"
           class="agai-edit-btn" title="Edit">✏️</button>
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-agai-id="${r.id}" class="agai-delete-btn" title="Delete">🗑</button>
@@ -68,7 +66,7 @@ function renderAionionGoldActualInvested(rows) {
   body.querySelectorAll('.agai-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => openAgaiModal({
       id: btn.dataset.agaiId, entry_date: btn.dataset.agaiDate,
-      amount: btn.dataset.agaiAmount, notes: btn.dataset.agaiNotes
+      amount: btn.dataset.agaiAmount
     }));
   });
   body.querySelectorAll('.agai-delete-btn').forEach(btn => {
@@ -88,7 +86,6 @@ function openAgaiModal(row = null) {
   if (titleEl) titleEl.textContent = row ? 'Edit Entry' : 'Add Entry';
   document.getElementById('agai-date').value   = row?.entry_date || '';
   document.getElementById('agai-amount').value = row?.amount    || '';
-  document.getElementById('agai-notes').value  = row?.notes     || '';
   document.getElementById('aionion-gold-invested-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -109,7 +106,6 @@ document.addEventListener('fragments-loaded', () => {
   document.getElementById('aionion-gold-invested-save-btn')?.addEventListener('click', async () => {
     const date   = document.getElementById('agai-date').value;
     const amount = parseFloat(document.getElementById('agai-amount').value);
-    const notes  = document.getElementById('agai-notes').value.trim() || null;
 
     if (!date)                  { showToast('Date is required', 'error'); return; }
     if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
@@ -117,7 +113,7 @@ document.addEventListener('fragments-loaded', () => {
     const saveBtn = document.getElementById('aionion-gold-invested-save-btn');
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-    const payload = { entry_date: date, amount, notes };
+    const payload = { entry_date: date, amount };
     let op;
     if (_editingAgaiId) {
       op = sb.from('aionion_gold_actual_invested').update(payload).eq('id', _editingAgaiId);
@@ -282,7 +278,7 @@ document.addEventListener('fragments-loaded', () => {
     let error;
     if (isAddMode) {
       ({ error } = await sb.from('aionion_gold').insert({
-        user_id: _currentUserId, instrument, qty, avg_cost: avgCost,
+        user_id: _currentUserId, instrument, qty, avg_cost: avgCost
       }));
     } else {
       ({ error } = await sb.from('aionion_gold').update({ qty, avg_cost: avgCost }).eq('id', _editingAionionGoldId));
