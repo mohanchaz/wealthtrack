@@ -44,6 +44,7 @@
       modalGoldImport,
       modalGoldInvested,
       modalGoldEdit,
+      modalBondsEdit,
     ] = await Promise.all([
       loadHTML('pages/login.html'),
       loadHTML('pages/dashboard-shell.html'),
@@ -106,6 +107,7 @@
     await append(modalGoldImport);
     await append(modalGoldInvested);
     await append(modalGoldEdit);
+    await append(modalBondsEdit);
 
     // 4. Signal that HTML is ready — app scripts may now safely query the DOM
     document.dispatchEvent(new Event('fragments-loaded'));

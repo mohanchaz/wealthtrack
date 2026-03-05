@@ -529,6 +529,12 @@ async function loadAssets(userId, filter = null) {
   document.getElementById('group-overview-panel')?.classList.add('hidden');
   document.querySelector('.assets-summary-row')?.classList.remove('hidden');
 
+  // Pre-emptively hide all actual invested panels — renderAssetsTable will re-show the right one
+  document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+  ['assets-monthly-summary','zerodha-monthly-summary','aionion-monthly-summary','mf-monthly-summary'].forEach(id => {
+    document.getElementById(id)?.classList.add('hidden');
+  });
+
   const isStockTable = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'aionion_gold' || tableName === 'mf_holdings' || tableName === 'gold_holdings';
   const orderCol = tableName === 'bonds' ? 'name'
     : isStockTable ? (tableName === 'mf_holdings' ? 'fund_name' : tableName === 'gold_holdings' ? 'holding_name' : 'instrument')
