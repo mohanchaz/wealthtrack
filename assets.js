@@ -693,7 +693,7 @@ async function loadAssets(userId, filter = null) {
     : tableName === 'bonds'
     ? 'id,user_id,name,platform,isin,bond_id,sb_account_number,invested,face_value,interest_rate,purchase_date,maturity_date,created_at'
     : tableName === 'amc_mf_holdings'
-    ? 'id,user_id,platform,qty,avg_cost,nav_symbol,created_at'
+    ? 'id,user_id,platform,folio_number,qty,avg_cost,nav_symbol,created_at'
     : '*';
   const { data, error } = await sb
     .from(tableName)

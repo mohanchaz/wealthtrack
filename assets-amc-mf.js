@@ -118,6 +118,7 @@ function openAmcMfEditModal(row = null) {
   }
 
   set('amcmf-platform',  row?.platform);
+  set('amcmf-folio',     row?.folio_number);
   set('amcmf-symbol',    row?.nav_symbol);
   set('amcmf-qty',       row?.qty);
   set('amcmf-avg-cost',  row?.avg_cost);
@@ -231,6 +232,7 @@ document.addEventListener('fragments-loaded', () => {
 
   document.getElementById('amc-mf-edit-save-btn')?.addEventListener('click', async () => {
     const platform = document.getElementById('amcmf-platform').value.trim();
+    const folio    = document.getElementById('amcmf-folio').value.trim();
     const symbol   = document.getElementById('amcmf-symbol').value.trim();
     const qty      = parseFloat(document.getElementById('amcmf-qty').value);
     const avgCost  = parseFloat(document.getElementById('amcmf-avg-cost').value);
@@ -243,10 +245,11 @@ document.addEventListener('fragments-loaded', () => {
     saveBtn.textContent = 'Saving\u2026'; saveBtn.disabled = true;
 
     const payload = {
-      platform:   platform || null,
-      nav_symbol: symbol,
+      platform:      platform || null,
+      folio_number:  folio    || null,
+      nav_symbol:    symbol,
       qty,
-      avg_cost:   avgCost,
+      avg_cost:      avgCost,
     };
 
     let op;
