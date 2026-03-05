@@ -49,6 +49,7 @@
                   <span id="amc-mf-last-updated" class="hidden" style="font-size:11px;color:var(--muted2)"></span>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center">
+                  <button class="btn-secondary hidden" id="select-assets-btn" style="font-size:13px;padding:6px 14px">☑ Select</button>
                   <button class="btn-primary hidden" id="add-asset-btn"><span>+</span> Add Asset</button>
                   <button class="btn-primary hidden" id="zerodha-import-btn" style="background:var(--teal)">📥 Import
                     CSV</button>
@@ -65,6 +66,15 @@
                     CSV</button>
                   <button class="btn-primary hidden" id="gold-refresh-btn" style="background:var(--green)">🔄 Refresh
                     Prices</button>
+                </div>
+              </div>
+
+              <!-- Bulk delete bar -->
+              <div id="bulk-delete-bar" class="hidden" style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;margin-bottom:10px">
+                <span id="bulk-delete-count" style="font-size:13px;font-weight:600;color:var(--text)">0 selected</span>
+                <div style="display:flex;gap:8px">
+                  <button id="bulk-cancel-btn" class="btn-secondary" style="font-size:12px;padding:5px 12px">Cancel</button>
+                  <button id="bulk-delete-confirm-btn" class="btn-primary" style="font-size:12px;padding:5px 12px;background:var(--danger)" disabled>🗑 Delete Selected</button>
                 </div>
               </div>
 

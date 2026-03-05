@@ -766,6 +766,13 @@ function renderAssetsTable(assets, tableName) {
     document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-last-updated`)?.classList.add('hidden');
   });
+
+  // Reset select mode on every new table load
+  document.getElementById('bulk-delete-bar')?.classList.add('hidden');
+  document.querySelectorAll('.asset-row-checkbox').forEach(c => c.checked = false);
+  const selBtn = document.getElementById('select-assets-btn');
+  if (selBtn) { selBtn.textContent = '☑ Select'; selBtn.classList.remove('hidden'); }
+
   const addBtn2 = document.getElementById('add-asset-btn');
   if (tableName === 'zerodha_stocks') {
     document.getElementById('zerodha-import-btn')?.classList.remove('hidden');
@@ -964,11 +971,14 @@ function renderAssetsTable(assets, tableName) {
     const gainAttr = (tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'aionion_gold' || tableName === 'mf_holdings' || tableName === 'aionion_gold' || tableName === 'gold_holdings' || tableName === 'amc_mf_holdings') ? ` data-live-gain="${liveKey}"` : '';
     html += `
       <tr data-id="${a.id}">
+        <td class="bulk-check-cell" style="width:32px;padding:0 8px;display:none">
+          <input type="checkbox" class="asset-row-checkbox" data-id="${a.id}" data-table="${tableName}"
+            style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">
+        </td>
         ${cells}
         <td style="text-align:right"${gainAttr}><span class="gain-badge ${badgeCls}">${gainLabel}</span></td>
         <td style="white-space:nowrap">
           <button class="asset-edit-btn" data-id="${a.id}" data-table="${tableName}" title="Edit" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 5px;opacity:0.7;" data-row='${JSON.stringify(a).replace(/'/g, "&apos;")}'>✏️</button>
-          <button class="asset-delete-btn" data-id="${a.id}" data-table="${tableName}" title="Delete">🗑</button>
         </td>
       </tr>`;
   });
@@ -1033,16 +1043,21 @@ function renderAssetsTable(assets, tableName) {
 
   tbody.querySelectorAll('.asset-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const row = JSON.parse(btn.dataset.row);
+      const row = JSON.parse(btn.dataset.row.replace(/&apos;/g, "'"));
       openEditAssetModal(row, btn.dataset.table);
     });
   });
 
-  tbody.querySelectorAll('.asset-delete-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('Delete this entry?')) return;
-      await deleteAsset(btn.dataset.id, btn.dataset.table);
-    });
+  // ── Checkbox change listener ──────────────────────────────
+  function updateBulkCount() {
+    const checked = tbody.querySelectorAll('.asset-row-checkbox:checked').length;
+    const countEl = document.getElementById('bulk-delete-count');
+    const confirmBtn = document.getElementById('bulk-delete-confirm-btn');
+    if (countEl) countEl.textContent = checked + ' selected';
+    if (confirmBtn) confirmBtn.disabled = checked === 0;
+  }
+  tbody.querySelectorAll('.asset-row-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateBulkCount);
   });
 }
 
@@ -1181,6 +1196,62 @@ function closeAddAssetModal() {
 
 // ── Asset modal event wiring (runs after fragments-loaded) ────
 document.addEventListener('fragments-loaded', () => {
+
+  // ── Select / Bulk Delete ──────────────────────────────────
+  let _selectMode = false;
+
+  function enterSelectMode() {
+    _selectMode = true;
+    document.getElementById('select-assets-btn').textContent = '✕ Cancel';
+    document.getElementById('bulk-delete-bar').classList.remove('hidden');
+    document.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = '');
+    updateBulkBar();
+  }
+
+  function exitSelectMode() {
+    _selectMode = false;
+    const btn = document.getElementById('select-assets-btn');
+    if (btn) btn.textContent = '☑ Select';
+    document.getElementById('bulk-delete-bar')?.classList.add('hidden');
+    document.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = 'none');
+    document.querySelectorAll('.asset-row-checkbox').forEach(c => c.checked = false);
+    updateBulkBar();
+  }
+
+  function updateBulkBar() {
+    const checked = document.querySelectorAll('.asset-row-checkbox:checked').length;
+    const countEl = document.getElementById('bulk-delete-count');
+    const confirmBtn = document.getElementById('bulk-delete-confirm-btn');
+    if (countEl) countEl.textContent = checked + ' selected';
+    if (confirmBtn) confirmBtn.disabled = checked === 0;
+  }
+
+  document.getElementById('select-assets-btn')?.addEventListener('click', () => {
+    if (_selectMode) exitSelectMode(); else enterSelectMode();
+  });
+
+  document.getElementById('bulk-cancel-btn')?.addEventListener('click', exitSelectMode);
+
+  document.getElementById('bulk-delete-confirm-btn')?.addEventListener('click', async () => {
+    const checked = [...document.querySelectorAll('.asset-row-checkbox:checked')];
+    if (!checked.length) return;
+    const n = checked.length;
+    if (!confirm(`Delete ${n} ${n === 1 ? 'entry' : 'entries'}? This cannot be undone.`)) return;
+    const confirmBtn = document.getElementById('bulk-delete-confirm-btn');
+    confirmBtn.textContent = 'Deleting…'; confirmBtn.disabled = true;
+    for (const cb of checked) {
+      const { error } = await sb.from(cb.dataset.table).delete().eq('id', cb.dataset.id);
+      if (error) { showToast('Delete failed: ' + error.message, 'error'); }
+    }
+    showToast(`${n} ${n === 1 ? 'entry' : 'entries'} deleted`, 'success');
+    exitSelectMode();
+    loadAssets(_currentUserId, _currentAssetFilter);
+  });
+
+  // Re-exit select mode whenever a new category is loaded
+  const _origLoadAssets = loadAssets;
+  // patch: exitSelectMode on each render (done inside renderAssetsTable via hidden cells)
+
   document.getElementById('add-asset-btn').addEventListener('click', () => {
     if (!_currentAssetFilter) {
       showToast('Please select an asset category first (e.g. Cash)', 'info');
