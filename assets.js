@@ -255,7 +255,7 @@ async function loadGroupOverview(userId, group) {
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   set('assets-total-invested', INR(totalInvested));
   set('assets-total-value',    INR(totalCurVal));
-  set('assets-count', rows.length);
+  const cEl = document.getElementById('assets-count-inline'); if(cEl) cEl.textContent = rows.length + ' holding' + (rows.length !== 1 ? 's' : '');
   const gainEl = document.getElementById('assets-total-gain');
   if (gainEl) {
     const pct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
@@ -451,7 +451,7 @@ async function loadAssets(userId, filter = null) {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     set('assets-total-invested', INR(totalInvested));
     set('assets-total-value', INR(totalValue));
-    set('assets-count', count);
+    const cEl2 = document.getElementById('assets-count-inline'); if(cEl2) cEl2.textContent = count + ' holding' + (count !== 1 ? 's' : '');
     const gainEl = document.getElementById('assets-total-gain');
     if (gainEl) {
       gainEl.textContent = (gain >= 0 ? '+' : '') + INR(gain) + gainPct;
@@ -596,7 +596,7 @@ function renderAssetsTable(assets, tableName) {
 
   document.getElementById('assets-total-invested').textContent = INR(totalInvested);
   document.getElementById('assets-total-value').textContent = INR(totalValue);
-  document.getElementById('assets-count').textContent = assets.length;
+  const cEl3 = document.getElementById('assets-count-inline'); if(cEl3) cEl3.textContent = assets.length + ' holding' + (assets.length !== 1 ? 's' : '');
 
   const gainEl = document.getElementById('assets-total-gain');
   const totalGainPct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
