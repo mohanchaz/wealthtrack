@@ -54,12 +54,13 @@ async function loadDashboardStats(userId) {
   let totalInvested = 0, totalValue = 0, count = 0;
 
   // zerodha_stocks doesn't store invested/current_value — must compute from qty * avg_cost / ltp
+  const fdLikeTables = ['bank_fd_assets', 'emergency_funds'];
   const nonStockTables = Object.entries(ASSET_TABLES)
     .filter(([, t]) => t !== 'zerodha_stocks' && t !== 'aionion_stocks' && t !== 'aionion_gold' && t !== 'mf_holdings' && t !== 'gold_holdings' && t !== 'bonds' && t !== 'amc_mf_holdings').map(([, t]) => t);
 
-  const [assetResults, zerodhaResult, aionionResult, aionionGoldResult, mfResult, goldResult, bondsResult2, amcMfResult2, { data: fdData }, { data: zaiData }, { data: aaiData }, { data: agaiData }, { data: mfaiData }, { data: gaiData }] = await Promise.all([
+  const [assetResults, zerodhaResult, aionionResult, aionionGoldResult, mfResult, goldResult, bondsResult2, amcMfResult2, { data: fdData }, { data: efData }, { data: zaiData }, { data: aaiData }, { data: agaiData }, { data: mfaiData }, { data: gaiData }] = await Promise.all([
     Promise.all(nonStockTables.map(table =>
-      sb.from(table).select('invested, current_value').eq('user_id', userId)
+      sb.from(table).select(fdLikeTables.includes(table) ? 'invested' : 'invested, current_value').eq('user_id', userId)
     )),
     sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
     sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
@@ -69,6 +70,7 @@ async function loadDashboardStats(userId) {
     sb.from('bonds').select('invested, face_value').eq('user_id', userId),
     sb.from('amc_mf_holdings').select('qty, avg_cost').eq('user_id', userId),
     sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
+    sb.from('ef_actual_invested').select('amount').eq('user_id', userId),
     sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
     sb.from('aionion_actual_invested').select('amount').eq('user_id', userId),
     sb.from('aionion_gold_actual_invested').select('amount').eq('user_id', userId),
@@ -76,11 +78,13 @@ async function loadDashboardStats(userId) {
     sb.from('gold_actual_invested').select('amount').eq('user_id', userId)
   ]);
 
-  assetResults.forEach(({ data }) => {
+  assetResults.forEach(({ data }, i) => {
     if (!data) return;
+    const isFdLike = fdLikeTables.includes(nonStockTables[i]);
     data.forEach(row => {
-      totalInvested += +row.invested || 0;
-      totalValue += +row.current_value || 0;
+      const inv = +row.invested || 0;
+      totalInvested += inv;
+      totalValue += isFdLike ? inv : (+row.current_value || 0);
       count++;
     });
   });
@@ -161,7 +165,7 @@ async function loadDashboardStats(userId) {
   const agaiActual = (agaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const mfaiActual = (mfaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const gaiActual  = (gaiData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const actualInvested = fdActual + zaiActual + aaiActual + agaiActual + mfaiActual + gaiActual;
+  const actualInvested = fdActual + efActual + zaiActual + aaiActual + agaiActual + mfaiActual + gaiActual;
   const fdCount   = (fdData   || []).length;
   const zaiCount  = (zaiData  || []).length;
   const aaiCount  = (aaiData  || []).length;
@@ -475,6 +479,7 @@ async function loadAssets(userId, filter = null) {
     const [
       cashResult,
       fdResult, fdActual,
+      efResult, efActual,
       bondsResult,
       zerodhaStocksRes, zerodhaActualRes,
       mfRes, mfActualRes,
@@ -484,8 +489,10 @@ async function loadAssets(userId, filter = null) {
       amcMfRes, amcMfActualRes,
     ] = await Promise.all([
       sb.from('cash_assets').select('invested, current_value').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('bank_fd_assets').select('invested, current_value').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+      sb.from('bank_fd_assets').select('invested').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
       sb.from('fd_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+      sb.from('emergency_funds').select('invested').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+      sb.from('ef_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
       sb.from('bonds').select('invested, face_value').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
       sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
       sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
@@ -505,8 +512,13 @@ async function loadAssets(userId, filter = null) {
 
     // Bank FD
     let fdInv = 0, fdCur = 0;
-    (fdResult.data || []).forEach(r => { fdInv += +r.invested || 0; fdCur += +r.current_value || 0; });
+    (fdResult.data || []).forEach(r => { fdInv += +r.invested || 0; fdCur += +r.invested || 0; });
     const fdActualTotal = (fdActual.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+
+    // Emergency Funds
+    let efInv = 0, efCur = 0;
+    (efResult.data || []).forEach(r => { efInv += +r.invested || 0; efCur += +r.invested || 0; });
+    const efActualTotal = (efActual.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
 
     // Bonds
     let bondsInv = 0, bondsCur = 0;
@@ -594,7 +606,8 @@ async function loadAssets(userId, filter = null) {
     // ── Build category rows ────────────────────────────────────
     const catRows = [
       { label: 'Cash',    icon: '💵', filter: 'Cash',    inv: cashInv,                cur: cashCur,                       actual: cashInv },
-      { label: 'Fixed Deposits', icon: '🏦', filter: 'Fixed Deposits', inv: fdInv,                  cur: fdCur,                         actual: fdActualTotal },
+      { label: 'Fixed Deposits', icon: '🏦', filter: 'Fixed Deposits', inv: fdInv, cur: fdCur, actual: fdActualTotal },
+      { label: 'Emergency Funds',  icon: '🛡️', filter: 'Emergency Funds',  inv: efInv, cur: efCur, actual: efActualTotal },
       { label: 'Bonds',   icon: '📜', filter: 'Bonds',   inv: bondsInv,               cur: bondsCur,                      actual: bondsInv },
       { label: 'Zerodha', icon: '📈', filter: 'Zerodha', inv: zInv + mfInv + goldInv, cur: zCur + mfCur + goldCur,   actual: zerodhaActualTotal + mfActualTotal },
       { label: 'Aionion', icon: '📊', filter: 'Aionion', inv: aInv + agInv,           cur: aCur + agCur,                  actual: aionionActualTotal },
@@ -696,7 +709,7 @@ async function loadAssets(userId, filter = null) {
   // Pre-emptively hide all actual invested panels — renderAssetsTable will re-show the right one
   document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
   document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
-  ['assets-monthly-summary','zerodha-monthly-summary','aionion-monthly-summary','mf-monthly-summary','amc-mf-monthly-summary'].forEach(id => {
+  ['assets-monthly-summary','zerodha-monthly-summary','aionion-monthly-summary','ef-monthly-summary','mf-monthly-summary','amc-mf-monthly-summary'].forEach(id => {
     document.getElementById(id)?.classList.add('hidden');
   });
 
@@ -807,6 +820,8 @@ function renderAssetsTable(assets, tableName) {
     ? assets.reduce((s, a) => s + (+a.face_value || +a.invested || 0), 0)
     : tableName === 'amc_mf_holdings'
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
+    : (tableName === 'bank_fd_assets' || tableName === 'emergency_funds')
+    ? assets.reduce((s, a) => s + (+a.invested || 0), 0)
     : assets.reduce((s, a) => s + (+a.current_value || 0), 0);
   const totalGain = totalValue - totalInvested;
 
@@ -883,6 +898,8 @@ function renderAssetsTable(assets, tableName) {
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),
         _alloc_pct:    totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
       }
+      : (tableName === 'bank_fd_assets' || tableName === 'emergency_funds')
+      ? { ...a, current_value: +a.invested || 0 }
       : tableName === 'bonds'
       ? {
         ...a,
@@ -963,7 +980,8 @@ function renderAssetsTable(assets, tableName) {
   const aionionSec = document.getElementById('aionion-monthly-summary');
   const mfSec      = document.getElementById('mf-monthly-summary');
   const amcMfSec   = document.getElementById('amc-mf-monthly-summary');
-  const allSecs = [fdSec, zerodhaSec, aionionSec, mfSec, amcMfSec];
+  const efSec      = document.getElementById('ef-monthly-summary');
+  const allSecs = [fdSec, zerodhaSec, aionionSec, efSec, mfSec, amcMfSec];
   allSecs.forEach(s => s?.classList.add('hidden'));
 
   if (tableName === 'bank_fd_assets') {
@@ -971,6 +989,11 @@ function renderAssetsTable(assets, tableName) {
     document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
     if (fdSec)      fdSec.classList.remove('hidden');
     loadFdActualInvested(_currentUserId);
+  } else if (tableName === 'emergency_funds') {
+    if (actualCard) actualCard.classList.remove('hidden');
+    document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
+    if (efSec)      efSec.classList.remove('hidden');
+    loadEfActualInvested(_currentUserId);
   } else if (tableName === 'zerodha_stocks') {
     if (actualCard) actualCard.classList.remove('hidden');
     document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
@@ -1077,10 +1100,15 @@ function openEditAssetModal(row, tableName) {
 
   // Show/hide FD extra fields
   const fdExtra = document.getElementById('fd-extra-fields');
-  const isFD = tableName === 'bank_fd_assets';
+  const isFD = tableName === 'bank_fd_assets' || tableName === 'emergency_funds';
   if (fdExtra) {
     if (isFD) fdExtra.classList.remove('hidden');
     else fdExtra.classList.add('hidden');
+  }
+  const curGroup = document.getElementById('af-current-group');
+  if (curGroup) {
+    if (isFD) curGroup.classList.add('hidden');
+    else curGroup.classList.remove('hidden');
   }
 
   // Pre-fill common fields
@@ -1089,7 +1117,7 @@ function openEditAssetModal(row, tableName) {
   setField('af-account-number', row.account_number);
   setField('af-sb-account', row.sb_account_number);
   setField('af-invested', row.invested);
-  setField('af-current', row.current_value);
+  if (!isFD) setField('af-current', row.current_value);
   setField('af-notes', row.notes);
 
   // Pre-fill FD fields
@@ -1117,10 +1145,15 @@ function openAddAssetModal() {
 
   // Show/hide Bank FD extra fields
   const fdExtra = document.getElementById('fd-extra-fields');
-  const isFD = _currentAssetFilter === 'Fixed Deposits';
+  const isFD = _currentAssetFilter === 'Fixed Deposits' || _currentAssetFilter === 'Emergency Funds';
   if (fdExtra) {
     if (isFD) fdExtra.classList.remove('hidden');
     else fdExtra.classList.add('hidden');
+  }
+  const curGroup2 = document.getElementById('af-current-group');
+  if (curGroup2) {
+    if (isFD) curGroup2.classList.add('hidden');
+    else curGroup2.classList.remove('hidden');
   }
 
   // Clear all fields
@@ -1191,12 +1224,12 @@ document.addEventListener('fragments-loaded', () => {
       account_number: document.getElementById('af-account-number').value.trim() || null,
       sb_account_number: document.getElementById('af-sb-account').value.trim() || null,
       invested: parseFloat(document.getElementById('af-invested').value) || 0,
-      current_value: parseFloat(document.getElementById('af-current').value) || 0,
+      current_value: (isFDTable ? (parseFloat(document.getElementById('af-invested').value) || 0) : parseFloat(document.getElementById('af-current').value) || 0),
       notes: document.getElementById('af-notes').value.trim() || null,
     };
 
     // Bank FD extras
-    if (_currentAssetFilter === 'Fixed Deposits') {
+    if (_currentAssetFilter === 'Fixed Deposits' || _currentAssetFilter === 'Emergency Funds') {
       payload.invested_date = document.getElementById('af-invested-date').value || null;
       payload.interest_rate = parseFloat(document.getElementById('af-interest-rate').value) || null;
       payload.maturity_date = document.getElementById('af-maturity-date').value || null;

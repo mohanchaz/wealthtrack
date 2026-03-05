@@ -31,6 +31,7 @@
       modalZerodhaImport,
       modalZerodhaInvested,
       modalFdInvested,
+      modalEfInvested,
       modalAlloc,
       modalZerodhaEdit,
       modalAddAsset,
@@ -56,6 +57,7 @@
       loadHTML('modals/zerodha-import.html'),
       loadHTML('modals/zerodha-invested.html'),
       loadHTML('modals/fd-invested.html'),
+      loadHTML('modals/ef-invested.html'),
       loadHTML('modals/alloc-modal.html'),
       loadHTML('modals/zerodha-edit.html'),
       loadHTML('modals/add-asset.html'),
@@ -98,6 +100,7 @@
     await append(modalZerodhaImport);
     await append(modalZerodhaInvested);
     await append(modalFdInvested);
+    await append(modalEfInvested);
     await append(modalAlloc);
     await append(modalZerodhaEdit);
     await append(modalAddAsset);
