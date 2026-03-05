@@ -1217,7 +1217,7 @@ document.addEventListener('fragments-loaded', () => {
     const saveBtn = document.getElementById('add-asset-save-btn');
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-    // Common payload
+    const isFDTable = _currentAssetTable === 'bank_fd_assets' || _currentAssetTable === 'emergency_funds';
     const payload = {
       user_id: _currentUserId,
       category: category,
@@ -1253,7 +1253,13 @@ document.addEventListener('fragments-loaded', () => {
       dbOp = sb.from(table).insert(payload);
     }
 
-    const { error } = await dbOp;
+    let error;
+    try {
+      const result = await dbOp;
+      error = result.error;
+    } catch(e) {
+      error = { message: e.message };
+    }
     saveBtn.textContent = '💾 Save Asset'; saveBtn.disabled = false;
 
     if (error) {
