@@ -160,6 +160,7 @@ async function loadDashboardStats(userId) {
   });
 
   const fdActual   = (fdData   || []).reduce((s, r) => s + (+r.amount || 0), 0);
+  const efActual   = (efData   || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const zaiActual  = (zaiData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const aaiActual  = (aaiData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
   const agaiActual = (agaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
