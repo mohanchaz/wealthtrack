@@ -30,9 +30,17 @@ Object.entries(YAHOO_SYMBOL_MAP).forEach(([db, yahoo]) => {
   YAHOO_TICKER_TO_DB[key] = db;
 });
 
-// In-memory map: symbol → { unitPrice (native), currentValue (native) }
+// In-memory map: symbol → { unitPrice (native), currentValue (native), name }
 // Populated at import time, lives until page refresh.
 let _foreignLiveData = {};
+
+// Live GBP/USD rate (1 GBP = x USD). null = not yet fetched.
+let _gbpUsdRate = null;
+
+// Convert a USD amount to GBP; returns null if rate unavailable
+const toGBP = (usd) => _gbpUsdRate ? usd / _gbpUsdRate : null;
+// GBX (pence) → GBP
+const gbxToGBP = (gbx) => gbx / 100;
 
 // ── Render table ──────────────────────────────────────────────
 
@@ -44,18 +52,22 @@ function renderForeignStocks(rows) {
   if (thead) {
     thead.innerHTML = `
       <th>Symbol</th>
-      <th style="text-align:right">Quantity</th>
+      <th>Name</th>
+      <th style="text-align:right">Qty</th>
       <th style="text-align:right">Avg Price</th>
       <th style="text-align:right">Unit Price</th>
-      <th style="text-align:center">Currency</th>
+      <th style="text-align:center">CCY</th>
       <th style="text-align:right">Invested</th>
       <th style="text-align:right">Current Value</th>
       <th style="text-align:right">Gain / Loss</th>
+      <th style="text-align:right">Invested (£)</th>
+      <th style="text-align:right">Cur. Value (£)</th>
+      <th style="text-align:right">Gain / Loss (£)</th>
       <th></th>`;
   }
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="padding:32px;text-align:center;color:var(--muted2)">
+    tbody.innerHTML = `<tr><td colspan="13" style="padding:32px;text-align:center;color:var(--muted2)">
       No foreign holdings yet — click <b>📥 Import CSV</b> to add
     </td></tr>`;
     ['assets-total-invested','assets-total-value','assets-total-gain'].forEach(id => {
@@ -90,16 +102,31 @@ function renderForeignStocks(rows) {
 
     const badge = `<span style="background:${isGBX ? '#e8f4fd' : '#e8fdf0'};color:${isGBX ? '#1a6fa8' : '#15803d'};padding:1px 9px;border-radius:20px;font-size:11px;font-weight:600">${ccy}</span>`;
     const tdS   = 'padding:10px 14px;border-bottom:1px solid var(--border)';
+    const dash  = '<span style="color:var(--muted2)">—</span>';
+
+    // GBP columns — for GBX: invested/curVal already in GBP (factor=100 applied above); for USD: convert via rate
+    const invGBP = isGBX ? invested : toGBP(invested);
+    const curGBP = curVal != null ? (isGBX ? curVal : toGBP(curVal)) : null;
+    const gainGBP = (invGBP != null && curGBP != null) ? curGBP - invGBP : null;
+    const gainGBPPct = gainGBP != null && invGBP ? ` (${((gainGBP / invGBP) * 100).toFixed(1)}%)` : '';
+    const gainGBPColor = gainGBP == null ? 'var(--muted2)' : gainGBP > 0 ? 'var(--green)' : gainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
+    const gainGBPStr = gainGBP == null ? dash : `${gainGBP >= 0 ? '+' : ''}£${Math.abs(gainGBP).toFixed(2)}<span style="font-size:11px">${gainGBPPct}</span>`;
+
+    const stockName = live?.name || dash;
 
     return `<tr data-id="${r.id}" style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
       <td style="${tdS};font-weight:700">${r.symbol}</td>
+      <td style="${tdS};color:var(--muted2);font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${live?.name || ''}">${stockName}</td>
       <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${(+r.qty).toFixed(4)}</td>
       <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${avgDisp.toFixed(2)}</td>
-      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${unitDisp != null ? unitDisp.toFixed(2) : '<span style="color:var(--muted2)">—</span>'}</td>
+      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${unitDisp != null ? unitDisp.toFixed(2) : dash}</td>
       <td style="${tdS};text-align:center">${badge}</td>
       <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${ccy} ${invested.toFixed(2)}</td>
-      <td style="${tdS};text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${curVal != null ? `${ccy} ${curVal.toFixed(2)}` : '<span style="color:var(--muted2)">—</span>'}</td>
+      <td style="${tdS};text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${curVal != null ? `${ccy} ${curVal.toFixed(2)}` : dash}</td>
       <td style="${tdS};text-align:right;font-weight:600;color:${gainColor};font-variant-numeric:tabular-nums">${gainStr}</td>
+      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${invGBP != null ? '£' + invGBP.toFixed(2) : dash}</td>
+      <td style="${tdS};text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${curGBP != null ? '£' + curGBP.toFixed(2) : dash}</td>
+      <td style="${tdS};text-align:right;font-weight:600;color:${gainGBPColor};font-variant-numeric:tabular-nums">${gainGBPStr}</td>
       <td style="${tdS};text-align:right">
         <button class="foreign-edit-btn" data-id="${r.id}"
           style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 5px;opacity:0.65;transition:opacity 0.15s"
@@ -115,7 +142,9 @@ function renderForeignStocks(rows) {
     });
   });
 
-  // Summary stats
+  // Summary stats — convert USD totals to GBP if rate available
+  const totalInvGBPAll = totalInvGBP + (_gbpUsdRate ? totalInvUSD / _gbpUsdRate : 0);
+  const totalCurGBPAll = totalCurGBP + (_gbpUsdRate ? totalCurUSD / _gbpUsdRate : 0);
   const fmt = (usd, gbp) => {
     const p = [];
     if (usd) p.push(`USD ${usd.toFixed(2)}`);
@@ -145,7 +174,7 @@ function renderForeignStocks(rows) {
 
 async function loadForeignStocks(userId) {
   const tbody = document.getElementById('assets-table-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
 
   const { data, error } = await sb
     .from('foreign_stock_holdings')
@@ -381,12 +410,13 @@ async function fetchAndRefreshForeignPrices(rows) {
   if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching prices…';
   if (refreshBtn)   refreshBtn.disabled = true;
 
-  // Build Yahoo symbol list — translate DB symbols to correct Yahoo tickers
+  // Build Yahoo symbol list — translate DB symbols to correct Yahoo tickers + add FX pair
   const yahooSymbols = rows.map(r => YAHOO_SYMBOL_MAP[r.symbol.toUpperCase()] || r.symbol);
+  const allSymbols   = [...yahooSymbols, 'GBPUSD=X'];  // fetch FX rate in same call
 
   let priceMap = null;
   try {
-    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(yahooSymbols.join(','))}`);
+    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(allSymbols.join(','))}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     priceMap = await res.json();
     if (priceMap.error) throw new Error(priceMap.error);
@@ -400,10 +430,15 @@ async function fetchAndRefreshForeignPrices(rows) {
 
   if (refreshBtn) refreshBtn.disabled = false;
 
-  // Update _foreignLiveData from the fetched map
-  // priceMap keys = stripped Yahoo symbol (no .L, no .NS suffix from the API function)
+  // Extract GBP/USD rate (1 GBP = x USD); key returned as 'GBPUSD=X' with = stripped by API? check both
+  const fxEntry = priceMap['GBPUSD=X'] || priceMap['GBPUSDX'] || priceMap['GBPUSD'];
+  if (fxEntry) {
+    _gbpUsdRate = typeof fxEntry === 'object' ? fxEntry.price : fxEntry;
+    console.log('[ForeignPrices] GBP/USD rate:', _gbpUsdRate);
+  }
+
   // Build a priceMap keyed by DB symbol for easy lookup
-  // API strips .L → e.g. CNDX.L becomes key CNDX; BRK-B stays BRK-B
+  // API strips .L and .NS/.BO — e.g. CNDX.L → CNDX; BRK-B stays BRK-B
   const dbPriceMap = {};
   Object.entries(priceMap).forEach(([apiKey, val]) => {
     const dbSym = YAHOO_TICKER_TO_DB[apiKey] || apiKey;
@@ -414,8 +449,9 @@ async function fetchAndRefreshForeignPrices(rows) {
     const entry = dbPriceMap[r.symbol];
     if (!entry) return;
     const rawPrice    = typeof entry === 'object' ? entry.price : entry;
+    const stockName   = typeof entry === 'object' ? (entry.name || null) : null;
     const nativeValue = rawPrice * (+r.qty || 0);
-    _foreignLiveData[r.symbol] = { unitPrice: rawPrice, currentValue: nativeValue };
+    _foreignLiveData[r.symbol] = { unitPrice: rawPrice, currentValue: nativeValue, name: stockName };
   });
 
   // Re-render table with updated live data
