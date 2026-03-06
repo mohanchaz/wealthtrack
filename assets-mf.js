@@ -220,11 +220,6 @@ async function fetchAndRefreshMfPrices(assets) {
 }
 
 
-  const refreshBtn = document.getElementById('mf-refresh-btn');
-  refreshBtn && refreshBtn.addEventListener('click', () => {
-    if (_currentAssetFilter === 'Mutual Funds') loadAssets(_currentUserId, 'Mutual Funds');
-  });
-
 // ── CSV Import ────────────────────────────────────────────────
 
 let _mfPreviewRows = [];
