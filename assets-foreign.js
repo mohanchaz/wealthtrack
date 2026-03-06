@@ -167,6 +167,20 @@ function renderForeignStocks(rows) {
     gainEl.style.color = (gainUSD + gainGBP) > 0 ? 'var(--green)' : (gainUSD + gainGBP) < 0 ? 'var(--danger)' : 'var(--muted)';
   }
 
+  // ── GBP summary row (second row — all amounts converted to £) ──
+  const gainGBPAll = totalCurGBPAll - totalInvGBPAll;
+  const gainGBPAllPct = totalInvGBPAll > 0 ? ` (${((gainGBPAll / totalInvGBPAll) * 100).toFixed(1)}%)` : '';
+  setEl('foreign-total-inv-gbp', _gbpUsdRate ? `£${totalInvGBPAll.toFixed(2)}` : '—');
+  setEl('foreign-total-val-gbp', _gbpUsdRate ? `£${totalCurGBPAll.toFixed(2)}` : '—');
+  const gainGBPAllEl = document.getElementById('foreign-total-gain-gbp');
+  if (gainGBPAllEl) {
+    gainGBPAllEl.textContent = _gbpUsdRate
+      ? `${gainGBPAll >= 0 ? '+' : ''}£${gainGBPAll.toFixed(2)}${gainGBPAllPct}`
+      : '—';
+    gainGBPAllEl.style.color = !_gbpUsdRate ? 'var(--muted2)'
+      : gainGBPAll > 0 ? 'var(--green)' : gainGBPAll < 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+
   const countEl = document.getElementById('assets-count-inline');
   if (countEl) countEl.textContent = `${rows.length} holding${rows.length !== 1 ? 's' : ''}`;
 }

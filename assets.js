@@ -718,6 +718,7 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('foreign-import-btn')?.classList.remove('hidden');
     document.getElementById('foreign-refresh-btn')?.classList.remove('hidden');
     document.getElementById('foreign-last-updated')?.classList.remove('hidden');
+    document.getElementById('foreign-gbp-row')?.classList.remove('hidden');
     if (addBtn) addBtn.classList.add('hidden');
     // Hide Actual Invested stat cards + all right-panel monthly summaries
     // (they may be left visible from a previously visited category such as AMC MF)
@@ -725,7 +726,7 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
     ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
       'aionion-gold-monthly-summary', 'mf-monthly-summary', 'gold-monthly-summary',
-      'amc-mf-monthly-summary', 'ef-monthly-summary'].forEach(id =>
+      'amc-mf-monthly-summary', 'ef-monthly-summary', 'foreign-gbp-row'].forEach(id =>
         document.getElementById(id)?.classList.add('hidden')
       );
     loadForeignStocks(userId);
