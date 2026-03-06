@@ -408,9 +408,10 @@ async function loadAssets(userId, filter = null) {
     document.querySelector('.assets-summary-row')?.classList.add('hidden');
     document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
     document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
-    ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'mf-monthly-summary'].forEach(id =>
-      document.getElementById(id)?.classList.add('hidden')
-    );
+    ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'mf-monthly-summary',
+      'foreign-inr-row', 'foreign-gbp-row'].forEach(id =>
+        document.getElementById(id)?.classList.add('hidden')
+      );
     ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf'].forEach(p => {
       document.getElementById(p + '-import-btn')?.classList.add('hidden');
       document.getElementById(p + '-refresh-btn')?.classList.add('hidden');
@@ -727,8 +728,7 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
     ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
       'aionion-gold-monthly-summary', 'mf-monthly-summary', 'gold-monthly-summary',
-      'amc-mf-monthly-summary', 'ef-monthly-summary',
-      'foreign-inr-row', 'foreign-gbp-row'].forEach(id =>
+      'amc-mf-monthly-summary', 'ef-monthly-summary'].forEach(id =>
         document.getElementById(id)?.classList.add('hidden')
       );
     loadForeignStocks(userId);
@@ -800,6 +800,9 @@ function renderAssetsTable(assets, tableName) {
     document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-last-updated`)?.classList.add('hidden');
   });
+  // Hide Foreign Stocks extra rows (only shown when tableName === 'foreign_stock_holdings')
+  document.getElementById('foreign-inr-row')?.classList.add('hidden');
+  document.getElementById('foreign-gbp-row')?.classList.add('hidden');
 
   // Reset select mode on every new table load
   document.getElementById('bulk-delete-bar')?.classList.add('hidden');
