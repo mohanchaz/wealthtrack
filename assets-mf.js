@@ -224,7 +224,9 @@ const MF_SYMBOL_MAP = [
 ];
 
 function guessNavSymbol(fundName) {
-  const lower = (fundName || '').toLowerCase();
+  // Strip plan suffix added during deduplication before matching
+  const base  = (fundName || '').replace(/\s*\((Regular|Direct|\d+)\)\s*$/i, '');
+  const lower = base.toLowerCase();
   for (let i = 0; i < MF_SYMBOL_MAP.length; i++) {
     if (lower.indexOf(MF_SYMBOL_MAP[i][0]) !== -1) return MF_SYMBOL_MAP[i][1];
   }
@@ -280,6 +282,32 @@ function parseMfCSV(text) {
 
     funds.push({ fund_name: fundName, qty, avg_cost: avgCost, invested, current_value: curVal, nav_symbol: guessNavSymbol(fundName) });
   }
+
+  // Deduplicate fund names — same name can appear twice (Regular + Direct plan)
+  // Append " (Regular)" / " (Direct)" based on avg_cost: lower = Regular, higher = Direct
+  // If still ambiguous, fall back to " (2)", " (3)" etc.
+  const nameCounts = {};
+  funds.forEach(f => { nameCounts[f.fund_name] = (nameCounts[f.fund_name] || 0) + 1; });
+
+  const nameGroups = {};
+  funds.forEach(f => {
+    if (nameCounts[f.fund_name] > 1) {
+      if (!nameGroups[f.fund_name]) nameGroups[f.fund_name] = [];
+      nameGroups[f.fund_name].push(f);
+    }
+  });
+
+  Object.values(nameGroups).forEach(group => {
+    // Sort by avg_cost ascending — lower NAV = Regular plan, higher = Direct plan
+    group.sort((a, b) => a.avg_cost - b.avg_cost);
+    const labels = group.length === 2 ? ['Regular', 'Direct'] : group.map((_, i) => String(i + 1));
+    group.forEach((f, i) => {
+      f.fund_name = `${f.fund_name} (${labels[i]})`;
+      // Re-guess symbol with original base name
+      if (!f.nav_symbol) f.nav_symbol = guessNavSymbol(f.fund_name);
+    });
+  });
+
   return funds;
 }
 
