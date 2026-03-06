@@ -223,6 +223,14 @@ const MF_SYMBOL_MAP = [
   ['tata nifty 50',                     '0P0000XVOZ'],
 ];
 
+// Funds that exist in both Regular and Direct plans with different Yahoo symbols
+// Format: 'fund name fragment (lowercase)' → [regularSymbol, directSymbol]
+const MF_DUAL_PLAN_MAP = {
+  'quant flexi cap':        ['0P0000XW4X', '0P0001BA3U'],
+  'tata large & mid cap':   ['0P0000XVOJ', '0P0001BBCV'],
+  'tata large and mid cap': ['0P0000XVOJ', '0P0001BBCV'],
+};
+
 function guessNavSymbol(fundName) {
   // Strip plan suffix added during deduplication before matching
   const base  = (fundName || '').replace(/\s*\((Regular|Direct|\d+)\)\s*$/i, '');
@@ -302,9 +310,16 @@ function parseMfCSV(text) {
     group.sort((a, b) => a.avg_cost - b.avg_cost);
     const labels = group.length === 2 ? ['Regular', 'Direct'] : group.map((_, i) => String(i + 1));
     group.forEach((f, i) => {
-      f.fund_name = `${f.fund_name} (${labels[i]})`;
-      // Re-guess symbol with original base name
-      if (!f.nav_symbol) f.nav_symbol = guessNavSymbol(f.fund_name);
+      const baseName = f.fund_name;
+      f.fund_name = `${baseName} (${labels[i]})`;
+      // Check if this fund has known per-plan symbols
+      const baseKey = baseName.toLowerCase();
+      const dualSyms = Object.keys(MF_DUAL_PLAN_MAP).find(k => baseKey.includes(k));
+      if (dualSyms && group.length === 2) {
+        f.nav_symbol = MF_DUAL_PLAN_MAP[dualSyms][i]; // [0]=Regular, [1]=Direct
+      } else {
+        f.nav_symbol = guessNavSymbol(f.fund_name);
+      }
     });
   });
 
