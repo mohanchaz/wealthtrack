@@ -732,6 +732,7 @@ async function loadAssets(userId, filter = null) {
         document.getElementById(id)?.classList.add('hidden')
       );
     loadForeignStocks(userId);
+    loadForeignActualInvested(userId);
     return;
   }
 
@@ -744,7 +745,7 @@ async function loadAssets(userId, filter = null) {
   // Pre-emptively hide all actual invested panels — renderAssetsTable will re-show the right one
   document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
   document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
-  ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'ef-monthly-summary', 'mf-monthly-summary', 'amc-mf-monthly-summary'].forEach(id => {
+  ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'ef-monthly-summary', 'mf-monthly-summary', 'amc-mf-monthly-summary', 'foreign-monthly-summary'].forEach(id => {
     document.getElementById(id)?.classList.add('hidden');
   });
 
