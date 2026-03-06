@@ -112,6 +112,9 @@ function showDashboard(user) {
   }
 
   loadAllocations(user);
+  // Ensure dashboard page is visible (other pages hidden)
+  ['page-allocation', 'page-assets'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  document.getElementById('page-dashboard')?.classList.remove('hidden');
   loadDashboardStats(user.id);
 }
 
@@ -418,4 +421,3 @@ function navigateTo(pageId, assetFilter = null) {
 // ══════════════════════════════════════════════════════════════
 //  ASSETS MODULE  (one Supabase table per asset class)
 // ══════════════════════════════════════════════════════════════
-

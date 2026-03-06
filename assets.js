@@ -51,6 +51,7 @@ function getCompanyName(priceMap, instrument) {
 }
 
 async function loadDashboardStats(userId) {
+  try {
   let totalInvested = 0, totalValue = 0, count = 0;
 
   // zerodha_stocks doesn't store invested/current_value — must compute from qty * avg_cost / ltp
@@ -183,6 +184,11 @@ async function loadDashboardStats(userId) {
   set('dash-total-assets-sub', `${count} asset${count > 1 ? 's' : ''} tracked`);
   set('dash-actual-invested', INR(actualInvested));
   set('dash-actual-invested-sub', entryLabel);
+  } catch(err) {
+    console.error('[loadDashboardStats] crash:', err);
+    const el = document.getElementById('page-dashboard');
+    if (el) el.innerHTML = `<div style="padding:40px;color:#c00;font-family:sans-serif"><h3>Dashboard error</h3><pre style="white-space:pre-wrap">${err.stack || err.message}</pre></div>`;
+  }
 }
 
 // ── Group Overview (Zerodha / Aionion) ───────────────────────
