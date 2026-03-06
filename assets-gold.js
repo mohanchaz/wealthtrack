@@ -5,16 +5,16 @@
 // ══════════════════════════════════════════════════════════════
 
 // ── Symbol resolution ─────────────────────────────────────────
-// Returns e.g. "GOLDBEES.NS" or "GOLDBEES.BO"
+// Returns symbol with the requested suffix, e.g. "GOLDBEES.NS" or "0P0000XVDS.BO"
+// If the stored yahoo_symbol already has a suffix, uses that (ignores the suffix param).
 function resolveGoldSymbol(asset, suffix) {
-  if (asset.yahoo_symbol && asset.yahoo_symbol.trim()) {
-    const base = asset.yahoo_symbol.trim().toUpperCase().replace(/\.(NS|BO)$/i, '');
-    return base + '.' + suffix;
-  }
-  // Fallback: treat holding_name as the ticker
-  const name = (asset.holding_name || '').trim().toUpperCase().replace(/\s+/g, '');
-  if (!name) return null;
-  return name + '.' + suffix;
+  const raw = (asset.yahoo_symbol || '').trim().toUpperCase()
+           || (asset.holding_name  || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!raw) return null;
+  // Already has a suffix — return as-is (MF symbols like 0P0000XVDS.BO must keep their .BO)
+  if (/\.(NS|BO)$/i.test(raw)) return raw;
+  // Plain ticker — append requested suffix
+  return raw + '.' + suffix;
 }
 
 // ── Live price refresh ────────────────────────────────────────
@@ -25,18 +25,24 @@ async function fetchAndRefreshGoldPrices(assets) {
   if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching live prices…';
   if (refreshBtn)   refreshBtn.disabled = true;
 
-  // Fetch both NS and BO exchanges in parallel — merge results
-  const nsSymbols = [...new Set(assets.map(a => resolveGoldSymbol(a, 'NS')).filter(Boolean))];
-  const boSymbols = [...new Set(assets.map(a => resolveGoldSymbol(a, 'BO')).filter(Boolean))];
+  // Resolve each asset's symbol — some will be .NS (ETFs), some .BO (MFs)
+  // Group by suffix so we can fetch each exchange in one call
+  const nsSymbols = new Set();
+  const boSymbols = new Set();
+  assets.forEach(a => {
+    const sym = resolveGoldSymbol(a, 'NS'); // default to NS for unknown
+    if (!sym) return;
+    if (/\.BO$/i.test(sym)) boSymbols.add(sym);
+    else                    nsSymbols.add(sym);
+  });
 
   const [nsPrices, boPrices] = await Promise.all([
-    nsSymbols.length ? fetchLivePricesRaw(nsSymbols).catch(() => null) : Promise.resolve(null),
-    boSymbols.length ? fetchLivePricesRaw(boSymbols).catch(() => null) : Promise.resolve(null),
+    nsSymbols.size ? fetchLivePricesRaw([...nsSymbols]).catch(() => null) : Promise.resolve(null),
+    boSymbols.size ? fetchLivePricesRaw([...boSymbols]).catch(() => null) : Promise.resolve(null),
   ]);
 
   if (refreshBtn) refreshBtn.disabled = false;
 
-  // NS takes precedence; BO fills gaps
   const prices = { ...(boPrices || {}), ...(nsPrices || {}) };
 
   if (!Object.keys(prices).length) {
@@ -45,10 +51,11 @@ async function fetchAndRefreshGoldPrices(assets) {
     return;
   }
 
-  // getLTP strips suffix — GOLDBEES.NS and GOLDBEES.BO both resolve to key "GOLDBEES"
   function getGoldLTP(asset) {
-    const base = (resolveGoldSymbol(asset, 'NS') || '').replace(/\.(NS|BO)$/i, '');
-    return base ? getLTP(prices, base) : null;
+    const sym  = resolveGoldSymbol(asset, 'NS');
+    if (!sym) return null;
+    const base = sym.replace(/\.(NS|BO)$/i, '');
+    return getLTP(prices, base) || null;
   }
 
   // Totals
@@ -113,36 +120,62 @@ async function fetchAndRefreshGoldPrices(assets) {
 //  CSV Import
 // ══════════════════════════════════════════════════════════════
 
-const GOLD_SYMBOL_MAP = [
-  ['goldbees',     'GOLDBEES'],
-  ['sgold',        'SGOLD'],
-  ['hdfcgold',     'HDFCGOLD'],
-  ['kotakgold',    'KOTAKGOLD'],
-  ['sbietfgold',   'SBIETFGOLD'],
-  ['utigold',      'UTIGOLD'],
-  ['axisgold',     'AXISGOLD'],
-  ['ivzingold',    'IVZINGOLD'],
-  ['qgoldhalf',    'QGOLDHALF'],
-  ['nippon gold',  'GOLDBEES'],
-  ['hdfc gold',    'HDFCGOLD'],
-  ['kotak gold',   'KOTAKGOLD'],
-  ['sbi gold',     'SBIETFGOLD'],
-  ['uti gold',     'UTIGOLD'],
-  ['axis gold',    'AXISGOLD'],
-  ['invesco gold', 'IVZINGOLD'],
-  ['quantum gold', 'QGOLDHALF'],
-  ['gold savings', 'GOLDBEES'],
-  ['gold etf',     'GOLDBEES'],
+// Gold ETF tickers → Yahoo Finance symbol (NSE, .NS suffix)
+const GOLD_ETF_MAP = [
+  ['goldbees',                  'GOLDBEES.NS'],
+  ['sgold',                     'SGOLD.NS'],
+  ['hdfcgold',                  'HDFCGOLD.NS'],
+  ['kotakgold',                 'KOTAKGOLD.NS'],
+  ['sbietfgold',                'SBIETFGOLD.NS'],
+  ['utigold',                   'UTIGOLD.NS'],
+  ['axisgold',                  'AXISGOLD.NS'],
+  ['ivzingold',                 'IVZINGOLD.NS'],
+  ['qgoldhalf',                 'QGOLDHALF.NS'],
+  ['nippon india etf gold',     'GOLDBEES.NS'],
+  ['nippon india gold etf',     'GOLDBEES.NS'],
+  ['hdfc gold etf',             'HDFCGOLD.NS'],
+  ['kotak gold etf',            'KOTAKGOLD.NS'],
+  ['sbi gold etf',              'SBIETFGOLD.NS'],
+  ['uti gold etf',              'UTIGOLD.NS'],
+  ['axis gold etf',             'AXISGOLD.NS'],
+  ['invesco india gold etf',    'IVZINGOLD.NS'],
+  ['quantum gold etf',          'QGOLDHALF.NS'],
+  ['gold etf',                  'GOLDBEES.NS'],
+];
+
+// Gold Mutual Funds → Yahoo Finance symbol (Morningstar .BO format)
+const GOLD_MF_MAP = [
+  ['nippon india gold savings',           '0P0000XVDS.BO'],
+  ['hdfc gold fund',                      '0P0000XW76.BO'],
+  ['kotak gold fund',                     '0P0000XW3X.BO'],
+  ['sbi gold fund',                       '0P0000XW2U.BO'],
+  ['axis gold fund',                      '0P0001HKZR.BO'],
+  ['invesco india gold fund',             '0P0000Y6RW.BO'],
+  ['quantum gold savings',                '0P0000Z2BE.BO'],
+  ['aditya birla sun life gold',          '0P0000XVDS.BO'],
+  ['icici prudential regular gold savings','0P0000Z2BT.BO'],
+  ['icici prudential gold savings',       '0P0000Z2BT.BO'],
+  ['dsp world gold',                      '0P0000Y6QO.BO'],
 ];
 
 function guessGoldYahooSymbol(name) {
   if (!name) return null;
   const trimmed = name.trim();
+  const lower   = trimmed.toLowerCase();
+
+  // Pure ticker (all caps, no spaces) → ETF on NSE
   if (/^[A-Z0-9]+$/.test(trimmed)) return trimmed + '.NS';
-  const lower = trimmed.toLowerCase();
-  for (const [frag, ticker] of GOLD_SYMBOL_MAP) {
-    if (lower.includes(frag)) return ticker + '.NS';
+
+  // Check MF list first (more specific names)
+  for (const [frag, sym] of GOLD_MF_MAP) {
+    if (lower.includes(frag)) return sym;
   }
+
+  // Then ETF list
+  for (const [frag, sym] of GOLD_ETF_MAP) {
+    if (lower.includes(frag)) return sym;
+  }
+
   return null;
 }
 
