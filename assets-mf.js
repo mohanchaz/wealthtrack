@@ -141,7 +141,11 @@ async function fetchAndRefreshMfPrices(assets) {
   if (refreshBtn)   refreshBtn.disabled = true;
 
   // Build symbol list from nav_symbol column
-  const symbols = assets.filter(a => a.nav_symbol).map(a => a.nav_symbol);
+  // Yahoo Finance requires .BO suffix for Indian MF symbols (e.g. 0P0000XW75 → 0P0000XW75.BO)
+  const symbols = assets.filter(a => a.nav_symbol).map(a => {
+    const s = a.nav_symbol;
+    return /\.(NS|BO)$/i.test(s) ? s : s + '.BO';
+  });
 
   if (!symbols.length) {
     if (refreshBtn)   refreshBtn.disabled = false;
