@@ -36,9 +36,13 @@ let _foreignLiveData = {};
 
 // Live GBP/USD rate (1 GBP = x USD). null = not yet fetched.
 let _gbpUsdRate = null;
+// Live USD/INR rate (1 USD = x INR). null = not yet fetched.
+let _usdInrRate = null;
 
 // Convert a USD amount to GBP; returns null if rate unavailable
 const toGBP = (usd) => _gbpUsdRate ? usd / _gbpUsdRate : null;
+// Convert a USD amount to INR; returns null if rate unavailable
+const toINR = (usd) => _usdInrRate ? usd * _usdInrRate : null;
 // GBX (pence) → GBP
 const gbxToGBP = (gbx) => gbx / 100;
 
@@ -165,6 +169,29 @@ function renderForeignStocks(rows) {
   if (gainEl) {
     gainEl.textContent = gainParts.join('  +  ') || '—';
     gainEl.style.color = (gainUSD + gainGBP) > 0 ? 'var(--green)' : (gainUSD + gainGBP) < 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+
+  // ── INR summary row (top row — all amounts converted to ₹) ──
+  // USD→INR: direct rate. GBP→INR: GBP * GBP/USD * USD/INR
+  const gbpInrRate = (_gbpUsdRate && _usdInrRate) ? _gbpUsdRate * _usdInrRate : null;
+  const totalInvINR = _usdInrRate
+    ? (totalInvUSD * _usdInrRate) + (gbpInrRate ? totalInvGBP * gbpInrRate : 0)
+    : null;
+  const totalCurINR = _usdInrRate
+    ? ((totalCurUSD || totalInvUSD) * _usdInrRate) + (gbpInrRate ? (totalCurGBP || totalInvGBP) * gbpInrRate : 0)
+    : null;
+  const gainINR = (totalInvINR != null && totalCurINR != null) ? totalCurINR - totalInvINR : null;
+  const gainINRPct = (gainINR != null && totalInvINR) ? ` (${((gainINR / totalInvINR) * 100).toFixed(1)}%)` : '';
+  const INRfmt = v => '₹' + v.toFixed(2);
+  setEl('foreign-total-inv-inr', totalInvINR != null ? INRfmt(totalInvINR) : '—');
+  setEl('foreign-total-val-inr', totalCurINR != null ? INRfmt(totalCurINR) : '—');
+  const gainINREl = document.getElementById('foreign-total-gain-inr');
+  if (gainINREl) {
+    gainINREl.textContent = gainINR != null
+      ? `${gainINR >= 0 ? '+' : ''}${INRfmt(gainINR)}${gainINRPct}`
+      : '—';
+    gainINREl.style.color = gainINR == null ? 'var(--muted2)'
+      : gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)';
   }
 
   // ── GBP summary row (second row — all amounts converted to £) ──
@@ -427,7 +454,7 @@ async function fetchAndRefreshForeignPrices(rows) {
 
   // Build Yahoo symbol list — translate DB symbols to correct Yahoo tickers + add FX pair
   const yahooSymbols = rows.map(r => YAHOO_SYMBOL_MAP[r.symbol.toUpperCase()] || r.symbol);
-  const allSymbols = [...yahooSymbols, 'GBPUSD=X'];  // fetch FX rate in same call
+  const allSymbols = [...yahooSymbols, 'GBPUSD=X', 'USDINR=X'];  // fetch FX rates in same call
 
   let priceMap = null;
   try {
@@ -450,6 +477,13 @@ async function fetchAndRefreshForeignPrices(rows) {
   if (fxEntry) {
     _gbpUsdRate = typeof fxEntry === 'object' ? fxEntry.price : fxEntry;
     console.log('[ForeignPrices] GBP/USD rate:', _gbpUsdRate);
+  }
+
+  // Extract USD/INR rate (1 USD = x INR)
+  const inrEntry = priceMap['USDINR=X'] || priceMap['USDINRX'] || priceMap['USDINR'];
+  if (inrEntry) {
+    _usdInrRate = typeof inrEntry === 'object' ? inrEntry.price : inrEntry;
+    console.log('[ForeignPrices] USD/INR rate:', _usdInrRate);
   }
 
   // Build a priceMap keyed by DB symbol for easy lookup
