@@ -116,6 +116,10 @@ function closeGaiModal() {
 }
 
 document.addEventListener('fragments-loaded', () => {
+  document.getElementById('gold-refresh-btn')?.addEventListener('click', () => {
+    if (_currentAssetFilter === 'Gold') loadAssets(_currentUserId, 'Gold');
+  });
+
   const modal = document.getElementById('gold-invested-modal');
   document.getElementById('gold-invested-add-btn')?.addEventListener('click',    () => openGaiModal());
   document.getElementById('gold-invested-close-btn')?.addEventListener('click',  closeGaiModal);
@@ -256,10 +260,6 @@ async function fetchAndRefreshGoldPrices(assets) {
   if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
 }
 
-
-  document.getElementById('gold-refresh-btn')?.addEventListener('click', () => {
-    if (_currentAssetFilter === 'Gold') loadAssets(_currentUserId, 'Gold');
-  });
 
 // ── Gold CSV Parse ────────────────────────────────────────────
 

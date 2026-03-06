@@ -100,6 +100,10 @@ function closeMfaiModal() {
 }
 
 document.addEventListener('fragments-loaded', () => {
+  document.getElementById('mf-refresh-btn')?.addEventListener('click', () => {
+    if (_currentAssetFilter === 'Mutual Funds') loadAssets(_currentUserId, 'Mutual Funds');
+  });
+
   const modal = document.getElementById('mf-invested-modal');
   document.getElementById('mf-invested-add-btn')    && document.getElementById('mf-invested-add-btn').addEventListener('click',    () => openMfaiModal());
   document.getElementById('mf-invested-close-btn')  && document.getElementById('mf-invested-close-btn').addEventListener('click',  closeMfaiModal);
