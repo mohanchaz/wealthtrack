@@ -716,6 +716,8 @@ async function loadAssets(userId, filter = null) {
     document.querySelector('.assets-summary-row')?.classList.remove('hidden');
     document.getElementById('select-btn-row')?.classList.add('hidden');
     document.getElementById('foreign-import-btn')?.classList.remove('hidden');
+    document.getElementById('foreign-refresh-btn')?.classList.remove('hidden');
+    document.getElementById('foreign-last-updated')?.classList.remove('hidden');
     if (addBtn) addBtn.classList.add('hidden');
     loadForeignStocks(userId);
     return;
