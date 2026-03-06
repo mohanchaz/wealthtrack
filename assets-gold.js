@@ -186,6 +186,102 @@ async function fetchAndRefreshMfPrices(assets) {
   if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
 }
 
+// ══════════════════════════════════════════════════════════════
+//  ZERODHA GOLD — live price refresh (gold_holdings table)
+//  Uses yahoo_symbol (e.g. "GOLDBEES.BO") for Yahoo Finance lookup.
+//  DOM cells are keyed by holding_name (set in renderAssetsTable).
+// ══════════════════════════════════════════════════════════════
+
+async function fetchAndRefreshGoldPrices(assets) {
+  const lastUpdateEl = document.getElementById('gold-last-updated');
+  const refreshBtn   = document.getElementById('gold-refresh-btn');
+  if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching live prices…';
+  if (refreshBtn)   refreshBtn.disabled = true;
+
+  // Build symbol list — yahoo_symbol already includes suffix (.BO / .NS)
+  const symbols = assets
+    .filter(a => a.yahoo_symbol)
+    .map(a => /\.(NS|BO)$/i.test(a.yahoo_symbol) ? a.yahoo_symbol : a.yahoo_symbol + '.BO');
+
+  if (!symbols.length) {
+    if (refreshBtn)   refreshBtn.disabled = false;
+    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ No Yahoo symbols mapped';
+    showToast('No Yahoo Finance symbols found. Re-import CSV to map symbols.', 'error');
+    return;
+  }
+
+  const prices = await fetchLivePricesRaw(symbols);
+  if (refreshBtn) refreshBtn.disabled = false;
+
+  if (!prices) {
+    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ Could not fetch prices';
+    showToast('Live price fetch failed — check console', 'error');
+    return;
+  }
+
+  let totalValue = 0, totalInvested = 0;
+  assets.forEach(a => {
+    const key      = a.yahoo_symbol ? a.yahoo_symbol.replace(/\.(NS|BO)$/i, '') : null;
+    const ltp      = key ? getLTP(prices, key) : null;
+    const qty      = +a.qty || 0;
+    totalInvested += qty * (+a.avg_cost || 0);
+    totalValue    += qty * (ltp || +a.avg_cost || 0);
+  });
+
+  assets.forEach(a => {
+    const key = a.yahoo_symbol ? a.yahoo_symbol.replace(/\.(NS|BO)$/i, '') : null;
+    const ltp = key ? getLTP(prices, key) : null;
+    if (!ltp) return;
+
+    const holdingKey  = a.holding_name;   // DOM cells are keyed by holding_name
+    const qty         = +a.qty || 0;
+    const curVal      = qty * ltp;
+    const investedAmt = qty * (+a.avg_cost || 0);
+    const gain        = curVal - investedAmt;
+    const gainPct     = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
+    const allocPct    = totalValue > 0 ? (curVal / totalValue) * 100 : 0;
+
+    const ltpCell = document.querySelector(`[data-live-_ltp="${holdingKey}"]`);
+    if (ltpCell) ltpCell.textContent = INR(ltp);
+
+    const cvCell = document.querySelector(`[data-live-current_value="${holdingKey}"]`);
+    if (cvCell) cvCell.textContent = INR(curVal);
+
+    const allocCell = document.querySelector(`[data-live-_alloc_pct="${holdingKey}"]`);
+    if (allocCell) {
+      const barWidth = Math.min(allocPct, 100).toFixed(1);
+      allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
+        <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
+          <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
+        </span>
+        <b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b>
+      </span>`;
+    }
+
+    const gainTd = document.querySelector(`[data-live-gain="${holdingKey}"]`);
+    if (gainTd) {
+      const arrow    = gain >= 0 ? '▲' : '▼';
+      const badgeCls = gain > 0 ? 'pos' : gain < 0 ? 'neg' : 'zero';
+      gainTd.innerHTML = `<span class="gain-badge ${badgeCls}">${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}</span>`;
+    }
+  });
+
+  // Update summary stat cards
+  const totalGain    = totalValue - totalInvested;
+  const totalGainPct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('assets-total-value',    INR(totalValue));
+  set('assets-total-invested', INR(totalInvested));
+  const gainEl = document.getElementById('assets-total-gain');
+  if (gainEl) {
+    gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain) + totalGainPct;
+    gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+
+  const nowStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${nowStr}`;
+}
+
 // ── CSV Import ────────────────────────────────────────────────
 
 let _mfPreviewRows = [];
@@ -467,9 +563,14 @@ document.addEventListener('fragments-loaded', () => {
     else { showToast(_editingMfaiId ? 'Entry updated ✅' : 'Entry added 🎉', 'success'); closeMfaiModal(); loadMfActualInvested(_currentUserId); }
   });
 
-  // ── Refresh button ─────────────────────────────────────────
+  // ── Refresh button (Mutual Funds) ─────────────────────────
   document.getElementById('mf-refresh-btn')?.addEventListener('click', () => {
     if (_currentAssetFilter === 'Mutual Funds') loadAssets(_currentUserId, 'Mutual Funds');
+  });
+
+  // ── Refresh button (Zerodha Gold) ─────────────────────────
+  document.getElementById('gold-refresh-btn')?.addEventListener('click', () => {
+    if (_currentAssetFilter === 'Gold') loadAssets(_currentUserId, 'Gold');
   });
 
   // ── Import modal ───────────────────────────────────────────
