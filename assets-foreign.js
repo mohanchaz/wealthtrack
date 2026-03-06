@@ -9,6 +9,27 @@
 const GBX_HARDCODED = new Set(['MKS']);
 const isLondonSymbol = sym => typeof sym === 'string' && GBX_HARDCODED.has(sym.toUpperCase().replace(/\.L$/i, ''));
 
+// Maps DB symbol → correct Yahoo Finance ticker
+// Add entries here whenever a symbol differs from what Yahoo expects
+const YAHOO_SYMBOL_MAP = {
+  'BRK':  'BRK-B',   // DB stores 'BRK', Yahoo needs 'BRK-B'
+  'CNDX': 'CNDX.L',  // London ETF
+  'IGLN': 'IGLN.L',  // London ETF
+  'MKS':  'MKS.L',   // London stock (GBX)
+  'SPXS': 'SPXS.L',  // London ETF
+};
+// Reverse: Yahoo key (after .L strip) → DB symbol
+const YAHOO_KEY_TO_DB = {};
+Object.entries(YAHOO_SYMBOL_MAP).forEach(([db, yahoo]) => {
+  YAHOO_KEY_TO_DB[yahoo.replace(/\.L$/i, '').replace(/-B$/i, '')] = db;  // CNDX→CNDX, BRK-B→BRK... wait
+});
+// Simpler reverse: strip .L from yahoo ticker to get key, map that back to DB symbol
+const YAHOO_TICKER_TO_DB = {};
+Object.entries(YAHOO_SYMBOL_MAP).forEach(([db, yahoo]) => {
+  const key = yahoo.replace(/\.L$/i, '');  // BRK-B, CNDX, IGLN, MKS, SPXS
+  YAHOO_TICKER_TO_DB[key] = db;
+});
+
 // In-memory map: symbol → { unitPrice (native), currentValue (native) }
 // Populated at import time, lives until page refresh.
 let _foreignLiveData = {};
@@ -360,8 +381,8 @@ async function fetchAndRefreshForeignPrices(rows) {
   if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching prices…';
   if (refreshBtn)   refreshBtn.disabled = true;
 
-  // Build Yahoo symbol list — symbols already include .L for London stocks
-  const yahooSymbols = rows.map(r => r.symbol);
+  // Build Yahoo symbol list — translate DB symbols to correct Yahoo tickers
+  const yahooSymbols = rows.map(r => YAHOO_SYMBOL_MAP[r.symbol.toUpperCase()] || r.symbol);
 
   let priceMap = null;
   try {
@@ -381,18 +402,20 @@ async function fetchAndRefreshForeignPrices(rows) {
 
   // Update _foreignLiveData from the fetched map
   // priceMap keys = stripped Yahoo symbol (no .L, no .NS suffix from the API function)
+  // Build a priceMap keyed by DB symbol for easy lookup
+  // API strips .L → e.g. CNDX.L becomes key CNDX; BRK-B stays BRK-B
+  const dbPriceMap = {};
+  Object.entries(priceMap).forEach(([apiKey, val]) => {
+    const dbSym = YAHOO_TICKER_TO_DB[apiKey] || apiKey;
+    dbPriceMap[dbSym] = val;
+  });
+
   rows.forEach(r => {
-    const isGBX    = isLondonSymbol(r.symbol) || r.currency === 'GBX';
-    // API now strips .L too, so key is always the bare symbol (BRK-B, CNDX, MKS…)
-    const bareKey  = r.symbol.replace(/\.L$/i, '');
-    const entry    = priceMap[bareKey];
+    const entry = dbPriceMap[r.symbol];
     if (!entry) return;
-    const rawPrice = typeof entry === 'object' ? entry.price : entry;
-    // Yahoo returns GBp (pence) for .L symbols — store natively
-    // factor: GBX stored as pence (×1), GBP treated same, USD no conversion
-    const nativePrice   = rawPrice;
-    const nativeValue   = nativePrice * (+r.qty || 0);
-    _foreignLiveData[r.symbol] = { unitPrice: nativePrice, currentValue: nativeValue };
+    const rawPrice    = typeof entry === 'object' ? entry.price : entry;
+    const nativeValue = rawPrice * (+r.qty || 0);
+    _foreignLiveData[r.symbol] = { unitPrice: rawPrice, currentValue: nativeValue };
   });
 
   // Re-render table with updated live data
