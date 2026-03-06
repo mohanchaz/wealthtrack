@@ -137,6 +137,7 @@ document.addEventListener('fragments-loaded', () => {
     }
   });
 
+});
 // ── Live Price Refresh ────────────────────────────────────────
 
 async function fetchAndRefreshAionionGoldPrices(assets) {

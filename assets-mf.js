@@ -127,6 +127,7 @@ document.addEventListener('fragments-loaded', () => {
     else { showToast(_editingMfaiId ? 'Entry updated \u2705' : 'Entry added \ud83c\udf89', 'success'); closeMfaiModal(); loadMfActualInvested(_currentUserId); }
   });
 
+});
 // ── Live NAV Refresh ──────────────────────────────────────────
 
 async function fetchAndRefreshMfPrices(assets) {

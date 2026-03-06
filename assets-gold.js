@@ -153,6 +153,7 @@ document.addEventListener('fragments-loaded', () => {
     }
   });
 
+});
 // ── Gold Live Price Refresh ───────────────────────────────────
 
 async function fetchAndRefreshGoldPrices(assets) {
