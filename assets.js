@@ -828,6 +828,8 @@ function renderAssetsTable(assets, tableName) {
     if (addBtn2) addBtn2.classList.remove('hidden');
   } else if (tableName === 'foreign_stock_holdings') {
     document.getElementById('foreign-import-btn')?.classList.remove('hidden');
+    document.getElementById('foreign-refresh-btn')?.classList.remove('hidden');
+    document.getElementById('foreign-last-updated')?.classList.remove('hidden');
     if (addBtn2) addBtn2.classList.add('hidden');
   }
 
@@ -1063,6 +1065,7 @@ function renderAssetsTable(assets, tableName) {
   }
 
   // Auto-fetch live prices
+  if (tableName === 'foreign_stock_holdings' && assets.length) fetchAndRefreshForeignPrices(assets);
   if (tableName === 'zerodha_stocks' && assets.length) fetchAndRefreshZerodhaPrices(assets);
   if (tableName === 'aionion_stocks' && assets.length) fetchAndRefreshAionionPrices(assets);
   if (tableName === 'aionion_gold'   && assets.length) fetchAndRefreshAionionGoldPrices(assets);

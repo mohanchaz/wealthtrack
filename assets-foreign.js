@@ -131,7 +131,9 @@ async function loadForeignStocks(userId) {
     .order('symbol', { ascending: true });
 
   if (error) { showToast('Failed to load foreign stocks: ' + error.message, 'error'); return; }
-  renderForeignStocks(data || []);
+  const rows = data || [];
+  renderForeignStocks(rows);
+  if (rows.length) fetchAndRefreshForeignPrices(rows);
 }
 
 // ── Edit modal ────────────────────────────────────────────────
@@ -341,4 +343,82 @@ function openForeignImportModal() {
 
 function closeForeignImportModal() {
   document.getElementById('foreign-import-modal').classList.add('hidden');
+}
+// ── Live price refresh ────────────────────────────────────────
+// Yahoo Finance symbols:
+//   USD stocks  → symbol as-is (e.g. AAPL, TSLA)
+//   GBX stocks  → symbol + ".L"  (e.g. MKS → MKS.L, price returned in GBp)
+
+async function fetchAndRefreshForeignPrices(rows) {
+  const lastUpdateEl = document.getElementById('foreign-last-updated');
+  const refreshBtn   = document.getElementById('foreign-refresh-btn');
+  if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching prices…';
+  if (refreshBtn)   refreshBtn.disabled = true;
+
+  // Build Yahoo symbol list
+  const yahooSymbols = rows.map(r =>
+    (r.currency === 'GBX' || r.currency === 'GBP') ? r.symbol + '.L' : r.symbol
+  );
+
+  let priceMap = null;
+  try {
+    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(yahooSymbols.join(','))}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    priceMap = await res.json();
+    if (priceMap.error) throw new Error(priceMap.error);
+  } catch (err) {
+    console.warn('[ForeignPrices] fetch failed:', err.message);
+    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ Could not fetch prices';
+    if (refreshBtn)   refreshBtn.disabled = false;
+    showToast('Live price fetch failed — check console', 'error');
+    return;
+  }
+
+  if (refreshBtn) refreshBtn.disabled = false;
+
+  // Update _foreignLiveData from the fetched map
+  // priceMap keys = stripped Yahoo symbol (no .L, no .NS suffix from the API function)
+  rows.forEach(r => {
+    const isGBX    = r.currency === 'GBX' || r.currency === 'GBP';
+    // API only strips .NS/.BO — .L stays in the key, so look up with suffix for GBX
+    const key      = isGBX ? r.symbol + '.L' : r.symbol;
+    const entry    = priceMap[key] || priceMap[r.symbol]; // fallback to bare symbol
+    if (!entry) return;
+    const rawPrice = typeof entry === 'object' ? entry.price : entry;
+    // Yahoo returns GBp (pence) for .L symbols — store natively
+    // factor: GBX stored as pence (×1), GBP treated same, USD no conversion
+    const nativePrice   = rawPrice;
+    const nativeValue   = nativePrice * (+r.qty || 0);
+    _foreignLiveData[r.symbol] = { unitPrice: nativePrice, currentValue: nativeValue };
+  });
+
+  // Re-render table with updated live data
+  renderForeignStocks(rows);
+
+  const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
+}
+
+// Wire refresh button
+document.addEventListener('fragments-loaded', () => {
+  document.getElementById('foreign-refresh-btn')?.addEventListener('click', () => {
+    // Re-load from DB then refresh prices
+    if (_currentUserId) loadForeignStocksAndRefresh(_currentUserId);
+  });
+});
+
+async function loadForeignStocksAndRefresh(userId) {
+  const { data, error } = await sb
+    .from('foreign_stock_holdings')
+    .select('*')
+    .eq('user_id', userId)
+    .order('symbol', { ascending: true });
+  if (error) { showToast('Failed to load: ' + error.message, 'error'); return; }
+  const rows = data || [];
+  if (rows.length) {
+    renderForeignStocks(rows);         // show immediately with cached data
+    fetchAndRefreshForeignPrices(rows); // then fetch live prices
+  } else {
+    renderForeignStocks(rows);
+  }
 }
