@@ -1,37 +1,21 @@
 // ══════════════════════════════════════════════════════════════
-//  GOLD — CSV import (GOLDBEES ETF + Gold MF), edit, refresh
+//  MUTUAL FUNDS — import, live NAV refresh, edit, actual invested
 // ══════════════════════════════════════════════════════════════
 
-// Yahoo Finance symbols for gold holdings
-const GOLD_SYMBOL_MAP = {
-  'GOLDBEES':                      'GOLDBEES.NS',   // Gold ETF on NSE
-  'Nippon India Gold Savings Fund': '0P0000XVDS.BO', // Gold MF
-};
+// ── Actual Invested ───────────────────────────────────────────
 
-function resolveGoldSymbol(name) {
-  if (GOLD_SYMBOL_MAP[name]) return GOLD_SYMBOL_MAP[name];
-  // Fuzzy match
-  const lower = name.toLowerCase();
-  for (const [key, sym] of Object.entries(GOLD_SYMBOL_MAP)) {
-    if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) return sym;
-  }
-  return null;
-}
+let _editingMfaiId = null;
 
-// ── Gold Actual Invested ──────────────────────────────────────
-
-let _editingGaiId = null;
-
-async function loadGoldActualInvested(userId) {
-  const section = document.getElementById('gold-monthly-summary');
+async function loadMfActualInvested(userId) {
+  const section = document.getElementById('mf-monthly-summary');
   if (!section) return;
   section.classList.remove('hidden');
 
-  const body = document.getElementById('gold-monthly-body');
-  if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+  const body = document.getElementById('mf-monthly-body');
+  if (body) body.innerHTML = '<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>';
 
   const { data, error } = await sb
-    .from('gold_actual_invested')
+    .from('mf_actual_invested')
     .select('*')
     .eq('user_id', userId)
     .order('entry_date', { ascending: false });
@@ -40,16 +24,16 @@ async function loadGoldActualInvested(userId) {
     if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--danger)">${error.message}</td></tr>`;
     return;
   }
-  renderGoldActualInvested(data || []);
+  renderMfActualInvested(data || []);
 }
 
-function renderGoldActualInvested(rows) {
-  const body    = document.getElementById('gold-monthly-body');
-  const totalEl = document.getElementById('gold-monthly-total');
+function renderMfActualInvested(rows) {
+  const body    = document.getElementById('mf-monthly-body');
+  const totalEl = document.getElementById('mf-monthly-total');
   if (!body) return;
 
   const grand = rows.reduce((s, r) => s + (+r.amount || 0), 0);
-  if (totalEl) totalEl.textContent = `Total: ${INR(grand)}`;
+  if (totalEl) totalEl.textContent = 'Total: ' + INR(grand);
 
   const statTile = document.getElementById('assets-actual-invested');
   if (statTile) statTile.textContent = INR(grand);
@@ -57,16 +41,14 @@ function renderGoldActualInvested(rows) {
   const curValEl = document.getElementById('assets-total-value');
   const currentValue = curValEl ? parseFloat(curValEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   const actualGain = currentValue - grand;
-  const gainPct = grand > 0 ? ` (${((actualGain / grand) * 100).toFixed(1)}%)` : '';
-  const gainColor = actualGain > 0 ? 'var(--green)' : actualGain < 0 ? 'var(--danger)' : 'var(--muted)';
-  const gainLabel = (actualGain >= 0 ? '+' : '') + INR(actualGain) + gainPct;
-
-  const gainTile = document.getElementById('assets-actual-gain');
+  const gainPct    = grand > 0 ? ` (${((actualGain / grand) * 100).toFixed(1)}%)` : '';
+  const gainColor  = actualGain > 0 ? 'var(--green)' : actualGain < 0 ? 'var(--danger)' : 'var(--muted)';
+  const gainLabel  = (actualGain >= 0 ? '+' : '') + INR(actualGain) + gainPct;
+  const gainTile   = document.getElementById('assets-actual-gain');
   if (gainTile) { gainTile.textContent = gainLabel; gainTile.style.color = gainColor; }
 
-
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
+    body.innerHTML = '<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>';
     return;
   }
 
@@ -74,170 +56,114 @@ function renderGoldActualInvested(rows) {
     const d       = new Date(r.entry_date);
     const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
-        <td class="gai-cb-wrap" data-id="${r.id}" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="gai-cb" data-id="${r.id}" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>
+        <td class="mfai-cb-wrap" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="mfai-cb" data-id="${r.id}" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>
       <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${dateStr}</td>
-      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
+      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
-          data-gai-id="${r.id}" data-gai-date="${r.entry_date}" data-gai-amount="${r.amount}"
-          class="gai-edit-btn" title="Edit">✏️</button></span>
+          data-mfai-id="${r.id}" data-mfai-date="${r.entry_date}" data-mfai-amount="${r.amount}"
+          class="mfai-edit-btn" title="Edit">✏️</button>
       </td>
     </tr>`;
   }).join('') +
     `<tr style="background:var(--surface2)">
     <td style="padding:9px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2)">Total</td>
     <td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">${INR(grand)}</td>
-    <td colspan="2"></td>
+    <td></td>
   </tr>`;
 
-
-  if (window['_gold_bindCheckboxes']) window['_gold_bindCheckboxes']();
-  body.querySelectorAll('.gai-edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => openGaiModal({
-      id: btn.dataset.gaiId, entry_date: btn.dataset.gaiDate,
-      amount: btn.dataset.gaiAmount
+  if (window['_mf_bindCheckboxes']) window['_mf_bindCheckboxes']();
+  body.querySelectorAll('.mfai-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openMfaiModal({
+      id: btn.dataset.mfaiId, entry_date: btn.dataset.mfaiDate, amount: btn.dataset.mfaiAmount
     }));
   });
 }
 
-function openGaiModal(row = null) {
-  _editingGaiId = row?.id || null;
-  const titleEl = document.getElementById('gold-invested-modal-title');
+function openMfaiModal(row = null) {
+  _editingMfaiId = row ? row.id : null;
+  const titleEl = document.getElementById('mf-invested-modal-title');
   if (titleEl) titleEl.textContent = row ? 'Edit Entry' : 'Add Entry';
-  document.getElementById('gai-date').value   = row?.entry_date || '';
-  document.getElementById('gai-amount').value = row?.amount    || '';
-  document.getElementById('gold-invested-modal').classList.remove('hidden');
+  document.getElementById('mfai-date').value   = row ? (row.entry_date || '') : '';
+  document.getElementById('mfai-amount').value = row ? (row.amount    || '') : '';
+  document.getElementById('mf-invested-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 
-function closeGaiModal() {
-  document.getElementById('gold-invested-modal').classList.add('hidden');
+function closeMfaiModal() {
+  document.getElementById('mf-invested-modal').classList.add('hidden');
   document.body.style.overflow = '';
-  _editingGaiId = null;
+  _editingMfaiId = null;
 }
 
-document.addEventListener('fragments-loaded', () => {
-  document.getElementById('gold-refresh-btn')?.addEventListener('click', () => {
-    if (_currentAssetFilter === 'Gold') loadAssets(_currentUserId, 'Gold');
-  });
+// ── Live NAV Refresh ──────────────────────────────────────────
 
-  const modal = document.getElementById('gold-invested-modal');
-  document.getElementById('gold-invested-add-btn')?.addEventListener('click',    () => openGaiModal());
-  document.getElementById('gold-invested-close-btn')?.addEventListener('click',  closeGaiModal);
-  document.getElementById('gold-invested-cancel-btn')?.addEventListener('click', closeGaiModal);
-  modal?.addEventListener('click', e => { if (e.target === modal) closeGaiModal(); });
-
-  document.getElementById('gold-invested-save-btn')?.addEventListener('click', async () => {
-    const date   = document.getElementById('gai-date').value;
-    const amount = parseFloat(document.getElementById('gai-amount').value);
-
-    if (!date)                  { showToast('Date is required', 'error'); return; }
-    if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
-
-    const saveBtn = document.getElementById('gold-invested-save-btn');
-    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
-
-    const payload = { entry_date: date, amount };
-    let op;
-    if (_editingGaiId) {
-      op = sb.from('gold_actual_invested').update(payload).eq('id', _editingGaiId);
-    } else {
-      payload.user_id = _currentUserId;
-      op = sb.from('gold_actual_invested').insert(payload);
-    }
-
-    const { error } = await op;
-    saveBtn.textContent = '💾 Save Entry'; saveBtn.disabled = false;
-
-    if (error) {
-      showToast('Save failed: ' + error.message, 'error');
-    } else {
-      showToast(_editingGaiId ? 'Entry updated ✅' : 'Entry added 🎉', 'success');
-      closeGaiModal();
-      loadGoldActualInvested(_currentUserId);
-    }
-  });
-
-});
-// ── Gold Live Price Refresh ───────────────────────────────────
-
-async function fetchAndRefreshGoldPrices(assets) {
-  const lastUpdateEl = document.getElementById('gold-last-updated');
-  const refreshBtn   = document.getElementById('gold-refresh-btn');
-  if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching live prices…';
+async function fetchAndRefreshMfPrices(assets) {
+  const lastUpdateEl = document.getElementById('mf-last-updated');
+  const refreshBtn   = document.getElementById('mf-refresh-btn');
+  if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching live NAVs…';
   if (refreshBtn)   refreshBtn.disabled = true;
 
-  const symbolSet = new Set(assets.map(a => a.yahoo_symbol).filter(Boolean));
+  // Yahoo Finance requires .BO suffix for Indian MF symbols (e.g. 0P0000XW75 → 0P0000XW75.BO)
+  const symbols = assets.filter(a => a.nav_symbol).map(a => {
+    const s = a.nav_symbol;
+    return /\.(NS|BO)$/i.test(s) ? s : s + '.BO';
+  });
 
-  if (!symbolSet.size) {
+  if (!symbols.length) {
+    if (refreshBtn)   refreshBtn.disabled = false;
     if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ No symbols mapped';
-    if (refreshBtn) refreshBtn.disabled = false;
+    showToast('No Yahoo Finance symbols found. Re-import CSV to map symbols.', 'error');
     return;
   }
 
-  let prices = null;
-  try {
-    const res = await fetch(`/api/prices?symbols=${encodeURIComponent([...symbolSet].join(','))}`);
-    if (res.ok) {
-      const raw = await res.json();
-      if (!raw.error) prices = raw;
-    }
-  } catch (e) {
-    console.warn('[Gold] fetch failed:', e.message);
-  }
-
+  const prices = await fetchLivePricesRaw(symbols);
   if (refreshBtn) refreshBtn.disabled = false;
 
   if (!prices) {
-    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ Could not fetch prices';
-    showToast('Price fetch failed', 'error');
+    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ Could not fetch NAVs';
+    showToast('Live NAV fetch failed', 'error');
     return;
   }
 
-  const getPrice = sym => {
-    if (!sym) return null;
-    // Try with suffix stripped, then with NS/BO suffix
-    const key = sym.replace(/\.(NS|BO)$/, '');
-    return getLTP(prices, key);
-  };
-
   let totalValue = 0, totalInvested = 0;
-
   assets.forEach(a => {
-    const price = getPrice(a.yahoo_symbol);
-    totalValue    += (+a.qty || 0) * (price || +a.avg_cost || 0);
-    totalInvested += (+a.qty || 0) * (+a.avg_cost || 0);
+    const liveNav     = a.nav_symbol ? getLTP(prices, a.nav_symbol.replace(/\.(NS|BO)$/i, '')) : null;
+    const qty         = +a.qty || 0;
+    totalInvested    += qty * (+a.avg_cost || 0);
+    totalValue       += qty * (liveNav || +a.avg_cost || 0);
   });
 
   assets.forEach(a => {
-    const price2 = getPrice(a.yahoo_symbol);
-    if (!price2) return;
+    const liveNav = a.nav_symbol ? getLTP(prices, a.nav_symbol.replace(/\.(NS|BO)$/i, '')) : null;
+    if (!liveNav) return;
 
     const qty         = +a.qty || 0;
-    const curVal      = qty * price2;
+    const curVal      = qty * liveNav;
     const investedAmt = qty * (+a.avg_cost || 0);
     const gain        = curVal - investedAmt;
     const gainPct     = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
-    const allocPct    = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
+    const allocPct    = totalValue > 0 ? (curVal / totalValue) * 100 : 0;
+    const key         = a.fund_name;
 
-    const nameKey = a.holding_name;
+    const navCell = document.querySelector(`[data-live-_live_nav="${key}"]`);
+    if (navCell) navCell.textContent = INR(liveNav);
 
-    const ltpCell = document.querySelector(`[data-live-_ltp="${nameKey}"]`);
-    if (ltpCell) ltpCell.textContent = INR(price2);
-
-    const cvCell = document.querySelector(`[data-live-current_value="${nameKey}"]`);
+    const cvCell = document.querySelector(`[data-live-current_value="${key}"]`);
     if (cvCell) cvCell.textContent = INR(curVal);
 
-    const allocCell = document.querySelector(`[data-live-_alloc_pct="${nameKey}"]`);
+    const allocCell = document.querySelector(`[data-live-_alloc_pct="${key}"]`);
     if (allocCell) {
       const barWidth = Math.min(allocPct, 100).toFixed(1);
       allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
         <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
           <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
+        </span>
         <b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b>
       </span>`;
     }
 
-    const gainTd = document.querySelector(`[data-live-gain="${nameKey}"]`);
+    const gainTd = document.querySelector(`[data-live-gain="${key}"]`);
     if (gainTd) {
       const arrow    = gain >= 0 ? '▲' : '▼';
       const badgeCls = gain > 0 ? 'pos' : gain < 0 ? 'neg' : 'zero';
@@ -260,338 +186,398 @@ async function fetchAndRefreshGoldPrices(assets) {
   if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
 }
 
+// ── CSV Import ────────────────────────────────────────────────
 
-// ── Gold CSV Parse ────────────────────────────────────────────
+let _mfPreviewRows = [];
 
-let _goldPreviewRows = [];
+const MF_SYMBOL_MAP = [
+  ['aditya birla sun life large cap',        '0P0000XVWL'],
+  ['aditya birla sun life',                  '0P0000XVWL'],
+  ['axis small cap',                         '0P00011MAX'],
+  ['axis bluechip',                          '0P0000XVUK'],
+  ['axis flexi cap',                         '0P0001BFSL'],
+  ['axis midcap',                            '0P0000XXGV'],
+  ['groww elss tax saver',                   '0P0001BN7D'],
+  ['hdfc elss tax saver',                    '0P0000XW8Z'],
+  ['hdfc focused fund',                      '0P0000XW75'],
+  ['hdfc nifty 100 index',                   '0P0001OF02'],
+  ['hdfc mid-cap opportunities',             '0P0000XW6D'],
+  ['hdfc mid cap opportunities',             '0P0000XW6D'],
+  ['hdfc top 100',                           '0P0000XW73'],
+  ['hdfc flexi cap',                         '0P0000XW6J'],
+  ['hdfc index nifty 50',                    '0P0000XW5B'],
+  ['icici prudential dividend yield equity', '0P000134CI'],
+  ['icici prudential nifty midcap 150',      '0P0001NYM0'],
+  ['icici prudential nifty next 50',         '0P0000Z2BQ'],
+  ['icici prudential bluechip',              '0P0000XW4X'],
+  ['icici prudential flexi cap',             '0P0000XVVR'],
+  ['icici prudential value discovery',       '0P0000XW52'],
+  ['icici prudential technology',            '0P0000XW63'],
+  ['kotak emerging equity',                  '0P0000XW3T'],
+  ['kotak flexicap',                         '0P0000XW3V'],
+  ['kotak elss tax saver',                   '0P0000XW3W'],
+  ['mirae asset large cap',                  '0P0000Y6RB'],
+  ['mirae asset emerging bluechip',          '0P0001257B'],
+  ['mirae asset large & midcap',             '0P0001257B'],
+  ['nippon india small cap',                 '0P0000XW9N'],
+  ['nippon india gold savings',              '0P0000XVDS'],
+  ['nippon india large cap',                 '0P0000XW9F'],
+  ['parag parikh flexi cap',                 '0P0000XVWF'],
+  ['quant small cap',                        '0P0000Z2B7'],
+  ['quant mid cap',                          '0P0000Z2B8'],
+  ['quant active fund',                      '0P0000Z2B6'],
+  ['sbi bluechip',                           '0P0000XW2X'],
+  ['sbi contra',                             '0P0000XW2V'],
+  ['sbi focused equity',                     '0P0000XW2Z'],
+  ['sbi magnum midcap',                      '0P0000XW31'],
+  ['sbi small cap',                          '0P0000XW2Y'],
+  ['tata digital india',                     '0P0001BFT3'],
+  ['uti nifty 50 index',                     '0P0000XW1Q'],
+  ['uti flexi cap',                          '0P0000XW1R'],
+];
 
-function parseGoldCSV(text) {
-  const lines  = text.trim().split(/\r?\n/);
-  const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+function guessNavSymbol(fundName) {
+  const lower = (fundName || '').toLowerCase();
+  for (let i = 0; i < MF_SYMBOL_MAP.length; i++) {
+    if (lower.indexOf(MF_SYMBOL_MAP[i][0]) !== -1) return MF_SYMBOL_MAP[i][1];
+  }
+  return null;
+}
 
-  const needles = Array.prototype.slice.call.bind(Array.prototype.slice);
+function parseMfCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
 
-  function find() {
-    const args = Array.prototype.slice.call(arguments);
-    for (let i = 0; i < args.length; i++) {
-      const needle = args[i].toLowerCase();
-      const idx = header.findIndex(h => h.toLowerCase().indexOf(needle) !== -1);
+  const rawHeader = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+  function find(...needles) {
+    for (const needle of needles) {
+      const idx = rawHeader.findIndex(h => h.toLowerCase().includes(needle.toLowerCase()));
       if (idx !== -1) return idx;
     }
     return -1;
   }
 
-  const iName     = find('Instrument');
-  const iQty      = find('Qty');
-  const iAvgCost  = find('Avg. cost', 'Avg cost', 'avg_cost');
-  const iInvested = find('Invested');
-  const iCurVal   = find('Cur. val', 'Cur val', 'current_value');
-  const iPnL      = find('P&L');
+  const iName     = find('instrument', 'fund name', 'scheme');
+  const iQty      = find('qty', 'units', 'quantity');
+  const iAvgCost  = find('avg. cost', 'avg cost', 'avg nav', 'average');
+  const iInvested = find('invested');
+  const iCurVal   = find('cur. val', 'cur val', 'current');
 
-  const holdings = [];
+  const funds = [];
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
-    const cols  = lines[i].split(',');
-    const clean = c => (c || '').toString().replace(/^"|"$/g, '').trim();
-    const num   = c => parseFloat(clean(c)) || 0;
 
-    const name = clean(cols[iName]);
-    if (!name) continue;
+    const cols = [];
+    let inQ = false, cur = '';
+    for (let j = 0; j < lines[i].length; j++) {
+      const ch = lines[i][j];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    cols.push(cur.trim());
 
-    // GOLDBEES = stock (ALL CAPS), Gold MF = mixed case with "gold"
-    const isGoldETF = name.toUpperCase() === name && /gold/i.test(name);
-    const isGoldMF  = /[a-z]/.test(name) && /gold/i.test(name);
+    const clean = idx => (cols[idx] || '').replace(/^"|"$/g, '').trim();
+    const num   = idx => parseFloat((cols[idx] || '').replace(/[,₹]/g, '')) || 0;
 
-    if (!isGoldETF && !isGoldMF) continue;
+    const fundName = clean(iName);
+    if (!fundName) continue;
+    if (/^[A-Z0-9\-\.&]+$/.test(fundName)) continue; // skip ETF/stock rows
+    if (/gold/i.test(fundName)) continue;
 
-    holdings.push({
-      holding_name:  name,
-      holding_type:  isGoldETF ? 'ETF' : 'MF',
-      qty:           num(cols[iQty]),
-      avg_cost:      num(cols[iAvgCost]),
-      invested:      num(cols[iInvested]),
-      current_value: num(cols[iCurVal]),
-      pnl:           num(cols[iPnL]),
-      yahoo_symbol:  resolveGoldSymbol(name)
-    });
+    const qty      = iQty      >= 0 ? num(iQty)      : 0;
+    const avgCost  = iAvgCost  >= 0 ? num(iAvgCost)  : 0;
+    const invested = iInvested >= 0 ? num(iInvested) : qty * avgCost;
+    const curVal   = iCurVal   >= 0 ? num(iCurVal)   : invested;
+
+    funds.push({ fund_name: fundName, qty, avg_cost: avgCost, invested, current_value: curVal, nav_symbol: guessNavSymbol(fundName) });
   }
-  return holdings;
+  return funds;
 }
 
-// ── Gold Import Modal ─────────────────────────────────────────
-
-function openGoldImportModal() {
-  _goldPreviewRows = [];
-  document.getElementById('gold-csv-input').value = '';
-  document.getElementById('gold-csv-filename').textContent = '';
-  document.getElementById('gold-preview-section').classList.add('hidden');
-  document.getElementById('gold-import-confirm-btn').classList.add('hidden');
-  document.getElementById('gold-import-modal').classList.remove('hidden');
+function openMfImportModal() {
+  _mfPreviewRows = [];
+  const csvInput = document.getElementById('mf-csv-input');
+  if (csvInput) csvInput.value = '';
+  const filenameEl = document.getElementById('mf-csv-filename');
+  if (filenameEl) filenameEl.textContent = '';
+  document.getElementById('mf-preview-section')?.classList.add('hidden');
+  document.getElementById('mf-import-confirm-btn')?.classList.add('hidden');
+  document.getElementById('mf-import-modal')?.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 
-function closeGoldImportModal() {
-  document.getElementById('gold-import-modal').classList.add('hidden');
+function closeMfImportModal() {
+  document.getElementById('mf-import-modal')?.classList.add('hidden');
   document.body.style.overflow = '';
 }
 
-function handleGoldCSV(file) {
+function handleMfCSV(file) {
   if (!file) return;
-  document.getElementById('gold-csv-filename').textContent = file.name;
+  const filenameEl = document.getElementById('mf-csv-filename');
+  if (filenameEl) filenameEl.textContent = file.name;
 
   const reader = new FileReader();
   reader.onload = e => {
-    _goldPreviewRows = parseGoldCSV(e.target.result);
-    const count = _goldPreviewRows.length;
+    _mfPreviewRows = parseMfCSV(e.target.result);
+    const count = _mfPreviewRows.length;
 
-    document.getElementById('gold-holding-count').textContent  = count;
-    document.getElementById('gold-import-count').textContent   = count;
+    const countEl       = document.getElementById('mf-fund-count');
+    const importCountEl = document.getElementById('mf-import-count');
+    if (countEl)       countEl.textContent       = count;
+    if (importCountEl) importCountEl.textContent = count;
 
-    const thead   = document.getElementById('gold-preview-thead');
-    const tbody   = document.getElementById('gold-preview-body');
-    const thStyle = 'padding:7px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);background:var(--surface2);border-bottom:1px solid var(--border)';
+    const thead = document.getElementById('mf-preview-thead');
+    const tbody = document.getElementById('mf-preview-body');
+    if (!thead || !tbody) return;
 
+    const thS = 'padding:7px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);background:var(--surface2);border-bottom:1px solid var(--border)';
     thead.innerHTML = `<tr>
-      <th style="${thStyle};text-align:center;width:32px">✓</th>
-      <th style="${thStyle};text-align:left">Name</th>
-      <th style="${thStyle};text-align:left">Type</th>
-      <th style="${thStyle}">Qty / Units</th>
-      <th style="${thStyle}">Avg Cost</th>
-      <th style="${thStyle}">Invested</th>
-      <th style="${thStyle}">Cur. Value</th>
-      <th style="${thStyle}">P&amp;L</th>
+      <th style="${thS};text-align:center;width:32px">✓</th>
+      <th style="${thS};text-align:left">Fund Name</th>
+      <th style="${thS}">Units</th>
+      <th style="${thS}">Avg NAV</th>
+      <th style="${thS}">Invested</th>
+      <th style="${thS}">Symbol</th>
     </tr>`;
 
     const tdS = 'padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);font-size:12px';
-    tbody.innerHTML = _goldPreviewRows.map((r, i) => {
-      const pnlColor  = r.pnl >= 0 ? 'var(--green)' : 'var(--danger)';
-      const typeBadge = r.holding_type === 'ETF'
-        ? `<span style="background:#fff3cd;color:#856404;padding:1px 7px;border-radius:20px;font-size:11px;font-weight:600">ETF</span>`
-        : `<span style="background:var(--accentbg);color:var(--accent);padding:1px 7px;border-radius:20px;font-size:11px;font-weight:600">MF</span>`;
-      const symBadge = r.yahoo_symbol
-        ? `<span style="font-size:10px;color:var(--muted2);margin-left:4px">${r.yahoo_symbol}</span>`
-        : `<span style="font-size:10px;color:var(--danger);margin-left:4px">⚠️ no symbol</span>`;
-      return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}" data-idx="${i}">
-        <td style="${tdS};text-align:center">
-          <input type="checkbox" class="gold-row-chk" data-idx="${i}" checked style="cursor:pointer;width:15px;height:15px">
-        </td>
-        <td style="${tdS};text-align:left;font-weight:600">${r.holding_name}${symBadge}</td>
-        <td style="${tdS};text-align:left">${typeBadge}</td>
+    tbody.innerHTML = _mfPreviewRows.map((r, i) => `
+      <tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}" data-idx="${i}">
+        <td style="${tdS};text-align:center"><input type="checkbox" class="mf-row-chk" data-idx="${i}" checked style="cursor:pointer;width:15px;height:15px"></td>
+        <td style="${tdS};text-align:left;font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.fund_name}</td>
         <td style="${tdS}">${r.qty}</td>
         <td style="${tdS}">${INR(r.avg_cost)}</td>
         <td style="${tdS}">${INR(r.invested)}</td>
-        <td style="${tdS};font-weight:600">${INR(r.current_value)}</td>
-        <td style="${tdS};color:${pnlColor};font-weight:600">${INR(r.pnl)}</td>
-      </tr>`;
-    }).join('');
+        <td style="${tdS};font-size:11px;color:var(--muted2)">${r.nav_symbol || '<span style="color:var(--danger)">?</span>'}</td>
+      </tr>`).join('');
 
     const updateCount = () => {
-      const checked = tbody.querySelectorAll('.gold-row-chk:checked').length;
-      document.getElementById('gold-import-count').textContent   = checked;
-      document.getElementById('gold-holding-count').textContent  = checked;
-      const btn = document.getElementById('gold-import-confirm-btn');
-      checked > 0 ? btn.classList.remove('hidden') : btn.classList.add('hidden');
+      const checked = tbody.querySelectorAll('.mf-row-chk:checked').length;
+      if (countEl)       countEl.textContent       = checked;
+      if (importCountEl) importCountEl.textContent = checked;
+      document.getElementById('mf-import-confirm-btn')?.classList.toggle('hidden', checked === 0);
     };
-    tbody.querySelectorAll('.gold-row-chk').forEach(chk => chk.addEventListener('change', updateCount));
+    tbody.querySelectorAll('.mf-row-chk').forEach(chk => chk.addEventListener('change', updateCount));
 
-    document.getElementById('gold-preview-section').classList.remove('hidden');
-    count > 0
-      ? document.getElementById('gold-import-confirm-btn').classList.remove('hidden')
-      : document.getElementById('gold-import-confirm-btn').classList.add('hidden');
+    document.getElementById('mf-preview-section')?.classList.remove('hidden');
+    document.getElementById('mf-import-confirm-btn')?.classList.toggle('hidden', count === 0);
   };
   reader.readAsText(file);
 }
 
-async function importGoldHoldings(allRows) {
+async function importMfHoldings(allRows) {
   const checkedIdxs = new Set(
-    [...document.querySelectorAll('.gold-row-chk:checked')].map(c => +c.dataset.idx)
+    [...document.querySelectorAll('.mf-row-chk:checked')].map(c => +c.dataset.idx)
   );
   const rows = allRows.filter((_, i) => checkedIdxs.has(i));
-  if (!rows.length) { showToast('No holdings selected', 'error'); return; }
+  if (!rows.length) { showToast('No funds selected', 'error'); return; }
 
-  const confirmBtn = document.getElementById('gold-import-confirm-btn');
-  confirmBtn.textContent = 'Importing…'; confirmBtn.disabled = true;
+  const confirmBtn = document.getElementById('mf-import-confirm-btn');
+  if (confirmBtn) { confirmBtn.textContent = 'Importing…'; confirmBtn.disabled = true; }
 
-  // Delete all then insert fresh
-  await sb.from('gold_holdings').delete().eq('user_id', _currentUserId);
+  const { data: existing } = await sb.from('mf_holdings').select('fund_name, qty').eq('user_id', _currentUserId);
+  const prevQtyMap = {};
+  (existing || []).forEach(r => { prevQtyMap[r.fund_name] = +r.qty || 0; });
 
-  const payload2 = rows.map(r => ({
-    user_id:      _currentUserId,
-    holding_name: r.holding_name,
-    holding_type: r.holding_type,
-    qty:          r.qty,
-    avg_cost:     r.avg_cost,
-    yahoo_symbol: r.yahoo_symbol || null,
-    imported_at:  new Date().toISOString()
-  }));
+  const incomingSet = new Set(rows.map(r => r.fund_name));
+  const toDelete    = (existing || []).filter(r => !incomingSet.has(r.fund_name)).map(r => r.fund_name);
+  if (toDelete.length) {
+    await sb.from('mf_holdings').delete().eq('user_id', _currentUserId).in('fund_name', toDelete);
+  }
 
-  const { error } = await sb.from('gold_holdings').insert(payload2);
+  const { error } = await sb.from('mf_holdings').upsert(
+    rows.map(r => ({
+      user_id:     _currentUserId,
+      fund_name:   r.fund_name,
+      qty:         r.qty,
+      prev_qty:    prevQtyMap[r.fund_name] ?? 0,
+      avg_cost:    r.avg_cost,
+      nav_symbol:  r.nav_symbol || null,
+      imported_at: new Date().toISOString(),
+    })),
+    { onConflict: 'user_id,fund_name' }
+  );
 
-  confirmBtn.textContent = `📥 Import ${rows.length} Holdings`;
-  confirmBtn.disabled = false;
+  if (confirmBtn) { confirmBtn.textContent = `📥 Import ${rows.length} Funds`; confirmBtn.disabled = false; }
 
   if (error) {
     showToast('Import failed: ' + error.message, 'error');
   } else {
-    showToast(`✅ Imported ${rows.length} gold holdings!`, 'success');
-    closeGoldImportModal();
-    loadAssets(_currentUserId, 'Gold');
+    showToast(`✅ Imported ${rows.length} funds!`, 'success');
+    closeMfImportModal();
+    loadAssets(_currentUserId, 'Mutual Funds');
   }
 }
 
+// ── Edit Modal ────────────────────────────────────────────────
 
-  const modal2 = document.getElementById('gold-import-modal');
-  document.getElementById('gold-import-btn')?.addEventListener('click', openGoldImportModal);
-  document.getElementById('gold-import-close-btn')?.addEventListener('click', closeGoldImportModal);
-  document.getElementById('gold-import-cancel-btn')?.addEventListener('click', closeGoldImportModal);
-  modal?.addEventListener('click', e => { if (e.target === modal) closeGoldImportModal(); });
+let _editingMfId = null;
 
-  document.getElementById('gold-csv-input')?.addEventListener('change', e => {
-    handleGoldCSV(e.target.files[0]);
-  });
-
-  document.getElementById('gold-import-confirm-btn')?.addEventListener('click', () => {
-    if (_goldPreviewRows.length) importGoldHoldings(_goldPreviewRows);
-  });
-
-// ── Gold Edit Modal ───────────────────────────────────────────
-
-let _editingGoldId = null;
-let _editingGoldCurrentQty = null;
-
-function openGoldEditModal(row) {
-  _editingGoldId         = row?.id   || null;
-  _editingGoldCurrentQty = +row?.qty || 0;
-
-  document.getElementById('gold-edit-modal-title').textContent = `Edit — ${row.holding_name}`;
-  document.getElementById('ge-name').value     = row?.holding_name ?? '';
-  document.getElementById('ge-type').value     = row?.holding_type ?? '';
-  document.getElementById('ge-qty').value      = row?.qty          ?? '';
-  document.getElementById('ge-avg-cost').value = row?.avg_cost     ?? '';
-
-  document.getElementById('gold-edit-modal').classList.remove('hidden');
+function openMfEditModal(row) {
+  _editingMfId = row ? (row.id || null) : null;
+  const titleEl = document.getElementById('mf-edit-modal-title');
+  if (titleEl) titleEl.textContent = 'Edit — ' + (row ? (row.fund_name || 'Fund') : 'Fund');
+  document.getElementById('mfe-name').value     = row ? (row.fund_name || '') : '';
+  document.getElementById('mfe-qty').value      = row ? (row.qty       || '') : '';
+  document.getElementById('mfe-avg-cost').value = row ? (row.avg_cost  || '') : '';
+  document.getElementById('mf-edit-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 
-function closeGoldEditModal() {
-  document.getElementById('gold-edit-modal').classList.add('hidden');
+function closeMfEditModal() {
+  document.getElementById('mf-edit-modal').classList.add('hidden');
   document.body.style.overflow = '';
-  _editingGoldId = null;
+  _editingMfId = null;
 }
 
+// ══════════════════════════════════════════════════════════════
+//  EVENT WIRING  (all inside fragments-loaded)
+// ══════════════════════════════════════════════════════════════
 
-  document.getElementById('gold-edit-close-btn')?.addEventListener('click', closeGoldEditModal);
-  document.getElementById('gold-edit-cancel-btn')?.addEventListener('click', closeGoldEditModal);
-  document.getElementById('gold-edit-modal')?.addEventListener('click', e => {
-    if (e.target === document.getElementById('gold-edit-modal')) closeGoldEditModal();
-  });
+document.addEventListener('fragments-loaded', () => {
 
-  document.getElementById('gold-edit-save-btn')?.addEventListener('click', async () => {
-    const qty     = parseFloat(document.getElementById('ge-qty').value);
-    const avgCost = parseFloat(document.getElementById('ge-avg-cost').value);
+  // ── Actual Invested modal ──────────────────────────────────
+  const modal = document.getElementById('mf-invested-modal');
+  document.getElementById('mf-invested-add-btn')?.addEventListener('click',    () => openMfaiModal());
+  document.getElementById('mf-invested-close-btn')?.addEventListener('click',  closeMfaiModal);
+  document.getElementById('mf-invested-cancel-btn')?.addEventListener('click', closeMfaiModal);
+  modal?.addEventListener('click', e => { if (e.target === modal) closeMfaiModal(); });
 
-    if (!qty || qty <= 0)         { showToast('Qty must be greater than 0', 'error'); return; }
-    if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
+  document.getElementById('mf-invested-save-btn')?.addEventListener('click', async () => {
+    const date   = document.getElementById('mfai-date').value;
+    const amount = parseFloat(document.getElementById('mfai-amount').value);
+    if (!date)                  { showToast('Date is required', 'error'); return; }
+    if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
 
-    const saveBtn2 = document.getElementById('gold-edit-save-btn');
-    saveBtn2.textContent = 'Saving…'; saveBtn2.disabled = true;
-
-    const { error } = await sb.from('gold_holdings').update({ qty, avg_cost: avgCost }).eq('id', _editingGoldId);
-
-    saveBtn2.textContent = '💾 Save Changes'; saveBtn2.disabled = false;
-
-    if (error) {
-      showToast('Save failed: ' + error.message, 'error');
+    const saveBtn = document.getElementById('mf-invested-save-btn');
+    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const payload = { entry_date: date, amount };
+    let op;
+    if (_editingMfaiId) {
+      op = sb.from('mf_actual_invested').update(payload).eq('id', _editingMfaiId);
     } else {
-      showToast('Updated ✅', 'success');
-      closeGoldEditModal();
-      loadAssets(_currentUserId, _currentAssetFilter);
+      payload.user_id = _currentUserId;
+      op = sb.from('mf_actual_invested').insert(payload);
     }
+    const { error } = await op;
+    saveBtn.textContent = '💾 Save Entry'; saveBtn.disabled = false;
+    if (error) { showToast('Save failed: ' + error.message, 'error'); }
+    else { showToast(_editingMfaiId ? 'Entry updated ✅' : 'Entry added 🎉', 'success'); closeMfaiModal(); loadMfActualInvested(_currentUserId); }
   });
 
+  // ── Refresh button ─────────────────────────────────────────
+  document.getElementById('mf-refresh-btn')?.addEventListener('click', () => {
+    if (_currentAssetFilter === 'Mutual Funds') loadAssets(_currentUserId, 'Mutual Funds');
+  });
 
+  // ── Import modal ───────────────────────────────────────────
+  const modal2 = document.getElementById('mf-import-modal');
+  document.getElementById('mf-import-btn')?.addEventListener('click',        openMfImportModal);
+  document.getElementById('mf-import-close-btn')?.addEventListener('click',  closeMfImportModal);
+  document.getElementById('mf-import-cancel-btn')?.addEventListener('click', closeMfImportModal);
+  modal2?.addEventListener('click', e => { if (e.target === modal2) closeMfImportModal(); });
 
+  document.getElementById('mf-csv-input')?.addEventListener('change', e => {
+    handleMfCSV(e.target.files[0]);
+  });
+  document.getElementById('mf-import-confirm-btn')?.addEventListener('click', () => {
+    if (_mfPreviewRows.length) importMfHoldings(_mfPreviewRows);
+  });
 
-});
-// ── Actual Invested bulk-select wiring for gold ─────────────────
-(function() {
-  var _sel = false;
-  var SEL_ICON = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  // ── Edit modal ─────────────────────────────────────────────
+  const modal3 = document.getElementById('mf-edit-modal');
+  document.getElementById('mf-edit-close-btn')?.addEventListener('click',  closeMfEditModal);
+  document.getElementById('mf-edit-cancel-btn')?.addEventListener('click', closeMfEditModal);
+  modal3?.addEventListener('click', e => { if (e.target === modal3) closeMfEditModal(); });
 
-  function _enter() {
-    _sel = true;
-    var btn = document.getElementById('gold-select-btn');
-    if (btn) { btn.innerHTML = '\u2715 Cancel'; btn.style.background = 'var(--surface2)'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--muted2)'; }
-    document.getElementById('gold-bulk-bar')?.classList.remove('hidden');
-    document.querySelectorAll('.gai-cb-wrap').forEach(function(c) { c.style.display = ''; });
-    _upd();
-  }
+  document.getElementById('mf-edit-save-btn')?.addEventListener('click', async () => {
+    if (!_editingMfId) return;
+    const qty     = parseFloat(document.getElementById('mfe-qty').value);
+    const avgCost = parseFloat(document.getElementById('mfe-avg-cost').value);
+    if (!qty || qty <= 0)         { showToast('Units must be greater than 0', 'error'); return; }
+    if (!avgCost || avgCost <= 0) { showToast('Avg NAV must be greater than 0', 'error'); return; }
 
-  function _exit() {
-    _sel = false;
-    var btn = document.getElementById('gold-select-btn');
-    if (btn) { btn.innerHTML = SEL_ICON + ' Select'; btn.style.background = 'rgba(20,184,166,0.1)'; btn.style.borderColor = 'rgba(20,184,166,0.3)'; btn.style.color = '#0d9488'; }
-    document.getElementById('gold-bulk-bar')?.classList.add('hidden');
-    document.getElementById('gold-bulk-normal').style.display = 'flex';
-    document.getElementById('gold-bulk-confirm').style.display = 'none';
-    document.querySelectorAll('.gai-cb-wrap').forEach(function(c) { c.style.display = 'none'; });
-    document.querySelectorAll('.gai-cb').forEach(function(c) { c.checked = false; });
-    _upd();
-  }
+    const saveBtn = document.getElementById('mf-edit-save-btn');
+    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const { error } = await sb.from('mf_holdings').update({ qty, avg_cost: avgCost }).eq('id', _editingMfId);
+    saveBtn.textContent = '💾 Save Changes'; saveBtn.disabled = false;
+    if (error) { showToast('Save failed: ' + error.message, 'error'); }
+    else { showToast('Fund updated ✅', 'success'); closeMfEditModal(); loadAssets(_currentUserId, _currentAssetFilter); }
+  });
 
-  function _upd() {
-    var n = document.querySelectorAll('.gai-cb:checked').length;
-    var countEl = document.getElementById('gold-bulk-count');
-    var delBtn = document.getElementById('gold-bulk-delete');
-    if (countEl) countEl.textContent = n + ' selected';
-    if (delBtn) delBtn.disabled = n === 0;
-  }
+  // ── Bulk-select for Actual Invested ───────────────────────
+  (function() {
+    var _sel = false;
+    var SEL_ICON = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+    function _enter() {
+      _sel = true;
+      var btn = document.getElementById('mf-select-btn');
+      if (btn) { btn.innerHTML = '✕ Cancel'; btn.style.background = 'var(--surface2)'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--muted2)'; }
+      document.getElementById('mf-bulk-bar')?.classList.remove('hidden');
+      document.querySelectorAll('.mfai-cb-wrap').forEach(c => { c.style.display = ''; });
+      _upd();
+    }
 
-    document.getElementById('gold-select-btn')?.addEventListener('click', function() {
-      if (_sel) _exit(); else _enter();
-    });
-    document.getElementById('gold-bulk-cancel')?.addEventListener('click', _exit);
+    function _exit() {
+      _sel = false;
+      var btn = document.getElementById('mf-select-btn');
+      if (btn) { btn.innerHTML = SEL_ICON + ' Select'; btn.style.background = 'rgba(20,184,166,0.1)'; btn.style.borderColor = 'rgba(20,184,166,0.3)'; btn.style.color = '#0d9488'; }
+      document.getElementById('mf-bulk-bar')?.classList.add('hidden');
+      document.getElementById('mf-bulk-normal').style.display = 'flex';
+      document.getElementById('mf-bulk-confirm').style.display = 'none';
+      document.querySelectorAll('.mfai-cb-wrap').forEach(c => { c.style.display = 'none'; });
+      document.querySelectorAll('.mfai-cb').forEach(c => { c.checked = false; });
+      _upd();
+    }
 
-    document.getElementById('gold-bulk-delete')?.addEventListener('click', function() {
-      var n = document.querySelectorAll('.gai-cb:checked').length;
+    function _upd() {
+      var n       = document.querySelectorAll('.mfai-cb:checked').length;
+      var countEl = document.getElementById('mf-bulk-count');
+      var delBtn  = document.getElementById('mf-bulk-delete');
+      if (countEl) countEl.textContent = n + ' selected';
+      if (delBtn)  delBtn.disabled = n === 0;
+    }
+
+    document.getElementById('mf-select-btn')?.addEventListener('click', () => { if (_sel) _exit(); else _enter(); });
+    document.getElementById('mf-bulk-cancel')?.addEventListener('click', _exit);
+
+    document.getElementById('mf-bulk-delete')?.addEventListener('click', () => {
+      var n = document.querySelectorAll('.mfai-cb:checked').length;
       if (!n) return;
-      document.getElementById('gold-bulk-normal').style.display = 'none';
-      document.getElementById('gold-bulk-confirm').style.display = 'flex';
-      document.getElementById('gold-bulk-confirm-count').textContent = n === 1 ? '1 entry' : n + ' entries';
+      document.getElementById('mf-bulk-normal').style.display = 'none';
+      document.getElementById('mf-bulk-confirm').style.display = 'flex';
+      document.getElementById('mf-bulk-confirm-count').textContent = n === 1 ? '1 entry' : n + ' entries';
     });
 
-    document.getElementById('gold-bulk-no')?.addEventListener('click', function() {
-      document.getElementById('gold-bulk-normal').style.display = 'flex';
-      document.getElementById('gold-bulk-confirm').style.display = 'none';
+    document.getElementById('mf-bulk-no')?.addEventListener('click', () => {
+      document.getElementById('mf-bulk-normal').style.display = 'flex';
+      document.getElementById('mf-bulk-confirm').style.display = 'none';
     });
 
-    document.getElementById('gold-bulk-yes')?.addEventListener('click', async function() {
-      var checked = [...document.querySelectorAll('.gai-cb:checked')];
+    document.getElementById('mf-bulk-yes')?.addEventListener('click', async () => {
+      var checked = [...document.querySelectorAll('.mfai-cb:checked')];
       if (!checked.length) return;
-      var yesBtn = document.getElementById('gold-bulk-yes');
-      yesBtn.textContent = 'Deleting\u2026'; yesBtn.disabled = true;
+      var yesBtn = document.getElementById('mf-bulk-yes');
+      yesBtn.textContent = 'Deleting…'; yesBtn.disabled = true;
       var anyErr = false;
       for (var cb of checked) {
-        var r = await sb.from('gold_actual_invested').delete().eq('id', cb.dataset.id);
+        var r = await sb.from('mf_actual_invested').delete().eq('id', cb.dataset.id);
         if (r.error) { showToast('Delete failed: ' + r.error.message, 'error'); anyErr = true; }
       }
       yesBtn.textContent = 'Yes, delete'; yesBtn.disabled = false;
       if (!anyErr) showToast(checked.length + ' ' + (checked.length === 1 ? 'entry' : 'entries') + ' deleted', 'success');
       _exit();
-      loadGoldActualInvested(_currentUserId);
+      loadMfActualInvested(_currentUserId);
     });
 
+    window['_mf_bindCheckboxes'] = function() {
+      document.querySelectorAll('.mfai-cb').forEach(cb => { cb.addEventListener('change', _upd); });
+      document.querySelectorAll('.mfai-cb-wrap').forEach(c => { c.style.display = _sel ? '' : 'none'; });
+      if (_sel) _upd();
+    };
+  })();
 
-  // Called after each render to re-wire checkboxes
-  window['_gold_bindCheckboxes'] = function() {
-    document.querySelectorAll('.gai-cb').forEach(function(cb) {
-      cb.addEventListener('change', _upd);
-    });
-    // Hide all checkbox cells by default unless in select mode
-    document.querySelectorAll('.gai-cb-wrap').forEach(function(c) {
-      c.style.display = _sel ? '' : 'none';
-    });
-    if (_sel) _upd();
-  };
-})();
+});
