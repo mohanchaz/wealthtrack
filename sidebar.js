@@ -8,7 +8,7 @@ document.addEventListener('fragments-loaded', () => {
   const assetsSubGroup = document.getElementById('assets-sub-group');
   if (assetsSubGroup) assetsSubGroup.classList.add('open');
 
-  // ── Zerodha nested group — open by default ───────────────────
+  // ── Zerodha nested group — always open, no collapse ──────────
   const zerodhaGroup   = document.getElementById('zerodha-nav-group');
   const zerodhaChevron = document.getElementById('zerodha-nav-chevron');
   const zerodhaHeader  = document.getElementById('zerodha-nav-header');
@@ -16,14 +16,12 @@ document.addEventListener('fragments-loaded', () => {
   if (zerodhaChevron) zerodhaChevron.classList.add('open');
 
   zerodhaHeader?.addEventListener('click', () => {
-    zerodhaGroup?.classList.toggle('open');
-    zerodhaChevron?.classList.toggle('open');
-    // Navigate to Zerodha group overview
+    // Navigate to Zerodha group overview — no collapse
     setActiveSidebarItem(zerodhaHeader);
     navigateTo('page-assets', 'Zerodha');
   });
 
-  // ── Aionion nested group — open by default ────────────────────
+  // ── Aionion nested group — always open, no collapse ──────────
   const aionionGroup   = document.getElementById('aionion-nav-group');
   const aionionChevron = document.getElementById('aionion-nav-chevron');
   const aionionHeader  = document.getElementById('aionion-nav-header');
@@ -31,9 +29,7 @@ document.addEventListener('fragments-loaded', () => {
   if (aionionChevron) aionionChevron.classList.add('open');
 
   aionionHeader?.addEventListener('click', () => {
-    aionionGroup?.classList.toggle('open');
-    aionionChevron?.classList.toggle('open');
-    // Navigate to Aionion group overview
+    // Navigate to Aionion group overview — no collapse
     setActiveSidebarItem(aionionHeader);
     navigateTo('page-assets', 'Aionion');
   });
