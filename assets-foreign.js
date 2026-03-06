@@ -5,7 +5,8 @@
 //  and never written to the DB.
 // ══════════════════════════════════════════════════════════════
 
-const GBX_SYMBOLS = ['MKS'];
+// GBX detection: symbols ending in .L are London (GBp / GBX)
+const isLondonSymbol = sym => typeof sym === 'string' && sym.toUpperCase().endsWith('.L');
 
 // In-memory map: symbol → { unitPrice (native), currentValue (native) }
 // Populated at import time, lives until page refresh.
@@ -45,7 +46,7 @@ function renderForeignStocks(rows) {
   let totalCurUSD = 0, totalCurGBP = 0;
 
   tbody.innerHTML = rows.map((r, i) => {
-    const isGBX    = r.currency === 'GBX';
+    const isGBX    = isLondonSymbol(r.symbol) || r.currency === 'GBX';
     const factor   = isGBX ? 100 : 1;
     const ccy      = isGBX ? 'GBP' : 'USD';
 
@@ -181,7 +182,7 @@ function parseForeignCSV(text) {
     const prc  = parseFloat(cols[iPrc]);
     if (!sym || isNaN(qty) || isNaN(prc)) continue;
 
-    const isGBX    = GBX_SYMBOLS.includes(sym);
+    const isGBX    = isLondonSymbol(sym);
     // total_value is in display currency; convert to native for consistent storage in _foreignLiveData
     const curValRaw = iVal >= 0 ? parseFloat(cols[iVal]) : NaN;
     const curValNative = !isNaN(curValRaw) ? (isGBX ? curValRaw * 100 : curValRaw) : null;
@@ -305,7 +306,7 @@ document.addEventListener('fragments-loaded', () => {
     const symbol   = document.getElementById('foreign-edit-symbol').value.trim().toUpperCase();
     const qty      = parseFloat(document.getElementById('foreign-edit-qty').value);
     const avgPrice = parseFloat(document.getElementById('foreign-edit-price').value);
-    const currency = document.getElementById('foreign-edit-currency').value;
+    const currency = symbol.endsWith('.L') ? 'GBX' : 'USD';
 
     if (!symbol)                       { showToast('Symbol is required',    'error'); return; }
     if (isNaN(qty)      || qty <= 0)   { showToast('Quantity must be > 0',  'error'); return; }
@@ -355,10 +356,8 @@ async function fetchAndRefreshForeignPrices(rows) {
   if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching prices…';
   if (refreshBtn)   refreshBtn.disabled = true;
 
-  // Build Yahoo symbol list
-  const yahooSymbols = rows.map(r =>
-    (r.currency === 'GBX' || r.currency === 'GBP') ? r.symbol + '.L' : r.symbol
-  );
+  // Build Yahoo symbol list — symbols already include .L for London stocks
+  const yahooSymbols = rows.map(r => r.symbol);
 
   let priceMap = null;
   try {
@@ -379,10 +378,10 @@ async function fetchAndRefreshForeignPrices(rows) {
   // Update _foreignLiveData from the fetched map
   // priceMap keys = stripped Yahoo symbol (no .L, no .NS suffix from the API function)
   rows.forEach(r => {
-    const isGBX    = r.currency === 'GBX' || r.currency === 'GBP';
-    // API only strips .NS/.BO — .L stays in the key, so look up with suffix for GBX
-    const key      = isGBX ? r.symbol + '.L' : r.symbol;
-    const entry    = priceMap[key] || priceMap[r.symbol]; // fallback to bare symbol
+    const isGBX    = isLondonSymbol(r.symbol) || r.currency === 'GBX';
+    // API now strips .L too, so key is always the bare symbol (BRK-B, CNDX, MKS…)
+    const bareKey  = r.symbol.replace(/\.L$/i, '');
+    const entry    = priceMap[bareKey];
     if (!entry) return;
     const rawPrice = typeof entry === 'object' ? entry.price : entry;
     // Yahoo returns GBp (pence) for .L symbols — store natively
