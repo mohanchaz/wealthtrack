@@ -114,8 +114,8 @@ document.addEventListener('fragments-loaded', () => {
     if (!date)              { showToast('Date is required', 'error'); return; }
     if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
 
-    const saveBtn = document.getElementById('zerodha-invested-save-btn');
-    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const saveBtn2 = document.getElementById('zerodha-invested-save-btn');
+    saveBtn2.textContent = 'Saving…'; saveBtn2.disabled = true;
 
     const payload = { entry_date: date, amount };
     let op;
@@ -127,7 +127,7 @@ document.addEventListener('fragments-loaded', () => {
     }
 
     const { error } = await op;
-    saveBtn.textContent = '💾 Save Entry'; saveBtn.disabled = false;
+    saveBtn2.textContent = '💾 Save Entry'; saveBtn2.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
@@ -170,16 +170,16 @@ async function fetchAndRefreshZerodhaPrices(assets) {
 
   // Second pass — update each row's cells
   assets.forEach(a => {
-    const ltp = getLTP(prices, a.instrument);
-    if (!ltp) return;
+    const ltp2 = getLTP(prices, a.instrument);
+    if (!ltp2) return;
 
     const name     = getCompanyName(prices, a.instrument);
     const qty = +a.qty || 0;
-    const curVal = qty * ltp;
+    const curVal = qty * ltp2;
     const investedAmt = qty * (+a.avg_cost || 0);   // correct: qty × avg_cost
     const pnl = curVal - investedAmt;
     const gain = pnl;
-    const gainPct = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
+    const gainPct2 = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
     const allocPct = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
 
     // Company name cell
@@ -188,7 +188,7 @@ async function fetchAndRefreshZerodhaPrices(assets) {
 
     // Current value cell
     const ltpCell = document.querySelector(`[data-live-_ltp="${a.instrument}"]`);
-    if (ltpCell) ltpCell.textContent = INR(ltp);
+    if (ltpCell) ltpCell.textContent = INR(ltp2);
 
     const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
     if (cvCell) cvCell.textContent = INR(curVal);
@@ -209,7 +209,7 @@ async function fetchAndRefreshZerodhaPrices(assets) {
     if (gainTd) {
       const arrow = gain >= 0 ? '▲' : '▼';
       const badgeCls = gain > 0 ? 'pos' : gain < 0 ? 'neg' : 'zero';
-      gainTd.innerHTML = `<span class="gain-badge ${badgeCls}">${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}</span>`;
+      gainTd.innerHTML = `<span class="gain-badge ${badgeCls}">${arrow} ${INR(Math.abs(gain))}${gainPct2 ? ` (${gainPct2}%)` : ''}</span>`;
     }
   });
 
@@ -231,7 +231,7 @@ async function fetchAndRefreshZerodhaPrices(assets) {
 }
 
 // Wire Refresh button
-document.addEventListener('fragments-loaded', () => {
+
   document.getElementById('zerodha-refresh-btn')?.addEventListener('click', () => {
     if (_currentAssetFilter === 'Zerodha Stocks') {
       loadAssets(_currentUserId, 'Zerodha Stocks');
@@ -414,7 +414,7 @@ async function importZerodhaStocks(allRows) {
   }
 
   // Upsert each stock with prev_qty
-  const payload = rows.map(r => ({
+  const payload2 = rows.map(r => ({
     user_id: _currentUserId,
     instrument: r.instrument,
     qty: r.qty,
@@ -425,7 +425,7 @@ async function importZerodhaStocks(allRows) {
 
   const { error } = await sb
     .from('zerodha_stocks')
-    .upsert(payload, { onConflict: 'user_id,instrument' });
+    .upsert(payload2, { onConflict: 'user_id,instrument' });
 
   confirmBtn.textContent = `📥 Import ${rows.length} Stocks`;
   confirmBtn.disabled = false;
@@ -440,8 +440,8 @@ async function importZerodhaStocks(allRows) {
 }
 
 // Wire Zerodha import modal events
-document.addEventListener('fragments-loaded', () => {
-  const modal = document.getElementById('zerodha-import-modal');
+
+  const modal2 = document.getElementById('zerodha-import-modal');
   document.getElementById('zerodha-import-btn')?.addEventListener('click', openZerodhaImportModal);
   document.getElementById('zerodha-import-close-btn')?.addEventListener('click', closeZerodhaImportModal);
   document.getElementById('zerodha-import-cancel-btn')?.addEventListener('click', closeZerodhaImportModal);
@@ -479,7 +479,7 @@ function closeZerodhaEditModal() {
   _editingZerodhaId = null;
 }
 
-document.addEventListener('fragments-loaded', () => {
+
   document.getElementById('zerodha-edit-close-btn')?.addEventListener('click', closeZerodhaEditModal);
   document.getElementById('zerodha-edit-cancel-btn')?.addEventListener('click', closeZerodhaEditModal);
   document.getElementById('zerodha-edit-modal')?.addEventListener('click', e => {
@@ -495,8 +495,8 @@ document.addEventListener('fragments-loaded', () => {
     if (!qty || qty <= 0)         { showToast('Quantity must be greater than 0', 'error'); return; }
     if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
 
-    const saveBtn = document.getElementById('zerodha-edit-save-btn');
-    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const saveBtn3 = document.getElementById('zerodha-edit-save-btn');
+    saveBtn3.textContent = 'Saving…'; saveBtn3.disabled = true;
 
     const updatePayload = { qty, avg_cost: avgCost };
     if (qty !== _editingZerodhaCurrentQty) {
@@ -507,7 +507,7 @@ document.addEventListener('fragments-loaded', () => {
       .update(updatePayload)
       .eq('id', _editingZerodhaId);
 
-    saveBtn.textContent = '\uD83D\uDCBE Save Changes'; saveBtn.disabled = false;
+    saveBtn3.textContent = '\uD83D\uDCBE Save Changes'; saveBtn3.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
@@ -520,9 +520,9 @@ document.addEventListener('fragments-loaded', () => {
 
 // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-});
-});
-});
+
+
+
 });
 // ── Actual Invested bulk-select wiring for zerodha ─────────────────
 (function() {
@@ -558,7 +558,7 @@ document.addEventListener('fragments-loaded', () => {
     if (delBtn) delBtn.disabled = n === 0;
   }
 
-  document.addEventListener('fragments-loaded', function() {
+
     document.getElementById('zerodha-select-btn')?.addEventListener('click', function() {
       if (_sel) _exit(); else _enter();
     });
@@ -592,7 +592,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadZerodhaActualInvested(_currentUserId);
     });
-  });
+
 
   // Called after each render to re-wire checkboxes
   window['_zerodha_bindCheckboxes'] = function() {

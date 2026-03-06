@@ -114,8 +114,8 @@ document.addEventListener('fragments-loaded', () => {
     if (!date)              { showToast('Date is required', 'error'); return; }
     if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
 
-    const saveBtn = document.getElementById('aionion-invested-save-btn');
-    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const saveBtn2 = document.getElementById('aionion-invested-save-btn');
+    saveBtn2.textContent = 'Saving…'; saveBtn2.disabled = true;
 
     const payload = { entry_date: date, amount };
     let op;
@@ -127,7 +127,7 @@ document.addEventListener('fragments-loaded', () => {
     }
 
     const { error } = await op;
-    saveBtn.textContent = '💾 Save Entry'; saveBtn.disabled = false;
+    saveBtn2.textContent = '💾 Save Entry'; saveBtn2.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
@@ -235,7 +235,7 @@ async function fetchAndRefreshAionionPrices(assets) {
 }
 
 // Wire Aionion Refresh button
-document.addEventListener('fragments-loaded', () => {
+
   document.getElementById('aionion-refresh-btn')?.addEventListener('click', () => {
     if (_currentAssetFilter === 'Aionion Stocks') {
       loadAssets(_currentUserId, 'Aionion Stocks');
@@ -415,7 +415,7 @@ async function importAionionStocks(allRows) {
   }
 
   // Upsert each stock with prev_qty
-  const payload = rows.map(r => ({
+  const payload2 = rows.map(r => ({
     user_id: _currentUserId,
     instrument: r.instrument,
     qty: r.qty,
@@ -426,7 +426,7 @@ async function importAionionStocks(allRows) {
 
   const { error } = await sb
     .from('aionion_stocks')
-    .upsert(payload, { onConflict: 'user_id,instrument' });
+    .upsert(payload2, { onConflict: 'user_id,instrument' });
 
   confirmBtn.textContent = `📥 Import ${rows.length} Stocks`;
   confirmBtn.disabled = false;
@@ -441,8 +441,8 @@ async function importAionionStocks(allRows) {
 }
 
 // Wire Aionion import modal events
-document.addEventListener('fragments-loaded', () => {
-  const modal = document.getElementById('aionion-import-modal');
+
+  const modal2 = document.getElementById('aionion-import-modal');
   document.getElementById('aionion-import-btn')?.addEventListener('click', openAionionImportModal);
   document.getElementById('aionion-import-close-btn')?.addEventListener('click', closeAionionImportModal);
   document.getElementById('aionion-import-cancel-btn')?.addEventListener('click', closeAionionImportModal);
@@ -476,8 +476,8 @@ function openAionionEditModal(row) {
   instrEl.style.cursor     = isAdd ? '' : 'not-allowed';
   document.getElementById('ae-qty').value      = row?.qty      ?? '';
   document.getElementById('ae-avg-cost').value = row?.avg_cost ?? '';
-  const saveBtn = document.getElementById('aionion-edit-save-btn');
-  if (saveBtn) saveBtn.textContent = isAdd ? '💾 Add Stock' : '💾 Save Changes';
+  const saveBtn3 = document.getElementById('aionion-edit-save-btn');
+  if (saveBtn3) saveBtn3.textContent = isAdd ? '💾 Add Stock' : '💾 Save Changes';
   document.getElementById('aionion-edit-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -488,7 +488,7 @@ function closeAionionEditModal() {
   _editingAionionId = null;
 }
 
-document.addEventListener('fragments-loaded', () => {
+
   document.getElementById('aionion-edit-close-btn')?.addEventListener('click', closeAionionEditModal);
   document.getElementById('aionion-edit-cancel-btn')?.addEventListener('click', closeAionionEditModal);
   document.getElementById('aionion-edit-modal')?.addEventListener('click', e => {
@@ -497,8 +497,8 @@ document.addEventListener('fragments-loaded', () => {
 
   document.getElementById('aionion-edit-save-btn')?.addEventListener('click', async () => {
     const isAddMode = !_editingAionionId;
-    const instrument = document.getElementById('ae-instrument').value.trim();
-    if (isAddMode && !instrument) { showToast('Instrument symbol is required', 'error'); return; }
+    const instrument2 = document.getElementById('ae-instrument2').value.trim();
+    if (isAddMode && !instrument2) { showToast('Instrument symbol is required', 'error'); return; }
 
     const qty     = parseFloat(document.getElementById('ae-qty').value);
     const avgCost = parseFloat(document.getElementById('ae-avg-cost').value);
@@ -506,23 +506,23 @@ document.addEventListener('fragments-loaded', () => {
     if (!qty || qty <= 0)         { showToast('Quantity must be greater than 0', 'error'); return; }
     if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
 
-    const saveBtn = document.getElementById('aionion-edit-save-btn');
-    saveBtn.textContent = 'Saving\u2026'; saveBtn.disabled = true;
+    const saveBtn4 = document.getElementById('aionion-edit-save-btn');
+    saveBtn4.textContent = 'Saving\u2026'; saveBtn4.disabled = true;
 
     // If qty changed, shift current qty into prev_qty so the Qty Diff column reflects this edit
     let error;
     if (isAddMode) {
       ({ error } = await sb.from('aionion_stocks').insert({
-        user_id: _currentUserId, instrument, qty, prev_qty: 0, avg_cost: avgCost
+        user_id: _currentUserId, instrument2, qty, prev_qty: 0, avg_cost: avgCost
       }));
     } else {
-      const payload = { qty, avg_cost: avgCost };
-      if (qty !== _editingAionionCurrentQty) payload.prev_qty = _editingAionionCurrentQty;
-      ({ error } = await sb.from('aionion_stocks').update(payload).eq('id', _editingAionionId));
+      const payload3 = { qty, avg_cost: avgCost };
+      if (qty !== _editingAionionCurrentQty) payload3.prev_qty = _editingAionionCurrentQty;
+      ({ error } = await sb.from('aionion_stocks').update(payload3).eq('id', _editingAionionId));
     }
 
-    saveBtn.textContent = isAddMode ? '💾 Add Stock' : '💾 Save Changes';
-    saveBtn.disabled = false;
+    saveBtn4.textContent = isAddMode ? '💾 Add Stock' : '💾 Save Changes';
+    saveBtn4.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
@@ -536,9 +536,9 @@ document.addEventListener('fragments-loaded', () => {
 
 // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-});
-});
-});
+
+
+
 });
 // ── Actual Invested bulk-select wiring for aionion ─────────────────
 (function() {
@@ -574,7 +574,7 @@ document.addEventListener('fragments-loaded', () => {
     if (delBtn) delBtn.disabled = n === 0;
   }
 
-  document.addEventListener('fragments-loaded', function() {
+
     document.getElementById('aionion-select-btn')?.addEventListener('click', function() {
       if (_sel) _exit(); else _enter();
     });
@@ -608,7 +608,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadAionionActualInvested(_currentUserId);
     });
-  });
+
 
   // Called after each render to re-wire checkboxes
   window['_aionion_bindCheckboxes'] = function() {

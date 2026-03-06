@@ -165,11 +165,11 @@ async function fetchAndRefreshMfPrices(assets) {
   });
 
   assets.forEach(a => {
-    const liveNav = a.nav_symbol ? getLTP(prices, a.nav_symbol.replace(/\.(NS|BO)$/, '')) : null;
-    if (!liveNav) return;
+    const liveNav2 = a.nav_symbol ? getLTP(prices, a.nav_symbol.replace(/\.(NS|BO)$/, '')) : null;
+    if (!liveNav2) return;
 
     const qty         = +a.qty || 0;
-    const curVal      = qty * liveNav;
+    const curVal      = qty * liveNav2;
     const investedAmt = qty * (+a.avg_cost || 0);
     const gain        = curVal - investedAmt;
     const gainPct     = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
@@ -177,7 +177,7 @@ async function fetchAndRefreshMfPrices(assets) {
     const key         = a.fund_name;
 
     const navCell = document.querySelector('[data-live-_live_nav="' + key + '"]');
-    if (navCell) navCell.textContent = INR(liveNav);
+    if (navCell) navCell.textContent = INR(liveNav2);
 
     const cvCell = document.querySelector('[data-live-current_value="' + key + '"]');
     if (cvCell) cvCell.textContent = INR(curVal);
@@ -214,7 +214,7 @@ async function fetchAndRefreshMfPrices(assets) {
   if (lastUpdateEl) lastUpdateEl.textContent = '\ud83d\udfe2 Live \u00b7 ' + now;
 }
 
-document.addEventListener('fragments-loaded', () => {
+
   const refreshBtn = document.getElementById('mf-refresh-btn');
   refreshBtn && refreshBtn.addEventListener('click', () => {
     if (_currentAssetFilter === 'Mutual Funds') loadAssets(_currentUserId, 'Mutual Funds');
@@ -362,8 +362,8 @@ function closeMfImportModal() {
 
 function handleMfCSV(file) {
   if (!file) return;
-  const filenameEl = document.getElementById('mf-csv-filename');
-  if (filenameEl) filenameEl.textContent = file.name;
+  const filenameEl2 = document.getElementById('mf-csv-filename');
+  if (filenameEl2) filenameEl2.textContent = file.name;
 
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -424,8 +424,8 @@ async function importMfHoldings(allRows) {
   const rows = allRows.filter(function(_, i) { return checkedIdxs.has(i); });
   if (!rows.length) { showToast('No funds selected', 'error'); return; }
 
-  const confirmBtn = document.getElementById('mf-import-confirm-btn');
-  if (confirmBtn) { confirmBtn.textContent = 'Importing\u2026'; confirmBtn.disabled = true; }
+  const confirmBtn2 = document.getElementById('mf-import-confirm-btn');
+  if (confirmBtn2) { confirmBtn2.textContent = 'Importing\u2026'; confirmBtn2.disabled = true; }
 
   const { data: existing } = await sb
     .from('mf_holdings')
@@ -441,7 +441,7 @@ async function importMfHoldings(allRows) {
     await sb.from('mf_holdings').delete().eq('user_id', _currentUserId).in('fund_name', toDelete);
   }
 
-  const payload = rows.map(function(r) {
+  const payload2 = rows.map(function(r) {
     return {
       user_id:     _currentUserId,
       fund_name:   r.fund_name,
@@ -455,9 +455,9 @@ async function importMfHoldings(allRows) {
 
   const { error } = await sb
     .from('mf_holdings')
-    .upsert(payload, { onConflict: 'user_id,fund_name' });
+    .upsert(payload2, { onConflict: 'user_id,fund_name' });
 
-  if (confirmBtn) { confirmBtn.textContent = '\ud83d\udce5 Import ' + rows.length + ' Funds'; confirmBtn.disabled = false; }
+  if (confirmBtn2) { confirmBtn2.textContent = '\ud83d\udce5 Import ' + rows.length + ' Funds'; confirmBtn2.disabled = false; }
 
   if (error) {
     showToast('Import failed: ' + error.message, 'error');
@@ -468,8 +468,8 @@ async function importMfHoldings(allRows) {
   }
 }
 
-document.addEventListener('fragments-loaded', function() {
-  const modal = document.getElementById('mf-import-modal');
+
+  const modal2 = document.getElementById('mf-import-modal');
   document.getElementById('mf-import-btn')         && document.getElementById('mf-import-btn').addEventListener('click', openMfImportModal);
   document.getElementById('mf-import-close-btn')   && document.getElementById('mf-import-close-btn').addEventListener('click', closeMfImportModal);
   document.getElementById('mf-import-cancel-btn')  && document.getElementById('mf-import-cancel-btn').addEventListener('click', closeMfImportModal);
@@ -489,8 +489,8 @@ let _editingMfId = null;
 
 function openMfEditModal(row) {
   _editingMfId = row ? (row.id || null) : null;
-  const titleEl = document.getElementById('mf-edit-modal-title');
-  if (titleEl) titleEl.textContent = 'Edit \u2014 ' + (row ? (row.fund_name || 'Fund') : 'Fund');
+  const titleEl2 = document.getElementById('mf-edit-modal-title');
+  if (titleEl2) titleEl2.textContent = 'Edit \u2014 ' + (row ? (row.fund_name || 'Fund') : 'Fund');
   document.getElementById('mfe-name').value     = row ? (row.fund_name || '') : '';
   document.getElementById('mfe-qty').value      = row ? (row.qty       || '') : '';
   document.getElementById('mfe-avg-cost').value = row ? (row.avg_cost  || '') : '';
@@ -504,29 +504,29 @@ function closeMfEditModal() {
   _editingMfId = null;
 }
 
-document.addEventListener('fragments-loaded', function() {
+
   document.getElementById('mf-edit-close-btn')  && document.getElementById('mf-edit-close-btn').addEventListener('click', closeMfEditModal);
   document.getElementById('mf-edit-cancel-btn') && document.getElementById('mf-edit-cancel-btn').addEventListener('click', closeMfEditModal);
   const editModal = document.getElementById('mf-edit-modal');
   editModal && editModal.addEventListener('click', function(e) { if (e.target === editModal) closeMfEditModal(); });
 
-  const saveBtn = document.getElementById('mf-edit-save-btn');
-  saveBtn && saveBtn.addEventListener('click', async function() {
+  const saveBtn2 = document.getElementById('mf-edit-save-btn');
+  saveBtn2 && saveBtn2.addEventListener('click', async function() {
     if (!_editingMfId) return;
     const qty     = parseFloat(document.getElementById('mfe-qty').value);
     const avgCost = parseFloat(document.getElementById('mfe-avg-cost').value);
     if (!qty || qty <= 0)         { showToast('Units must be greater than 0', 'error'); return; }
     if (!avgCost || avgCost <= 0) { showToast('Avg NAV must be greater than 0', 'error'); return; }
-    saveBtn.textContent = 'Saving\u2026'; saveBtn.disabled = true;
+    saveBtn2.textContent = 'Saving\u2026'; saveBtn2.disabled = true;
     const { error } = await sb.from('mf_holdings').update({ qty: qty, avg_cost: avgCost }).eq('id', _editingMfId);
-    saveBtn.textContent = '\ud83d\udcbe Save Changes'; saveBtn.disabled = false;
+    saveBtn2.textContent = '\ud83d\udcbe Save Changes'; saveBtn2.disabled = false;
     if (error) { showToast('Save failed: ' + error.message, 'error'); }
     else { showToast('Fund updated \u2705', 'success'); closeMfEditModal(); loadAssets(_currentUserId, _currentAssetFilter); }
   });
 
-});
-});
-});
+
+
+
 });
 // ── Actual Invested bulk-select wiring for mf ─────────────────
 (function() {
@@ -562,7 +562,7 @@ document.addEventListener('fragments-loaded', function() {
     if (delBtn) delBtn.disabled = n === 0;
   }
 
-  document.addEventListener('fragments-loaded', function() {
+
     document.getElementById('mf-select-btn')?.addEventListener('click', function() {
       if (_sel) _exit(); else _enter();
     });
@@ -596,7 +596,7 @@ document.addEventListener('fragments-loaded', function() {
       _exit();
       loadMfActualInvested(_currentUserId);
     });
-  });
+
 
   // Called after each render to re-wire checkboxes
   window['_mf_bindCheckboxes'] = function() {

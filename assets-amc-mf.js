@@ -105,8 +105,8 @@ let _editingAmcMfId = null;
 
 function openAmcMfEditModal(row = null) {
   _editingAmcMfId = row?.id || null;
-  const titleEl = document.getElementById('amc-mf-edit-modal-title');
-  if (titleEl) titleEl.textContent = row ? 'Edit Fund' : 'Add Fund';
+  const titleEl2 = document.getElementById('amc-mf-edit-modal-title');
+  if (titleEl2) titleEl2.textContent = row ? 'Edit Fund' : 'Add Fund';
 
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
 
@@ -169,13 +169,13 @@ async function fetchAndRefreshAmcMfPrices(assets) {
   // Second pass: patch DOM cells
   assets.forEach(a => {
     const key     = a.nav_symbol ? a.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
-    const liveNav = key ? getLTP(prices, key) : null;
+    const liveNav2 = key ? getLTP(prices, key) : null;
     const liveName = key && prices[key] ? prices[key].name || null : null;
     const qty     = +a.qty || 0;
-    const curVal  = qty * (liveNav || +a.avg_cost || 0);
+    const curVal  = qty * (liveNav2 || +a.avg_cost || 0);
     const invested = qty * (+a.avg_cost || 0);
     const gain    = curVal - invested;
-    const gainPct = invested > 0 ? ((gain / invested) * 100).toFixed(1) : null;
+    const gainPct2 = invested > 0 ? ((gain / invested) * 100).toFixed(1) : null;
     const allocPct = totalValue > 0 ? (curVal / totalValue) * 100 : 0;
     const keyDom  = a.nav_symbol; // DOM cells keyed by nav_symbol
 
@@ -185,7 +185,7 @@ async function fetchAndRefreshAmcMfPrices(assets) {
     }
 
     const navCell = document.querySelector('[data-live-_live_nav="' + keyDom + '"]');
-    if (navCell) navCell.textContent = liveNav ? INR(liveNav) : '\u2014';
+    if (navCell) navCell.textContent = liveNav2 ? INR(liveNav2) : '\u2014';
 
     const cvCell = document.querySelector('[data-live-current_value="' + keyDom + '"]');
     if (cvCell) cvCell.textContent = INR(curVal);
@@ -204,14 +204,14 @@ async function fetchAndRefreshAmcMfPrices(assets) {
     if (gainTd) {
       const arrow    = gain >= 0 ? '\u25b2' : '\u25bc';
       const badgeCls = gain > 0 ? 'pos' : gain < 0 ? 'neg' : 'zero';
-      gainTd.innerHTML = '<span class="gain-badge ' + badgeCls + '">' + arrow + ' ' + INR(Math.abs(gain)) + (gainPct ? ' (' + gainPct + '%)' : '') + '</span>';
+      gainTd.innerHTML = '<span class="gain-badge ' + badgeCls + '">' + arrow + ' ' + INR(Math.abs(gain)) + (gainPct2 ? ' (' + gainPct2 + '%)' : '') + '</span>';
     }
   });
 
   // Update stat tiles
   const totalGain    = totalValue - totalInvested;
   const totalGainPct = totalInvested > 0 ? ' (' + ((totalGain / totalInvested) * 100).toFixed(1) + '%)' : '';
-  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const setEl = (id, val) => { const el2 = document.getElementById(id); if (el2) el2.textContent = val; };
   setEl('assets-total-value',    INR(totalValue));
   setEl('assets-total-invested', INR(totalInvested));
   const gainEl = document.getElementById('assets-total-gain');
@@ -291,20 +291,20 @@ document.addEventListener('fragments-loaded', () => {
     if (!date)                     { showToast('Date is required', 'error'); return; }
     if (isNaN(amount) || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
 
-    const saveBtn = document.getElementById('amc-mf-invested-save-btn');
-    saveBtn.textContent = 'Saving\u2026'; saveBtn.disabled = true;
+    const saveBtn2 = document.getElementById('amc-mf-invested-save-btn');
+    saveBtn2.textContent = 'Saving\u2026'; saveBtn2.disabled = true;
 
-    const payload = { entry_date: date, amount };
+    const payload2 = { entry_date: date, amount };
     let op;
     if (_editingAmcMfaiId) {
-      op = sb.from('amc_mf_actual_invested').update(payload).eq('id', _editingAmcMfaiId);
+      op = sb.from('amc_mf_actual_invested').update(payload2).eq('id', _editingAmcMfaiId);
     } else {
-      payload.user_id = _currentUserId;
-      op = sb.from('amc_mf_actual_invested').insert(payload);
+      payload2.user_id = _currentUserId;
+      op = sb.from('amc_mf_actual_invested').insert(payload2);
     }
 
     const { error } = await op;
-    saveBtn.textContent = '\ud83d\udcbe Save Entry'; saveBtn.disabled = false;
+    saveBtn2.textContent = '\ud83d\udcbe Save Entry'; saveBtn2.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
@@ -350,7 +350,7 @@ document.addEventListener('fragments-loaded', () => {
     if (delBtn) delBtn.disabled = n === 0;
   }
 
-  document.addEventListener('fragments-loaded', function() {
+
     document.getElementById('amcmf-select-btn')?.addEventListener('click', function() {
       if (_sel) _exit(); else _enter();
     });
@@ -384,7 +384,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadAmcMfActualInvested(_currentUserId);
     });
-  });
+
 
   // Called after each render to re-wire checkboxes
   window['_amcmf_bindCheckboxes'] = function() {

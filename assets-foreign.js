@@ -160,19 +160,19 @@ function renderForeignStocks(rows) {
     if (gbp) p.push(`£${gbp.toFixed(2)}`);
     return p.join('  +  ') || '—';
   };
-  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const setEl = (id, v) => { const el2 = document.getElementById(id); if (el2) el2.textContent = v; };
   setEl('assets-total-invested', fmt(totalInvUSD, totalInvGBP));
   setEl('assets-total-value', fmt(totalCurUSD || totalInvUSD, totalCurGBP || totalInvGBP));
 
   const gainUSD = totalCurUSD - totalInvUSD;
-  const gainGBP = totalCurGBP - totalInvGBP;
+  const gainGBP2 = totalCurGBP - totalInvGBP;
   const gainParts = [];
   if (totalInvUSD) gainParts.push(`${gainUSD >= 0 ? '+' : ''}$${gainUSD.toFixed(2)}`);
-  if (totalInvGBP) gainParts.push(`${gainGBP >= 0 ? '+' : ''}£${gainGBP.toFixed(2)}`);
+  if (totalInvGBP) gainParts.push(`${gainGBP2 >= 0 ? '+' : ''}£${gainGBP2.toFixed(2)}`);
   const gainEl = document.getElementById('assets-total-gain');
   if (gainEl) {
     gainEl.textContent = gainParts.join('  +  ') || '—';
-    gainEl.style.color = (gainUSD + gainGBP) > 0 ? 'var(--green)' : (gainUSD + gainGBP) < 0 ? 'var(--danger)' : 'var(--muted)';
+    gainEl.style.color = (gainUSD + gainGBP2) > 0 ? 'var(--green)' : (gainUSD + gainGBP2) < 0 ? 'var(--danger)' : 'var(--muted)';
   }
 
   // ── INR summary row (top row — all amounts converted to ₹) ──
@@ -222,8 +222,8 @@ function renderForeignStocks(rows) {
 // ── Load ──────────────────────────────────────────────────────
 
 async function loadForeignStocks(userId) {
-  const tbody = document.getElementById('assets-table-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+  const tbody2 = document.getElementById('assets-table-body');
+  if (tbody2) tbody2.innerHTML = `<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
 
   const { data, error } = await sb
     .from('foreign_stock_holdings')
@@ -275,33 +275,33 @@ function parseForeignCSV(text) {
 
   if (iSym < 0 || iQty < 0 || iPrc < 0) return null;
 
-  const rows = [];
+  const rows2 = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].split(',');
-    const sym = (cols[iSym] || '').trim().toUpperCase();
+    const sym2 = (cols[iSym] || '').trim().toUpperCase();
     const qty = parseFloat(cols[iQty]);
     const prc = parseFloat(cols[iPrc]);
-    if (!sym || isNaN(qty) || isNaN(prc)) continue;
+    if (!sym2 || isNaN(qty) || isNaN(prc)) continue;
 
     // Currency: CSV column wins, then .L suffix detection, then USD default
     const csvCcy = iCcy >= 0 ? (cols[iCcy] || '').trim().toUpperCase() : '';
-    const isGBX = csvCcy === 'GBX' || csvCcy === 'GBP' || (!csvCcy && isLondonSymbol(sym));
+    const isGBX2 = csvCcy === 'GBX' || csvCcy === 'GBP' || (!csvCcy && isLondonSymbol(sym2));
     // total_value is in display currency; convert to native for consistent storage in _foreignLiveData
     const curValRaw = iVal >= 0 ? parseFloat(cols[iVal]) : NaN;
-    const curValNative = !isNaN(curValRaw) ? (isGBX ? curValRaw * 100 : curValRaw) : null;
+    const curValNative = !isNaN(curValRaw) ? (isGBX2 ? curValRaw * 100 : curValRaw) : null;
     const unitNative = curValNative != null && qty ? curValNative / qty : null;
 
-    rows.push({
-      symbol: sym,
+    rows2.push({
+      symbol: sym2,
       qty,
       avg_price: prc,
-      currency: isGBX ? 'GBX' : (csvCcy && csvCcy !== 'GBX' && csvCcy !== 'GBP' ? csvCcy : 'USD'),
+      currency: isGBX2 ? 'GBX' : (csvCcy && csvCcy !== 'GBX' && csvCcy !== 'GBP' ? csvCcy : 'USD'),
       // live data — memory only, NOT sent to DB
       _unitPrice: unitNative,
       _currentValue: curValNative,
     });
   }
-  return rows;
+  return rows2;
 }
 
 // ── Fragment-loaded wiring ────────────────────────────────────
@@ -323,31 +323,31 @@ document.addEventListener('fragments-loaded', () => {
     if (fileLabel) fileLabel.textContent = file.name;
     const reader = new FileReader();
     reader.onload = e => {
-      const rows = parseForeignCSV(e.target.result);
-      if (!rows) { showToast('Cannot parse CSV — expected: symbol, quantity, avg_price', 'error'); return; }
-      _parsedForeignRows = rows;
-      if (countBadge) countBadge.textContent = rows.length;
-      if (importCount) importCount.textContent = rows.length;
+      const rows3 = parseForeignCSV(e.target.result);
+      if (!rows3) { showToast('Cannot parse CSV — expected: symbol, quantity, avg_price', 'error'); return; }
+      _parsedForeignRows = rows3;
+      if (countBadge) countBadge.textContent = rows3.length;
+      if (importCount) importCount.textContent = rows3.length;
       confirmBtn?.classList.remove('hidden');
       previewSec?.classList.remove('hidden');
 
       if (previewBody) {
-        previewBody.innerHTML = rows.map((r, i) => {
-          const isGBX = r.currency === 'GBX';
-          const factor = isGBX ? 100 : 1;
-          const ccy = isGBX ? 'GBP' : 'USD';
-          const avgD = (r.avg_price / factor).toFixed(2);
-          const unitD = r._unitPrice != null ? (r._unitPrice / factor).toFixed(2) : '—';
-          const curD = r._currentValue != null ? (r._currentValue / factor).toFixed(2) : '—';
+        previewBody.innerHTML = rows3.map((r, i) => {
+          const isGBX3 = r.currency === 'GBX';
+          const factor2 = isGBX3 ? 100 : 1;
+          const ccy2 = isGBX3 ? 'GBP' : 'USD';
+          const avgD = (r.avg_price / factor2).toFixed(2);
+          const unitD = r._unitPrice != null ? (r._unitPrice / factor2).toFixed(2) : '—';
+          const curD = r._currentValue != null ? (r._currentValue / factor2).toFixed(2) : '—';
           const tdS = 'padding:7px 14px;border-bottom:1px solid var(--border)';
           return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
             <td style="${tdS};font-weight:700">${r.symbol}</td>
             <td style="${tdS};text-align:right">${r.qty.toFixed(4)}</td>
             <td style="${tdS};text-align:right">${avgD}</td>
             <td style="${tdS};text-align:right">${unitD}</td>
-            <td style="${tdS};text-align:right;font-weight:600">${ccy} ${curD}</td>
+            <td style="${tdS};text-align:right;font-weight:600">${ccy2} ${curD}</td>
             <td style="${tdS};text-align:center">
-              <span style="background:${isGBX ? '#e8f4fd' : '#e8fdf0'};color:${isGBX ? '#1a6fa8' : '#15803d'};padding:1px 9px;border-radius:20px;font-size:11px;font-weight:600">${ccy}</span>
+              <span style="background:${isGBX3 ? '#e8f4fd' : '#e8fdf0'};color:${isGBX3 ? '#1a6fa8' : '#15803d'};padding:1px 9px;border-radius:20px;font-size:11px;font-weight:600">${ccy2}</span>
             </td>
           </tr>`;
         }).join('');
@@ -407,18 +407,18 @@ document.addEventListener('fragments-loaded', () => {
 
   document.getElementById('foreign-edit-save-btn')?.addEventListener('click', async () => {
     const symbol = document.getElementById('foreign-edit-symbol').value.trim().toUpperCase();
-    const qty = parseFloat(document.getElementById('foreign-edit-qty').value);
+    const qty2 = parseFloat(document.getElementById('foreign-edit-qty2').value);
     const avgPrice = parseFloat(document.getElementById('foreign-edit-price').value);
     const currency = symbol.endsWith('.L') ? 'GBX' : 'USD';
 
     if (!symbol) { showToast('Symbol is required', 'error'); return; }
-    if (isNaN(qty) || qty <= 0) { showToast('Quantity must be > 0', 'error'); return; }
+    if (isNaN(qty2) || qty2 <= 0) { showToast('Quantity must be > 0', 'error'); return; }
     if (isNaN(avgPrice) || avgPrice <= 0) { showToast('Avg price must be > 0', 'error'); return; }
 
     const saveBtn = document.getElementById('foreign-edit-save-btn');
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-    const payload = { symbol, qty, avg_price: avgPrice, currency };
+    const payload = { symbol, qty2, avg_price: avgPrice, currency };
     let error;
     if (_editingForeignId) {
       ({ error } = await sb.from('foreign_stock_holdings').update(payload).eq('id', _editingForeignId));
@@ -436,10 +436,10 @@ document.addEventListener('fragments-loaded', () => {
 });
 
 function openForeignImportModal() {
-  const csvInput = document.getElementById('foreign-csv-input');
-  if (csvInput) csvInput.value = '';
-  const fileLabel = document.getElementById('foreign-csv-filename');
-  if (fileLabel) fileLabel.textContent = '';
+  const csvInput2 = document.getElementById('foreign-csv-input');
+  if (csvInput2) csvInput2.value = '';
+  const fileLabel2 = document.getElementById('foreign-csv-filename');
+  if (fileLabel2) fileLabel2.textContent = '';
   document.getElementById('foreign-preview-section')?.classList.add('hidden');
   document.getElementById('foreign-import-confirm-btn')?.classList.add('hidden');
   document.getElementById('foreign-import-modal').classList.remove('hidden');
@@ -505,9 +505,9 @@ async function fetchAndRefreshForeignPrices(rows) {
     const entry = dbPriceMap[r.symbol];
     if (!entry) return;
     const rawPrice = typeof entry === 'object' ? entry.price : entry;
-    const stockName = typeof entry === 'object' ? (entry.name || null) : null;
+    const stockName2 = typeof entry === 'object' ? (entry.name || null) : null;
     const nativeValue = rawPrice * (+r.qty || 0);
-    _foreignLiveData[r.symbol] = { unitPrice: rawPrice, currentValue: nativeValue, name: stockName };
+    _foreignLiveData[r.symbol] = { unitPrice: rawPrice, currentValue: nativeValue, name: stockName2 };
   });
 
   // Re-render table with updated live data
@@ -532,12 +532,12 @@ async function loadForeignStocksAndRefresh(userId) {
     .eq('user_id', userId)
     .order('symbol', { ascending: true });
   if (error) { showToast('Failed to load: ' + error.message, 'error'); return; }
-  const rows = data || [];
-  if (rows.length) {
-    renderForeignStocks(rows);         // show immediately with cached data
-    fetchAndRefreshForeignPrices(rows); // then fetch live prices
+  const rows4 = data || [];
+  if (rows4.length) {
+    renderForeignStocks(rows4);         // show immediately with cached data
+    fetchAndRefreshForeignPrices(rows4); // then fetch live prices
   } else {
-    renderForeignStocks(rows);
+    renderForeignStocks(rows4);
   }
 }// ══════════════════════════════════════════════════════════════
 //  FOREIGN STOCKS — Actual Invested
@@ -562,12 +562,12 @@ function _refreshForeignActualGainTiles() {
   const curINREl = document.getElementById('foreign-total-val-inr');
   const curINR = curINREl ? parseFloat(curINREl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   if (actINR > 0 && curINR > 0) {
-    const gainINR = curINR - actINR;
-    const pct = ` (${((gainINR / actINR) * 100).toFixed(1)}%)`;
-    const el = document.getElementById('foreign-actual-gain-inr');
-    if (el) {
-      el.textContent = (gainINR >= 0 ? '+' : '') + INR(Math.abs(gainINR)) + pct;
-      el.style.color = gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)';
+    const gainINR2 = curINR - actINR;
+    const pct = ` (${((gainINR2 / actINR) * 100).toFixed(1)}%)`;
+    const el3 = document.getElementById('foreign-actual-gain-inr');
+    if (el3) {
+      el3.textContent = (gainINR2 >= 0 ? '+' : '') + INR(Math.abs(gainINR2)) + pct;
+      el3.style.color = gainINR2 > 0 ? 'var(--green)' : gainINR2 < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   }
 
@@ -577,12 +577,12 @@ function _refreshForeignActualGainTiles() {
   const curGBPEl = document.getElementById('foreign-total-val-gbp');
   const curGBP = curGBPEl ? parseFloat(curGBPEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   if (actGBP > 0 && curGBP > 0) {
-    const gainGBP = curGBP - actGBP;
-    const pct = ` (${((gainGBP / actGBP) * 100).toFixed(1)}%)`;
-    const el = document.getElementById('foreign-actual-gain-gbp');
-    if (el) {
-      el.textContent = (gainGBP >= 0 ? '+' : '') + '\u00a3' + Math.abs(gainGBP).toFixed(2) + pct;
-      el.style.color = gainGBP > 0 ? 'var(--green)' : gainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
+    const gainGBP3 = curGBP - actGBP;
+    const pct2 = ` (${((gainGBP3 / actGBP) * 100).toFixed(1)}%)`;
+    const el4 = document.getElementById('foreign-actual-gain-gbp');
+    if (el4) {
+      el4.textContent = (gainGBP3 >= 0 ? '+' : '') + '\u00a3' + Math.abs(gainGBP3).toFixed(2) + pct2;
+      el4.style.color = gainGBP3 > 0 ? 'var(--green)' : gainGBP3 < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   }
 }
@@ -620,38 +620,38 @@ function renderForeignActualInvested(rows) {
   if (totalEl) totalEl.textContent = '£' + totalGBP.toFixed(2) + '  ·  ' + INR(totalINR);
 
   // ── Populate Actual Invested tiles in INR and GBP rows ──
-  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const setEl2 = (id, v) => { const el5 = document.getElementById(id); if (el5) el5.textContent = v; };
 
   // INR row
-  setEl('foreign-actual-inv-inr', totalINR > 0 ? INR(totalINR) : '—');
+  setEl2('foreign-actual-inv-inr', totalINR > 0 ? INR(totalINR) : '—');
   const curValINREl = document.getElementById('foreign-total-val-inr');
   const curValINR = curValINREl ? parseFloat(curValINREl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   if (totalINR > 0 && curValINR > 0) {
-    const gainINR = curValINR - totalINR;
-    const gainINRPct = totalINR > 0 ? ` (${((gainINR / totalINR) * 100).toFixed(1)}%)` : '';
-    const gainINREl = document.getElementById('foreign-actual-gain-inr');
-    if (gainINREl) {
-      gainINREl.textContent = (gainINR >= 0 ? '+' : '') + INR(gainINR) + gainINRPct;
-      gainINREl.style.color = gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)';
+    const gainINR3 = curValINR - totalINR;
+    const gainINRPct2 = totalINR > 0 ? ` (${((gainINR3 / totalINR) * 100).toFixed(1)}%)` : '';
+    const gainINREl2 = document.getElementById('foreign-actual-gain-inr');
+    if (gainINREl2) {
+      gainINREl2.textContent = (gainINR3 >= 0 ? '+' : '') + INR(gainINR3) + gainINRPct2;
+      gainINREl2.style.color = gainINR3 > 0 ? 'var(--green)' : gainINR3 < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   } else {
-    setEl('foreign-actual-gain-inr', '—');
+    setEl2('foreign-actual-gain-inr', '—');
   }
 
   // GBP row
-  setEl('foreign-actual-inv-gbp', totalGBP > 0 ? '£' + totalGBP.toFixed(2) : '—');
+  setEl2('foreign-actual-inv-gbp', totalGBP > 0 ? '£' + totalGBP.toFixed(2) : '—');
   const curValGBPEl = document.getElementById('foreign-total-val-gbp');
   const curValGBP = curValGBPEl ? parseFloat(curValGBPEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   if (totalGBP > 0 && curValGBP > 0) {
-    const gainGBP = curValGBP - totalGBP;
-    const gainGBPPct = totalGBP > 0 ? ` (${((gainGBP / totalGBP) * 100).toFixed(1)}%)` : '';
+    const gainGBP4 = curValGBP - totalGBP;
+    const gainGBPPct2 = totalGBP > 0 ? ` (${((gainGBP4 / totalGBP) * 100).toFixed(1)}%)` : '';
     const gainGBPEl = document.getElementById('foreign-actual-gain-gbp');
     if (gainGBPEl) {
-      gainGBPEl.textContent = (gainGBP >= 0 ? '+' : '') + '£' + Math.abs(gainGBP).toFixed(2) + gainGBPPct;
-      gainGBPEl.style.color = gainGBP > 0 ? 'var(--green)' : gainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
+      gainGBPEl.textContent = (gainGBP4 >= 0 ? '+' : '') + '£' + Math.abs(gainGBP4).toFixed(2) + gainGBPPct2;
+      gainGBPEl.style.color = gainGBP4 > 0 ? 'var(--green)' : gainGBP4 < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   } else {
-    setEl('foreign-actual-gain-gbp', '—');
+    setEl2('foreign-actual-gain-gbp', '—');
   }
 
   if (!rows.length) {
@@ -659,17 +659,17 @@ function renderForeignActualInvested(rows) {
     return;
   }
 
-  const thS = 'padding:9px 14px;border-bottom:1px solid var(--border)';
+  const thS2 = 'padding:9px 14px;border-bottom:1px solid var(--border)';
   body.innerHTML = rows.map((r, i) => {
     const d       = new Date(r.entry_date);
     const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const inrAmt  = (+r.gbp_amount || 0) * (+r.inr_rate || 0);
     return '<tr style="background:' + (i % 2 === 0 ? '#fff' : 'var(--surface2)') + '">' +
       '<td class="fai-cb-wrap" data-id="' + r.id + '" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="fai-cb" data-id="' + r.id + '" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>' +
-      '<td style="' + thS + ';color:var(--accent);font-weight:500">' + dateStr + '</td>' +
-      '<td style="' + thS + ';text-align:right;font-weight:600">£' + (+r.gbp_amount).toFixed(2) + '</td>' +
-      '<td style="' + thS + ';text-align:right;color:var(--muted2)">' + INR(inrAmt) + '</td>' +
-      '<td style="' + thS + ';white-space:nowrap">' +
+      '<td style="' + thS2 + ';color:var(--accent);font-weight:500">' + dateStr + '</td>' +
+      '<td style="' + thS2 + ';text-align:right;font-weight:600">£' + (+r.gbp_amount).toFixed(2) + '</td>' +
+      '<td style="' + thS2 + ';text-align:right;color:var(--muted2)">' + INR(inrAmt) + '</td>' +
+      '<td style="' + thS2 + ';white-space:nowrap">' +
         '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" ' +
           'data-id="' + r.id + '" data-date="' + r.entry_date + '" data-gbp="' + r.gbp_amount + '" data-rate="' + r.inr_rate + '" ' +
           'class="fai-edit-btn" title="Edit">✏️</button>' +
@@ -695,10 +695,10 @@ function renderForeignActualInvested(rows) {
 
 function openFaiModal(row = null) {
   _editingFaiId = row?.id || null;
-  const titleEl = document.getElementById('foreign-invested-modal-title');
-  const saveBtn = document.getElementById('foreign-invested-save-btn');
-  if (titleEl) titleEl.textContent = row ? 'Edit Entry' : 'Add Entry';
-  if (saveBtn) saveBtn.textContent = '💾 Save Entry';
+  const titleEl2 = document.getElementById('foreign-invested-modal-title');
+  const saveBtn2 = document.getElementById('foreign-invested-save-btn');
+  if (titleEl2) titleEl2.textContent = row ? 'Edit Entry' : 'Add Entry';
+  if (saveBtn2) saveBtn2.textContent = '💾 Save Entry';
 
   document.getElementById('fai-date').value     = row?.entry_date || '';
   document.getElementById('fai-gbp').value      = row?.gbp_amount || '';
@@ -752,20 +752,20 @@ document.addEventListener('fragments-loaded', () => {
     if (!gbp     || gbp     <= 0) { showToast('GBP amount must be > 0',   'error'); return; }
     if (!inrRate || inrRate <= 0) { showToast('INR rate must be > 0',     'error'); return; }
 
-    const saveBtn = document.getElementById('foreign-invested-save-btn');
-    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const saveBtn3 = document.getElementById('foreign-invested-save-btn');
+    saveBtn3.textContent = 'Saving…'; saveBtn3.disabled = true;
 
-    const payload = { entry_date: date, gbp_amount: gbp, inr_rate: inrRate };
+    const payload2 = { entry_date: date, gbp_amount: gbp, inr_rate: inrRate };
     let op;
     if (_editingFaiId) {
-      op = sb.from('foreign_actual_invested').update(payload).eq('id', _editingFaiId);
+      op = sb.from('foreign_actual_invested').update(payload2).eq('id', _editingFaiId);
     } else {
-      payload.user_id = _currentUserId;
-      op = sb.from('foreign_actual_invested').insert(payload);
+      payload2.user_id = _currentUserId;
+      op = sb.from('foreign_actual_invested').insert(payload2);
     }
 
     const { error } = await op;
-    saveBtn.textContent = '💾 Save Entry'; saveBtn.disabled = false;
+    saveBtn3.textContent = '💾 Save Entry'; saveBtn3.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
@@ -813,7 +813,7 @@ document.addEventListener('fragments-loaded', () => {
     if (delBtn)  delBtn.disabled = n === 0;
   }
 
-  document.addEventListener('fragments-loaded', function () {
+
     document.getElementById('foreign-select-btn')?.addEventListener('click', function () {
       if (_sel) _exit(); else _enter();
     });
@@ -847,7 +847,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadForeignActualInvested(_currentUserId);
     });
-  });
+
 
   window['_foreign_bindCheckboxes'] = function () {
     document.querySelectorAll('.fai-cb').forEach(cb => {

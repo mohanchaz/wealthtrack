@@ -165,18 +165,18 @@ async function fetchAndRefreshAionionGoldPrices(assets) {
   });
 
   assets.forEach(a => {
-    const ltp = getLTP(prices, a.instrument);
-    if (!ltp) return;
+    const ltp2 = getLTP(prices, a.instrument);
+    if (!ltp2) return;
 
     const qty         = +a.qty || 0;
-    const curVal      = qty * ltp;
+    const curVal      = qty * ltp2;
     const investedAmt = qty * (+a.avg_cost || 0);
     const gain        = curVal - investedAmt;
     const gainPct     = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
     const allocPct    = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
 
     const ltpCell = document.querySelector(`[data-live-_ltp="${a.instrument}"]`);
-    if (ltpCell) ltpCell.textContent = INR(ltp);
+    if (ltpCell) ltpCell.textContent = INR(ltp2);
 
     const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
     if (cvCell) cvCell.textContent = INR(curVal);
@@ -214,7 +214,7 @@ async function fetchAndRefreshAionionGoldPrices(assets) {
   if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
 }
 
-document.addEventListener('fragments-loaded', () => {
+
   document.getElementById('aionion-gold-refresh-btn')?.addEventListener('click', () => {
     if (_currentAssetFilter === 'Aionion Gold') loadAssets(_currentUserId, 'Aionion Gold');
   });
@@ -241,8 +241,8 @@ function openAionionGoldEditModal(row) {
   document.getElementById('age-qty').value      = row?.qty      ?? '';
   document.getElementById('age-avg-cost').value = row?.avg_cost ?? '';
 
-  const saveBtn = document.getElementById('aionion-gold-edit-save-btn');
-  if (saveBtn) saveBtn.textContent = isAdd ? '💾 Add ETF' : '💾 Save Changes';
+  const saveBtn2 = document.getElementById('aionion-gold-edit-save-btn');
+  if (saveBtn2) saveBtn2.textContent = isAdd ? '💾 Add ETF' : '💾 Save Changes';
 
   document.getElementById('aionion-gold-edit-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -254,7 +254,7 @@ function closeAionionGoldEditModal() {
   _editingAionionGoldId = null;
 }
 
-document.addEventListener('fragments-loaded', () => {
+
   document.getElementById('aionion-gold-edit-close-btn')?.addEventListener('click', closeAionionGoldEditModal);
   document.getElementById('aionion-gold-edit-cancel-btn')?.addEventListener('click', closeAionionGoldEditModal);
   document.getElementById('aionion-gold-edit-modal')?.addEventListener('click', e => {
@@ -272,8 +272,8 @@ document.addEventListener('fragments-loaded', () => {
     if (!qty || qty <= 0)         { showToast('Quantity must be greater than 0', 'error'); return; }
     if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
 
-    const saveBtn = document.getElementById('aionion-gold-edit-save-btn');
-    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const saveBtn3 = document.getElementById('aionion-gold-edit-save-btn');
+    saveBtn3.textContent = 'Saving…'; saveBtn3.disabled = true;
 
     let error;
     if (isAddMode) {
@@ -284,8 +284,8 @@ document.addEventListener('fragments-loaded', () => {
       ({ error } = await sb.from('aionion_gold').update({ qty, avg_cost: avgCost }).eq('id', _editingAionionGoldId));
     }
 
-    saveBtn.textContent = isAddMode ? '💾 Add ETF' : '💾 Save Changes';
-    saveBtn.disabled = false;
+    saveBtn3.textContent = isAddMode ? '💾 Add ETF' : '💾 Save Changes';
+    saveBtn3.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
@@ -296,8 +296,8 @@ document.addEventListener('fragments-loaded', () => {
     }
   });
 
-});
-});
+
+
 });
 // ── Actual Invested bulk-select wiring for aionion-gold ─────────────────
 (function() {
@@ -333,7 +333,7 @@ document.addEventListener('fragments-loaded', () => {
     if (delBtn) delBtn.disabled = n === 0;
   }
 
-  document.addEventListener('fragments-loaded', function() {
+
     document.getElementById('aionion-gold-select-btn')?.addEventListener('click', function() {
       if (_sel) _exit(); else _enter();
     });
@@ -367,7 +367,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadAionionGoldActualInvested(_currentUserId);
     });
-  });
+
 
   // Called after each render to re-wire checkboxes
   window['_aionion-gold_bindCheckboxes'] = function() {

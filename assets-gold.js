@@ -204,11 +204,11 @@ async function fetchAndRefreshGoldPrices(assets) {
   });
 
   assets.forEach(a => {
-    const price = getPrice(a.yahoo_symbol);
-    if (!price) return;
+    const price2 = getPrice(a.yahoo_symbol);
+    if (!price2) return;
 
     const qty         = +a.qty || 0;
-    const curVal      = qty * price;
+    const curVal      = qty * price2;
     const investedAmt = qty * (+a.avg_cost || 0);
     const gain        = curVal - investedAmt;
     const gainPct     = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
@@ -217,7 +217,7 @@ async function fetchAndRefreshGoldPrices(assets) {
     const nameKey = a.holding_name;
 
     const ltpCell = document.querySelector(`[data-live-_ltp="${nameKey}"]`);
-    if (ltpCell) ltpCell.textContent = INR(price);
+    if (ltpCell) ltpCell.textContent = INR(price2);
 
     const cvCell = document.querySelector(`[data-live-current_value="${nameKey}"]`);
     if (cvCell) cvCell.textContent = INR(curVal);
@@ -255,7 +255,7 @@ async function fetchAndRefreshGoldPrices(assets) {
   if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
 }
 
-document.addEventListener('fragments-loaded', () => {
+
   document.getElementById('gold-refresh-btn')?.addEventListener('click', () => {
     if (_currentAssetFilter === 'Gold') loadAssets(_currentUserId, 'Gold');
   });
@@ -414,7 +414,7 @@ async function importGoldHoldings(allRows) {
   // Delete all then insert fresh
   await sb.from('gold_holdings').delete().eq('user_id', _currentUserId);
 
-  const payload = rows.map(r => ({
+  const payload2 = rows.map(r => ({
     user_id:      _currentUserId,
     holding_name: r.holding_name,
     holding_type: r.holding_type,
@@ -424,7 +424,7 @@ async function importGoldHoldings(allRows) {
     imported_at:  new Date().toISOString()
   }));
 
-  const { error } = await sb.from('gold_holdings').insert(payload);
+  const { error } = await sb.from('gold_holdings').insert(payload2);
 
   confirmBtn.textContent = `📥 Import ${rows.length} Holdings`;
   confirmBtn.disabled = false;
@@ -438,8 +438,8 @@ async function importGoldHoldings(allRows) {
   }
 }
 
-document.addEventListener('fragments-loaded', () => {
-  const modal = document.getElementById('gold-import-modal');
+
+  const modal2 = document.getElementById('gold-import-modal');
   document.getElementById('gold-import-btn')?.addEventListener('click', openGoldImportModal);
   document.getElementById('gold-import-close-btn')?.addEventListener('click', closeGoldImportModal);
   document.getElementById('gold-import-cancel-btn')?.addEventListener('click', closeGoldImportModal);
@@ -478,7 +478,7 @@ function closeGoldEditModal() {
   _editingGoldId = null;
 }
 
-document.addEventListener('fragments-loaded', () => {
+
   document.getElementById('gold-edit-close-btn')?.addEventListener('click', closeGoldEditModal);
   document.getElementById('gold-edit-cancel-btn')?.addEventListener('click', closeGoldEditModal);
   document.getElementById('gold-edit-modal')?.addEventListener('click', e => {
@@ -492,12 +492,12 @@ document.addEventListener('fragments-loaded', () => {
     if (!qty || qty <= 0)         { showToast('Qty must be greater than 0', 'error'); return; }
     if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
 
-    const saveBtn = document.getElementById('gold-edit-save-btn');
-    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const saveBtn2 = document.getElementById('gold-edit-save-btn');
+    saveBtn2.textContent = 'Saving…'; saveBtn2.disabled = true;
 
     const { error } = await sb.from('gold_holdings').update({ qty, avg_cost: avgCost }).eq('id', _editingGoldId);
 
-    saveBtn.textContent = '💾 Save Changes'; saveBtn.disabled = false;
+    saveBtn2.textContent = '💾 Save Changes'; saveBtn2.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
@@ -508,9 +508,9 @@ document.addEventListener('fragments-loaded', () => {
     }
   });
 
-});
-});
-});
+
+
+
 });
 // ── Actual Invested bulk-select wiring for gold ─────────────────
 (function() {
@@ -546,7 +546,7 @@ document.addEventListener('fragments-loaded', () => {
     if (delBtn) delBtn.disabled = n === 0;
   }
 
-  document.addEventListener('fragments-loaded', function() {
+
     document.getElementById('gold-select-btn')?.addEventListener('click', function() {
       if (_sel) _exit(); else _enter();
     });
@@ -580,7 +580,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadGoldActualInvested(_currentUserId);
     });
-  });
+
 
   // Called after each render to re-wire checkboxes
   window['_gold_bindCheckboxes'] = function() {

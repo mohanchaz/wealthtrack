@@ -26,9 +26,9 @@ async function loadFdActualInvested(userId) {
 }
 
 function renderFdActualInvested(rows) {
-  const body = document.getElementById('assets-monthly-body');
+  const body2 = document.getElementById('assets-monthly-body2');
   const totalEl = document.getElementById('assets-monthly-total');
-  if (!body) return;
+  if (!body2) return;
 
   const grand = rows.reduce((s, r) => s + (+r.amount || 0), 0);
   if (totalEl) totalEl.textContent = `Total: ${INR(grand)}`;
@@ -49,11 +49,11 @@ function renderFdActualInvested(rows) {
 
 
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
+    body2.innerHTML = `<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
     return;
   }
 
-  body.innerHTML = rows.map((r, i) => {
+  body2.innerHTML = rows.map((r, i) => {
     const d = new Date(r.entry_date);
     const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
@@ -72,7 +72,7 @@ function renderFdActualInvested(rows) {
 
 
   if (window['_fd_bindCheckboxes']) window['_fd_bindCheckboxes']();
-  body.querySelectorAll('.fdi-edit-btn').forEach(btn => {
+  body2.querySelectorAll('.fdi-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => openFdInvestedModal({
       id: btn.dataset.fdiId, entry_date: btn.dataset.fdiDate,
       amount: btn.dataset.fdiAmount
@@ -122,8 +122,8 @@ document.addEventListener('fragments-loaded', () => {
     if (!date) { showToast('Date is required', 'error'); return; }
     if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
 
-    const saveBtn = document.getElementById('fd-invested-save-btn');
-    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+    const saveBtn2 = document.getElementById('fd-invested-save-btn');
+    saveBtn2.textContent = 'Saving…'; saveBtn2.disabled = true;
 
     const payload = { entry_date: date, amount };
     let op;
@@ -135,7 +135,7 @@ document.addEventListener('fragments-loaded', () => {
     }
 
     const { error } = await op;
-    saveBtn.textContent = '💾 Save Entry'; saveBtn.disabled = false;
+    saveBtn2.textContent = '💾 Save Entry'; saveBtn2.disabled = false;
 
     if (error) {
       showToast('Save failed: ' + error.message, 'error');
@@ -180,7 +180,7 @@ document.addEventListener('fragments-loaded', () => {
     if (delBtn) delBtn.disabled = n === 0;
   }
 
-  document.addEventListener('fragments-loaded', function() {
+
     document.getElementById('fd-select-btn')?.addEventListener('click', function() {
       if (_sel) _exit(); else _enter();
     });
@@ -214,7 +214,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadFdActualInvested(_currentUserId);
     });
-  });
+
 
   // Called after each render to re-wire checkboxes
   window['_fd_bindCheckboxes'] = function() {
