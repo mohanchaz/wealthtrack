@@ -1,116 +1,106 @@
-<div id="dashboard-view" class="hidden">
+<!-- ══ PAGE: DASHBOARD ══════════════════════════════════ -->
+        <div id="page-dashboard">
 
-    <!-- Top bar -->
-    <header class="dash-topbar">
-      <div class="dash-logo">
-        <img src="logo.png" alt="FinTrack" style="height:28px;width:auto;object-fit:contain;display:block" />
-      </div>
-      <div class="dash-topright">
-        <span class="dash-user-name">Hi, <b id="user-name"></b></span>
-        <img id="user-avatar" class="dash-avatar hidden" alt="avatar" />
-        <div id="user-avatar-placeholder" class="dash-avatar-placeholder hidden"></div>
-        <button class="dash-logout" id="logout-btn">Sign out</button>
-      </div>
-    </header>
-
-    <div class="dash-body">
-
-      <!-- Sidebar -->
-      <aside class="dash-sidebar">
-        <div class="sidebar-section-label">Overview</div>
-        <div class="sidebar-item active" data-page="dashboard">
-          <span class="sidebar-icon">⬡</span> Dashboard
-        </div>
-
-        <div class="sidebar-section-label">Wealth</div>
-        <div class="sidebar-item" data-page="assets" id="sidebar-assets">
-          <span class="sidebar-icon">◈</span> Assets
-        </div>
-        <div class="sidebar-sub-group open" id="assets-sub-group">
-          <!-- Zerodha nested group -->
-          <div class="sidebar-nested-header" id="zerodha-nav-header">
-            <span class="sidebar-sub-icon">📈</span>
-            <span>Zerodha</span>
-            <span class="sidebar-nested-chevron" id="zerodha-nav-chevron">›</span>
-          </div>
-          <div class="sidebar-nested-group" id="zerodha-nav-group">
-            <div class="sidebar-nested-item" data-page="assets" data-asset-filter="Zerodha Stocks">
-              <span class="sidebar-sub-icon">📊</span> Stocks
-            </div>
-            <div class="sidebar-nested-item" data-page="assets" data-asset-filter="Mutual Funds">
-              <span class="sidebar-sub-icon">💹</span> Mutual Funds
-            </div>
-            <div class="sidebar-nested-item" data-page="assets" data-asset-filter="Gold">
-              <span class="sidebar-sub-icon">🥇</span> Gold
-            </div>
+          <div class="page-header">
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle" id="dash-date"></p>
           </div>
 
-          <!-- Aionion nested group -->
-          <div class="sidebar-nested-header" id="aionion-nav-header">
-            <span class="sidebar-sub-icon">📊</span>
-            <span>Aionion</span>
-            <span class="sidebar-nested-chevron" id="aionion-nav-chevron">›</span>
-          </div>
-          <div class="sidebar-nested-group" id="aionion-nav-group">
-            <div class="sidebar-nested-item" data-page="assets" data-asset-filter="Aionion Stocks">
-              <span class="sidebar-sub-icon">📈</span> Stocks
+          <!-- Summary cards -->
+          <div class="summary-grid">
+            <div class="summary-card anim-fadeup delay-1" style="--card-accent:var(--teal)">
+              <div class="summary-card-label">
+                <div class="summary-card-label-dot" style="background:var(--teal)"></div>
+                Net Worth
+              </div>
+              <div class="summary-card-value" id="dash-net-worth" style="color:var(--teal)">₹0</div>
+              <div class="summary-card-sub" id="dash-net-worth-sub">Add assets to calculate</div>
             </div>
-            <div class="sidebar-nested-item" data-page="assets" data-asset-filter="Aionion Gold">
-              <span class="sidebar-sub-icon">🥇</span> Gold
+            <div class="summary-card anim-fadeup delay-2" style="--card-accent:var(--accent)">
+              <div class="summary-card-label">
+                <div class="summary-card-label-dot" style="background:var(--accent)"></div>
+                Total Assets
+              </div>
+              <div class="summary-card-value" id="dash-total-assets" style="color:var(--accent)">₹0</div>
+              <div class="summary-card-sub" id="dash-total-assets-sub">0 assets tracked</div>
+            </div>
+            <div class="summary-card anim-fadeup delay-3" style="--card-accent:var(--warn)">
+              <div class="summary-card-label">
+                <div class="summary-card-label-dot" style="background:var(--warn)"></div>
+                Total Liabilities
+              </div>
+              <div class="summary-card-value" id="dash-liabilities" style="color:var(--warn)">₹0</div>
+              <div class="summary-card-sub">0 loans / EMIs</div>
+            </div>
+            <div class="summary-card anim-fadeup delay-4" style="--card-accent:var(--lavender)">
+              <div class="summary-card-label">
+                <div class="summary-card-label-dot" style="background:var(--lavender)"></div>
+                Savings Rate
+              </div>
+              <div class="summary-card-value" style="color:var(--lavender)">0%</div>
+              <div class="summary-card-sub">No transactions yet</div>
+            </div>
+            <div class="summary-card anim-fadeup delay-4" style="--card-accent:var(--green)">
+              <div class="summary-card-label">
+                <div class="summary-card-label-dot" style="background:var(--green)"></div>
+                Actual Invested
+              </div>
+              <div class="summary-card-value" id="dash-actual-invested" style="color:var(--green)">₹0</div>
+              <div class="summary-card-sub" id="dash-actual-invested-sub">FD entries tracked</div>
             </div>
           </div>
 
-          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Cash">
-            <span class="sidebar-sub-icon">💵</span> Cash
+          <!-- Quick actions -->
+          <div class="quick-actions">
+            <div class="quick-action anim-fadeup delay-1">
+              <div class="quick-action-icon" style="background:var(--greenbg); color:var(--green)">+</div>
+              <div class="quick-action-label">Add Asset</div>
+              <div class="quick-action-sub">Stocks, MF, Gold…</div>
+            </div>
+            <div class="quick-action anim-fadeup delay-2">
+              <div class="quick-action-icon" style="background:var(--accentbg); color:var(--accent)">⇅</div>
+              <div class="quick-action-label">Log Transaction</div>
+              <div class="quick-action-sub">Income or expense</div>
+            </div>
+            <div class="quick-action anim-fadeup delay-3">
+              <div class="quick-action-icon" style="background:var(--lavenderbg); color:var(--lavender)">◎</div>
+              <div class="quick-action-label">Set a Goal</div>
+              <div class="quick-action-sub">Retirement, EMF…</div>
+            </div>
+            <div class="quick-action anim-fadeup delay-4">
+              <div class="quick-action-icon" style="background:var(--tealbg); color:var(--teal)">⊡</div>
+              <div class="quick-action-label">Take Snapshot</div>
+              <div class="quick-action-sub">Freeze net worth</div>
+            </div>
           </div>
-          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Fixed Deposits">
-            <span class="sidebar-sub-icon">🏦</span> Fixed Deposits
+
+          <!-- Net Worth Over Time -->
+          <div class="section-card anim-fadeup delay-2">
+            <div class="section-card-header">
+              <span class="section-card-title">Net Worth Over Time</span>
+            </div>
+            <div class="section-card-body">
+              <div style="text-align:center; padding:32px 0;">
+                <div style="font-size:40px; margin-bottom:12px; animation:floatY 3s ease infinite">📈</div>
+                <p style="font-size:13px; color:var(--muted); line-height:1.7; max-width:240px; margin:0 auto;">
+                  Your net worth chart will appear here once you start adding assets.
+                </p>
+              </div>
+            </div>
           </div>
-          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Emergency Funds">
-            <span class="sidebar-sub-icon">🛡️</span> Emergency Funds
+
+          <!-- Empty state -->
+          <div class="empty-state anim-fadeup delay-3" style="margin-top:16px">
+            <div class="empty-icon">₹</div>
+            <h2 class="empty-title">Your wealth journey starts here</h2>
+            <p class="empty-text">
+              Add your first asset — stocks, mutual funds, gold, real estate, EPF — and watch your complete financial
+              picture come alive.
+            </p>
+            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+              <button class="btn-primary"><span>+</span> Add First Asset</button>
+              <button class="btn-secondary">Import from CSV</button>
+            </div>
           </div>
-          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="Bonds">
-            <span class="sidebar-sub-icon">📜</span> Bonds
-          </div>
-          <div class="sidebar-sub-item" data-page="assets" data-asset-filter="AMC Mutual Funds">
-            <span class="sidebar-sub-icon">💼</span> AMC Mutual Funds
-          </div>
-        </div>
-        <div class="sidebar-item" data-page="liabilities">
-          <span class="sidebar-icon">◉</span> Liabilities
-        </div>
-        <div class="sidebar-item" data-page="allocation">
-          <span class="sidebar-icon">◎</span> Allocation
-        </div>
 
-        <div class="sidebar-section-label">Money Flow</div>
-        <div class="sidebar-item" data-page="transactions">
-          <span class="sidebar-icon">⇅</span> Transactions
-        </div>
-        <div class="sidebar-item" data-page="budget">
-          <span class="sidebar-icon">◷</span> Budget
-        </div>
-
-        <div class="sidebar-section-label">Planning</div>
-        <div class="sidebar-item" data-page="goals">
-          <span class="sidebar-icon">◌</span> Goals
-        </div>
-        <div class="sidebar-item" data-page="snapshots">
-          <span class="sidebar-icon">⊡</span> Snapshots
-        </div>
-
-        <div class="sidebar-section-label">More</div>
-        <div class="sidebar-item" data-page="settings">
-          <span class="sidebar-icon">⚙</span> Settings
-        </div>
-      </aside>
-
-      <!-- Main -->
-      <main class="dash-main anim-fadein">
-
-
-        <!-- pages injected here by loader.js -->
-
-      </main>
-    </div>
-  </div>
+        </div><!-- /#page-dashboard -->
