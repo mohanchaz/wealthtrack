@@ -726,7 +726,7 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
     ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
       'aionion-gold-monthly-summary', 'mf-monthly-summary', 'gold-monthly-summary',
-      'amc-mf-monthly-summary', 'ef-monthly-summary', 'foreign-gbp-row'].forEach(id =>
+      'amc-mf-monthly-summary', 'ef-monthly-summary'].forEach(id =>
         document.getElementById(id)?.classList.add('hidden')
       );
     loadForeignStocks(userId);
