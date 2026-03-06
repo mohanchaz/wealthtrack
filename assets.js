@@ -731,10 +731,13 @@ async function loadAssets(userId, filter = null) {
       'amc-mf-monthly-summary', 'ef-monthly-summary'].forEach(id =>
         document.getElementById(id)?.classList.add('hidden')
       );
+    document.querySelector('.assets-table')?.classList.add('foreign-compact');
     loadForeignStocks(userId);
     loadForeignActualInvested(userId);
     return;
   }
+
+  document.querySelector('.assets-table')?.classList.remove('foreign-compact');
 
   // Show layout row when a category is selected; hide group overview
   const activeLayoutRow = document.getElementById('assets-layout-row');

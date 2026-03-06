@@ -53,20 +53,23 @@ function renderForeignStocks(rows) {
   const thead = document.getElementById('assets-thead-row');
   if (!tbody) return;
 
+  const thS = 'padding:5px 6px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted2);border-bottom:1px solid var(--border);white-space:nowrap';
+  const thL = thS.replace('text-align:right', 'text-align:left');
+
   if (thead) {
     thead.innerHTML = `
-      <th>Symbol</th>
-      <th>Name</th>
-      <th style="text-align:right">Qty</th>
-      <th style="text-align:right">Avg Price</th>
-      <th style="text-align:right">Unit Price</th>
-      <th style="text-align:center">CCY</th>
-      <th style="text-align:right">Invested</th>
-      <th style="text-align:right">Current Value</th>
-      <th style="text-align:right">Gain / Loss</th>
-      <th style="text-align:right">Invested (£)</th>
-      <th style="text-align:right">Cur. Value (£)</th>
-      <th style="text-align:right">Gain / Loss (£)</th>
+      <th style="${thL}">Symbol</th>
+      <th style="${thL}">Name</th>
+      <th style="${thS}">Qty</th>
+      <th style="${thS}">Avg</th>
+      <th style="${thS}">Price</th>
+      <th style="${thS.replace('text-align:right', 'text-align:center')}">CCY</th>
+      <th style="${thS}">Invested</th>
+      <th style="${thS}">Cur. Val</th>
+      <th style="${thS}">Gain/Loss</th>
+      <th style="${thS}">Inv (£)</th>
+      <th style="${thS}">Val (£)</th>
+      <th style="${thS}">G/L (£)</th>
       <th></th>`;
   }
 
@@ -86,8 +89,8 @@ function renderForeignStocks(rows) {
   tbody.innerHTML = rows.map((r, i) => {
     const isGBX = isLondonSymbol(r.symbol) || r.currency === 'GBX';
     const factor = isGBX ? 100 : 1;
-    const ccy = isGBX ? 'GBP' : 'USD';   // word — used for CCY badge only
-    const sym = isGBX ? '£' : '$';        // symbol — used for amounts
+    const ccy = isGBX ? 'GBP' : 'USD';
+    const sym = isGBX ? '£' : '$';
 
     const avgDisp = r.avg_price / factor;
     const live = _foreignLiveData[r.symbol];
@@ -103,38 +106,39 @@ function renderForeignStocks(rows) {
     const gainPct = gain != null && invested ? ` (${((gain / invested) * 100).toFixed(1)}%)` : '';
     const gainColor = gain == null ? 'var(--muted2)' : gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)';
     const gainStr = gain == null ? '<span style="color:var(--muted2)">—</span>'
-      : `${gain >= 0 ? '+' : ''}${sym}${gain.toFixed(2)}<span style="font-size:11px">${gainPct}</span>`;
+      : `${gain >= 0 ? '+' : ''}${sym}${gain.toFixed(2)}<span style="font-size:10px">${gainPct}</span>`;
 
-    const badge = `<span style="background:${isGBX ? '#e8f4fd' : '#e8fdf0'};color:${isGBX ? '#1a6fa8' : '#15803d'};padding:1px 9px;border-radius:20px;font-size:11px;font-weight:600">${ccy}</span>`;
-    const tdS = 'padding:10px 14px;border-bottom:1px solid var(--border)';
-    const dash = '<span style="color:var(--muted2)">—</span>';
-
-    // GBP columns — for GBX: invested/curVal already in GBP (factor=100 applied above); for USD: convert via rate
+    // GBP equivalents
     const invGBP = isGBX ? invested : toGBP(invested);
     const curGBP = curVal != null ? (isGBX ? curVal : toGBP(curVal)) : null;
-    const gainGBP = (invGBP != null && curGBP != null) ? curGBP - invGBP : null;
+    const gainGBP = invGBP != null && curGBP != null ? curGBP - invGBP : null;
     const gainGBPPct = gainGBP != null && invGBP ? ` (${((gainGBP / invGBP) * 100).toFixed(1)}%)` : '';
     const gainGBPColor = gainGBP == null ? 'var(--muted2)' : gainGBP > 0 ? 'var(--green)' : gainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
-    const gainGBPStr = gainGBP == null ? dash : `${gainGBP >= 0 ? '+' : ''}£${Math.abs(gainGBP).toFixed(2)}<span style="font-size:11px">${gainGBPPct}</span>`;
+    const gainGBPStr = gainGBP == null ? '<span style="color:var(--muted2)">—</span>'
+      : `${gainGBP >= 0 ? '+' : ''}£${Math.abs(gainGBP).toFixed(2)}<span style="font-size:10px">${gainGBPPct}</span>`;
 
-    const stockName = live?.name || dash;
+    const badge = `<span style="background:${isGBX ? '#e8f4fd' : '#e8fdf0'};color:${isGBX ? '#1a6fa8' : '#15803d'};padding:1px 5px;border-radius:20px;font-size:10px;font-weight:600">${ccy}</span>`;
+    const td = 'padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap';
+    const tdr = td + ';text-align:right;font-variant-numeric:tabular-nums';
+    const dash = '<span style="color:var(--muted2)">—</span>';
+    const stockName = live?.name || '—';
 
     return `<tr data-id="${r.id}" style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
-      <td style="${tdS};font-weight:700">${r.symbol}</td>
-      <td style="${tdS};color:var(--muted2);font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${live?.name || ''}">${stockName}</td>
-      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${(+r.qty).toFixed(4)}</td>
-      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${avgDisp.toFixed(2)}</td>
-      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${unitDisp != null ? unitDisp.toFixed(2) : dash}</td>
-      <td style="${tdS};text-align:center">${badge}</td>
-      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${sym}${invested.toFixed(2)}</td>
-      <td style="${tdS};text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${curVal != null ? `${sym}${curVal.toFixed(2)}` : dash}</td>
-      <td style="${tdS};text-align:right;font-weight:600;color:${gainColor};font-variant-numeric:tabular-nums">${gainStr}</td>
-      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${invGBP != null ? '£' + invGBP.toFixed(2) : dash}</td>
-      <td style="${tdS};text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${curGBP != null ? '£' + curGBP.toFixed(2) : dash}</td>
-      <td style="${tdS};text-align:right;font-weight:600;color:${gainGBPColor};font-variant-numeric:tabular-nums">${gainGBPStr}</td>
-      <td style="${tdS};text-align:right">
+      <td style="${td};font-weight:700">${r.symbol}</td>
+      <td style="${td};color:var(--muted2);font-size:11px;max-width:90px;overflow:hidden;text-overflow:ellipsis" title="${live?.name || ''}">${stockName}</td>
+      <td style="${tdr}">${(+r.qty).toFixed(4)}</td>
+      <td style="${tdr}">${avgDisp.toFixed(2)}</td>
+      <td style="${tdr}">${unitDisp != null ? unitDisp.toFixed(2) : dash}</td>
+      <td style="${td};text-align:center">${badge}</td>
+      <td style="${tdr}">${sym}${invested.toFixed(2)}</td>
+      <td style="${tdr};font-weight:600">${curVal != null ? `${sym}${curVal.toFixed(2)}` : dash}</td>
+      <td style="${tdr};font-weight:600;color:${gainColor}">${gainStr}</td>
+      <td style="${tdr}">${invGBP != null ? '£' + invGBP.toFixed(2) : dash}</td>
+      <td style="${tdr};font-weight:600">${curGBP != null ? '£' + curGBP.toFixed(2) : dash}</td>
+      <td style="${tdr};font-weight:600;color:${gainGBPColor}">${gainGBPStr}</td>
+      <td style="${td};text-align:right">
         <button class="foreign-edit-btn" data-id="${r.id}"
-          style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 5px;opacity:0.65;transition:opacity 0.15s"
+          style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 3px;opacity:0.65;transition:opacity 0.15s"
           onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.65" title="Edit">✏️</button>
       </td>
     </tr>`;
@@ -216,7 +220,7 @@ function renderForeignStocks(rows) {
 
 async function loadForeignStocks(userId) {
   const tbody = document.getElementById('assets-table-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="13" style="padding:24px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
 
   const { data, error } = await sb
     .from('foreign_stock_holdings')
