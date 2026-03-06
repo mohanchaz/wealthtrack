@@ -202,7 +202,7 @@ async function loadGroupOverview(userId, group) {
   document.getElementById('select-btn-row')?.classList.add('hidden');
   document.getElementById('bulk-delete-bar')?.classList.add('hidden');
   document.querySelector('.assets-summary-row')?.classList.add('hidden');
-  ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf'].forEach(p => {
+  ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf', 'foreign'].forEach(p => {
     document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-last-updated`)?.classList.add('hidden');
@@ -412,7 +412,7 @@ async function loadAssets(userId, filter = null) {
       'foreign-inr-row', 'foreign-gbp-row'].forEach(id =>
         document.getElementById(id)?.classList.add('hidden')
       );
-    ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf'].forEach(p => {
+    ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf', 'foreign'].forEach(p => {
       document.getElementById(p + '-import-btn')?.classList.add('hidden');
       document.getElementById(p + '-refresh-btn')?.classList.add('hidden');
       document.getElementById(p + '-last-updated')?.classList.add('hidden');
@@ -799,7 +799,7 @@ function renderAssetsTable(assets, tableName) {
   const isStockTable2 = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'aionion_gold' || tableName === 'mf_holdings' || tableName === 'gold_holdings';
 
   // Hide all broker toolbar buttons first, then show only relevant ones
-  ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold'].forEach(p => {
+  ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'foreign'].forEach(p => {
     document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-last-updated`)?.classList.add('hidden');
