@@ -266,29 +266,42 @@ async function loadGroupOverview(userId, group) {
         curVal += qty * ltp;
       });
     } else if (sc.type === 'mf') {
-      // Fetch live NAV for MF using nav_symbol
-      const symbols = holdings.filter(r => r.nav_symbol).map(r => r.nav_symbol);
+      // Fetch live NAV — nav_symbol may or may not have .BO suffix; ensure it does before fetching
+      const symbols = holdings.filter(r => r.nav_symbol).map(r => {
+        const s = r.nav_symbol.trim();
+        return /\.(NS|BO)$/i.test(s) ? s : s + '.BO';
+      });
       const prices = symbols.length ? (await fetchLivePricesRaw(symbols)) || {} : {};
       holdings.forEach(r => {
         const qty = +r.qty || 0;
-        const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
+        const key = r.nav_symbol ? r.nav_symbol.trim().replace(/\.(NS|BO)$/i, '') : null;
         const liveNav = key ? getLTP(prices, key) : null;
         invested += qty * (+r.avg_cost || 0);
         curVal += qty * (liveNav || +r.avg_cost || 0);
       });
     } else if (sc.type === 'gold') {
-      // Fetch live price for gold using yahoo_symbol
-      const symbolSet = [...new Set(holdings.filter(r => r.yahoo_symbol).map(r => r.yahoo_symbol))];
-      let prices = {};
-      if (symbolSet.length) {
-        try {
-          const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbolSet.join(','))}`);
-          if (res.ok) { const raw = await res.json(); if (!raw.error) prices = raw; }
-        } catch (e) { }
+      // Resolve symbol for each holding (same logic as resolveGoldSymbol in assets-gold.js)
+      function _resolveGoldSym(r) {
+        const raw = (r.yahoo_symbol || '').trim().toUpperCase()
+                 || (r.holding_name || '').trim().toUpperCase().replace(/\s+/g, '');
+        if (!raw) return null;
+        return /\.(NS|BO)$/i.test(raw) ? raw : raw + '.NS';
       }
+      const nsSyms = new Set(), boSyms = new Set();
+      holdings.forEach(r => {
+        const sym = _resolveGoldSym(r);
+        if (!sym) return;
+        if (/\.BO$/i.test(sym)) boSyms.add(sym); else nsSyms.add(sym);
+      });
+      const [nsPrices, boPrices] = await Promise.all([
+        nsSyms.size ? fetchLivePricesRaw([...nsSyms]).catch(() => null) : Promise.resolve(null),
+        boSyms.size ? fetchLivePricesRaw([...boSyms]).catch(() => null) : Promise.resolve(null),
+      ]);
+      const prices = { ...(boPrices || {}), ...(nsPrices || {}) };
       holdings.forEach(r => {
         const qty = +r.qty || 0;
-        const key = r.yahoo_symbol ? r.yahoo_symbol.replace(/\.(NS|BO)$/, '') : null;
+        const sym = _resolveGoldSym(r);
+        const key = sym ? sym.replace(/\.(NS|BO)$/i, '') : null;
         const livePrice = key ? getLTP(prices, key) : null;
         invested += qty * (+r.avg_cost || 0);
         curVal += qty * (livePrice || +r.avg_cost || 0);
@@ -544,35 +557,49 @@ async function loadAssets(userId, filter = null) {
         zCur += qty * (getLTP(zPrices, r.instrument) || +r.avg_cost || 0);
       });
 
-      // MF (needs live NAV)
+      // MF (needs live NAV — ensure .BO suffix before fetching)
       const mfRows = mfRes.data || [];
-      const mfSyms = mfRows.filter(r => r.nav_symbol).map(r => r.nav_symbol);
+      const mfSyms = mfRows.filter(r => r.nav_symbol).map(r => {
+        const s = r.nav_symbol.trim();
+        return /\.(NS|BO)$/i.test(s) ? s : s + '.BO';
+      });
       const mfPrices = mfSyms.length ? (await fetchLivePricesRaw(mfSyms)) || {} : {};
       let mfInv = 0, mfCur = 0;
       mfRows.forEach(r => {
         const qty = +r.qty || 0;
-        const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
+        const key = r.nav_symbol ? r.nav_symbol.trim().replace(/\.(NS|BO)$/i, '') : null;
         const nav = key ? getLTP(mfPrices, key) : null;
         mfInv += qty * (+r.avg_cost || 0);
         mfCur += qty * (nav || +r.avg_cost || 0);
       });
 
-      // Gold (needs live price)
+      // Gold (needs live price — resolve symbol same as assets-gold.js)
       const goldRows = goldRes.data || [];
-      const goldSymSet = [...new Set(goldRows.filter(r => r.yahoo_symbol).map(r => r.yahoo_symbol))];
-      let goldPrices = {};
-      if (goldSymSet.length) {
-        try {
-          const gres = await fetch('/api/prices?symbols=' + encodeURIComponent(goldSymSet.join(',')));
-          if (gres.ok) { const raw = await gres.json(); if (!raw.error) goldPrices = raw; }
-        } catch (e) { }
+      function _resolveGoldSymOv(r) {
+        const raw = (r.yahoo_symbol || '').trim().toUpperCase()
+                 || (r.holding_name || '').trim().toUpperCase().replace(/\s+/g, '');
+        if (!raw) return null;
+        return /\.(NS|BO)$/i.test(raw) ? raw : raw + '.NS';
       }
+      const goldNsSyms = new Set(), goldBoSyms = new Set();
+      goldRows.forEach(r => {
+        const sym = _resolveGoldSymOv(r);
+        if (!sym) return;
+        if (/\.BO$/i.test(sym)) goldBoSyms.add(sym); else goldNsSyms.add(sym);
+      });
+      const [goldNsPrices, goldBoPrices] = await Promise.all([
+        goldNsSyms.size ? fetchLivePricesRaw([...goldNsSyms]).catch(() => null) : Promise.resolve(null),
+        goldBoSyms.size ? fetchLivePricesRaw([...goldBoSyms]).catch(() => null) : Promise.resolve(null),
+      ]);
+      const goldPrices = { ...(goldBoPrices || {}), ...(goldNsPrices || {}) };
       let goldInv = 0, goldCur = 0;
       goldRows.forEach(r => {
         const qty = +r.qty || 0;
-        const key = r.yahoo_symbol ? r.yahoo_symbol.replace(/\.(NS|BO)$/, '') : null;
+        const sym = _resolveGoldSymOv(r);
+        const key = sym ? sym.replace(/\.(NS|BO)$/i, '') : null;
+        const livePrice = key ? getLTP(goldPrices, key) : null;
         goldInv += qty * (+r.avg_cost || 0);
-        goldCur += qty * (key ? getLTP(goldPrices, key) : null || +r.avg_cost || 0);
+        goldCur += qty * (livePrice || +r.avg_cost || 0);
       });
 
       // Aionion stocks
