@@ -6,8 +6,40 @@
     <p class="page-subtitle">Track all your investments and holdings</p>
   </div>
 
-  <!-- Summary stats -->
-  <div class="assets-summary-row">
+  <!-- Foreign Stocks — INR summary row (top row, hidden except on Foreign Stocks page) -->
+  <div id="foreign-inr-row" class="assets-summary-row hidden">
+    <div class="assets-stat-card">
+      <div class="assets-stat-label">Total Invested (₹)</div>
+      <div class="assets-stat-value" id="foreign-total-inv-inr" style="color:var(--accent)">—</div>
+    </div>
+    <div class="assets-stat-card">
+      <div class="assets-stat-label">Current Value (₹)</div>
+      <div class="assets-stat-value" id="foreign-total-val-inr" style="color:var(--teal)">—</div>
+    </div>
+    <div class="assets-stat-card">
+      <div class="assets-stat-label">Total Gain / Loss (₹)</div>
+      <div class="assets-stat-value" id="foreign-total-gain-inr">—</div>
+    </div>
+  </div>
+
+  <!-- Foreign Stocks — GBP summary row (middle row, hidden except on Foreign Stocks page) -->
+  <div id="foreign-gbp-row" class="assets-summary-row hidden" style="margin-top:8px">
+    <div class="assets-stat-card">
+      <div class="assets-stat-label">Total Invested (£)</div>
+      <div class="assets-stat-value" id="foreign-total-inv-gbp" style="color:var(--accent)">—</div>
+    </div>
+    <div class="assets-stat-card">
+      <div class="assets-stat-label">Current Value (£)</div>
+      <div class="assets-stat-value" id="foreign-total-val-gbp" style="color:var(--teal)">—</div>
+    </div>
+    <div class="assets-stat-card">
+      <div class="assets-stat-label">Total Gain / Loss (£)</div>
+      <div class="assets-stat-value" id="foreign-total-gain-gbp">—</div>
+    </div>
+  </div>
+
+  <!-- Summary stats ($+£ native currencies, bottom row on Foreign Stocks / only row elsewhere) -->
+  <div class="assets-summary-row" style="margin-top:8px">
     <div class="assets-stat-card">
       <div class="assets-stat-label">Total Invested</div>
       <div class="assets-stat-value" id="assets-total-invested" style="color:var(--accent)">₹0</div>
@@ -27,38 +59,6 @@
     <div class="assets-stat-card hidden" id="assets-actual-gain-card">
       <div class="assets-stat-label">Actual Gain / Loss</div>
       <div class="assets-stat-value" id="assets-actual-gain">—</div>
-    </div>
-  </div>
-
-  <!-- Foreign Stocks — INR summary row (hidden except on Foreign Stocks page) -->
-  <div id="foreign-inr-row" class="assets-summary-row hidden" style="margin-top:8px">
-    <div class="assets-stat-card">
-      <div class="assets-stat-label">Total Invested (₹)</div>
-      <div class="assets-stat-value" id="foreign-total-inv-inr" style="color:var(--accent)">—</div>
-    </div>
-    <div class="assets-stat-card">
-      <div class="assets-stat-label">Current Value (₹)</div>
-      <div class="assets-stat-value" id="foreign-total-val-inr" style="color:var(--teal)">—</div>
-    </div>
-    <div class="assets-stat-card">
-      <div class="assets-stat-label">Total Gain / Loss (₹)</div>
-      <div class="assets-stat-value" id="foreign-total-gain-inr">—</div>
-    </div>
-  </div>
-
-  <!-- Foreign Stocks — GBP summary row (hidden except on Foreign Stocks page) -->
-  <div id="foreign-gbp-row" class="assets-summary-row hidden" style="margin-top:8px">
-    <div class="assets-stat-card">
-      <div class="assets-stat-label">Total Invested (£)</div>
-      <div class="assets-stat-value" id="foreign-total-inv-gbp" style="color:var(--accent)">—</div>
-    </div>
-    <div class="assets-stat-card">
-      <div class="assets-stat-label">Current Value (£)</div>
-      <div class="assets-stat-value" id="foreign-total-val-gbp" style="color:var(--teal)">—</div>
-    </div>
-    <div class="assets-stat-card">
-      <div class="assets-stat-label">Total Gain / Loss (£)</div>
-      <div class="assets-stat-value" id="foreign-total-gain-gbp">—</div>
     </div>
   </div>
 
