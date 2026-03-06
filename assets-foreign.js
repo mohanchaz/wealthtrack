@@ -171,6 +171,7 @@ function parseForeignCSV(text) {
   const iQty = header.findIndex(h => h.includes('quantity') || h === 'qty');
   const iPrc = header.findIndex(h => h === 'avg_price' || h === 'avg price');
   const iVal = header.findIndex(h => h === 'total_value' || h === 'current_value');
+  const iCcy = header.findIndex(h => h === 'currency' || h === 'ccy');
 
   if (iSym < 0 || iQty < 0 || iPrc < 0) return null;
 
@@ -182,7 +183,9 @@ function parseForeignCSV(text) {
     const prc  = parseFloat(cols[iPrc]);
     if (!sym || isNaN(qty) || isNaN(prc)) continue;
 
-    const isGBX    = isLondonSymbol(sym);
+    // Currency: CSV column wins, then .L suffix detection, then USD default
+    const csvCcy = iCcy >= 0 ? (cols[iCcy] || '').trim().toUpperCase() : '';
+    const isGBX  = csvCcy === 'GBX' || csvCcy === 'GBP' || (!csvCcy && isLondonSymbol(sym));
     // total_value is in display currency; convert to native for consistent storage in _foreignLiveData
     const curValRaw = iVal >= 0 ? parseFloat(cols[iVal]) : NaN;
     const curValNative = !isNaN(curValRaw) ? (isGBX ? curValRaw * 100 : curValRaw) : null;
@@ -192,7 +195,7 @@ function parseForeignCSV(text) {
       symbol:        sym,
       qty,
       avg_price:     prc,
-      currency:      isGBX ? 'GBX' : 'USD',
+      currency:      isGBX ? 'GBX' : (csvCcy && csvCcy !== 'GBX' && csvCcy !== 'GBP' ? csvCcy : 'USD'),
       // live data — memory only, NOT sent to DB
       _unitPrice:    unitNative,
       _currentValue: curValNative,
