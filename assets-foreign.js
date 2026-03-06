@@ -5,9 +5,9 @@
 //  and never written to the DB.
 // ══════════════════════════════════════════════════════════════
 
-// GBX symbols: .L suffix OR hardcoded list of known London stocks stored without .L
-const GBX_HARDCODED = new Set(['MKS', 'CNDX', 'IGLN', 'SPXS']);
-const isLondonSymbol = sym => typeof sym === 'string' && (sym.toUpperCase().endsWith('.L') || GBX_HARDCODED.has(sym.toUpperCase()));
+// GBX symbols: only explicitly listed symbols — .L suffix alone does NOT mean GBX
+const GBX_HARDCODED = new Set(['MKS']);
+const isLondonSymbol = sym => typeof sym === 'string' && GBX_HARDCODED.has(sym.toUpperCase().replace(/\.L$/i, ''));
 
 // In-memory map: symbol → { unitPrice (native), currentValue (native) }
 // Populated at import time, lives until page refresh.
