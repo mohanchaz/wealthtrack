@@ -1,9 +1,15 @@
 // ══════════════════════════════════════════════════════════════
 //  FOREIGN STOCKS  — foreign_stock_holdings
-//  MKS → GBX (pence, ÷100 for GBP display); all others → USD
+//  DB stores: symbol, qty, avg_price, currency
+//  Unit price & current value are parsed from CSV into memory
+//  and never written to the DB.
 // ══════════════════════════════════════════════════════════════
 
 const GBX_SYMBOLS = ['MKS'];
+
+// In-memory map: symbol → { unitPrice (native), currentValue (native) }
+// Populated at import time, lives until page refresh.
+let _foreignLiveData = {};
 
 // ── Render table ──────────────────────────────────────────────
 
@@ -17,13 +23,16 @@ function renderForeignStocks(rows) {
       <th>Symbol</th>
       <th style="text-align:right">Quantity</th>
       <th style="text-align:right">Avg Price</th>
+      <th style="text-align:right">Unit Price</th>
       <th style="text-align:center">Currency</th>
-      <th style="text-align:right">Value (orig.)</th>
+      <th style="text-align:right">Invested</th>
+      <th style="text-align:right">Current Value</th>
+      <th style="text-align:right">Gain / Loss</th>
       <th></th>`;
   }
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="padding:32px;text-align:center;color:var(--muted2)">
+    tbody.innerHTML = `<tr><td colspan="9" style="padding:32px;text-align:center;color:var(--muted2)">
       No foreign holdings yet — click <b>📥 Import CSV</b> to add
     </td></tr>`;
     ['assets-total-invested','assets-total-value','assets-total-gain'].forEach(id => {
@@ -32,24 +41,43 @@ function renderForeignStocks(rows) {
     return;
   }
 
-  let totalUSD = 0, totalGBP = 0;
+  let totalInvUSD = 0, totalInvGBP = 0;
+  let totalCurUSD = 0, totalCurGBP = 0;
 
   tbody.innerHTML = rows.map((r, i) => {
-    const isGBX     = r.currency === 'GBX';
-    const dispPrice = isGBX ? r.avg_price / 100 : r.avg_price;
-    const ccy       = isGBX ? 'GBP' : 'USD';
-    const value     = r.qty * dispPrice;
-    if (isGBX) totalGBP += value; else totalUSD += value;
+    const isGBX    = r.currency === 'GBX';
+    const factor   = isGBX ? 100 : 1;
+    const ccy      = isGBX ? 'GBP' : 'USD';
+
+    const avgDisp  = r.avg_price / factor;
+    const live     = _foreignLiveData[r.symbol];
+    const unitDisp = live?.unitPrice    != null ? live.unitPrice    / factor : null;
+    const curDisp  = live?.currentValue != null ? live.currentValue / factor : null;
+    const invested = r.qty * avgDisp;
+    const curVal   = curDisp ?? (unitDisp != null ? r.qty * unitDisp : null);
+
+    if (isGBX) { totalInvGBP += invested; if (curVal != null) totalCurGBP += curVal; }
+    else        { totalInvUSD += invested; if (curVal != null) totalCurUSD += curVal; }
+
+    const gain     = curVal != null ? curVal - invested : null;
+    const gainPct  = gain != null && invested ? ` (${((gain / invested) * 100).toFixed(1)}%)` : '';
+    const gainColor = gain == null ? 'var(--muted2)' : gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)';
+    const gainStr  = gain == null ? '<span style="color:var(--muted2)">—</span>'
+                                  : `${gain >= 0 ? '+' : ''}${ccy} ${gain.toFixed(2)}<span style="font-size:11px">${gainPct}</span>`;
 
     const badge = `<span style="background:${isGBX ? '#e8f4fd' : '#e8fdf0'};color:${isGBX ? '#1a6fa8' : '#15803d'};padding:1px 9px;border-radius:20px;font-size:11px;font-weight:600">${ccy}</span>`;
+    const tdS   = 'padding:10px 14px;border-bottom:1px solid var(--border)';
 
     return `<tr data-id="${r.id}" style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
-      <td style="padding:10px 14px;font-weight:700;border-bottom:1px solid var(--border)">${r.symbol}</td>
-      <td style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums">${(+r.qty).toFixed(4)}</td>
-      <td style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums">${dispPrice.toFixed(2)}</td>
-      <td style="padding:10px 14px;text-align:center;border-bottom:1px solid var(--border)">${badge}</td>
-      <td style="padding:10px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums">${ccy} ${value.toFixed(2)}</td>
-      <td style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">
+      <td style="${tdS};font-weight:700">${r.symbol}</td>
+      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${(+r.qty).toFixed(4)}</td>
+      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${avgDisp.toFixed(2)}</td>
+      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${unitDisp != null ? unitDisp.toFixed(2) : '<span style="color:var(--muted2)">—</span>'}</td>
+      <td style="${tdS};text-align:center">${badge}</td>
+      <td style="${tdS};text-align:right;font-variant-numeric:tabular-nums">${ccy} ${invested.toFixed(2)}</td>
+      <td style="${tdS};text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${curVal != null ? `${ccy} ${curVal.toFixed(2)}` : '<span style="color:var(--muted2)">—</span>'}</td>
+      <td style="${tdS};text-align:right;font-weight:600;color:${gainColor};font-variant-numeric:tabular-nums">${gainStr}</td>
+      <td style="${tdS};text-align:right">
         <button class="foreign-edit-btn" data-id="${r.id}"
           style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 5px;opacity:0.65;transition:opacity 0.15s"
           onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.65" title="Edit">✏️</button>
@@ -57,7 +85,6 @@ function renderForeignStocks(rows) {
     </tr>`;
   }).join('');
 
-  // Wire edit buttons
   tbody.querySelectorAll('.foreign-edit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const row = rows.find(r => r.id === btn.dataset.id);
@@ -66,15 +93,27 @@ function renderForeignStocks(rows) {
   });
 
   // Summary stats
-  const parts = [];
-  if (totalUSD) parts.push(`USD ${totalUSD.toFixed(2)}`);
-  if (totalGBP) parts.push(`GBP ${totalGBP.toFixed(2)}`);
-  const totalStr = parts.join('  +  ') || '—';
-
+  const fmt = (usd, gbp) => {
+    const p = [];
+    if (usd) p.push(`USD ${usd.toFixed(2)}`);
+    if (gbp) p.push(`GBP ${gbp.toFixed(2)}`);
+    return p.join('  +  ') || '—';
+  };
   const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  setEl('assets-total-invested', totalStr);
-  setEl('assets-total-value',    totalStr);
-  setEl('assets-total-gain',     '—');
+  setEl('assets-total-invested', fmt(totalInvUSD, totalInvGBP));
+  setEl('assets-total-value',    fmt(totalCurUSD || totalInvUSD, totalCurGBP || totalInvGBP));
+
+  const gainUSD = totalCurUSD - totalInvUSD;
+  const gainGBP = totalCurGBP - totalInvGBP;
+  const gainParts = [];
+  if (totalInvUSD) gainParts.push(`${gainUSD >= 0 ? '+' : ''}USD ${gainUSD.toFixed(2)}`);
+  if (totalInvGBP) gainParts.push(`${gainGBP >= 0 ? '+' : ''}GBP ${gainGBP.toFixed(2)}`);
+  const gainEl = document.getElementById('assets-total-gain');
+  if (gainEl) {
+    gainEl.textContent = gainParts.join('  +  ') || '—';
+    gainEl.style.color = (gainUSD + gainGBP) > 0 ? 'var(--green)' : (gainUSD + gainGBP) < 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+
   const countEl = document.getElementById('assets-count-inline');
   if (countEl) countEl.textContent = `${rows.length} holding${rows.length !== 1 ? 's' : ''}`;
 }
@@ -83,7 +122,7 @@ function renderForeignStocks(rows) {
 
 async function loadForeignStocks(userId) {
   const tbody = document.getElementById('assets-table-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
 
   const { data, error } = await sb
     .from('foreign_stock_holdings')
@@ -103,8 +142,8 @@ function openForeignEditModal(row) {
   _editingForeignId = row ? row.id : null;
   const titleEl = document.getElementById('foreign-edit-title');
   if (titleEl) titleEl.textContent = row ? 'Edit Holding' : 'Add Holding';
-  document.getElementById('foreign-edit-symbol').value   = row?.symbol    || '';
-  document.getElementById('foreign-edit-qty').value      = row?.qty       || '';
+  document.getElementById('foreign-edit-symbol').value   = row?.symbol   || '';
+  document.getElementById('foreign-edit-qty').value      = row?.qty      || '';
   document.getElementById('foreign-edit-price').value    = row?.avg_price || '';
   document.getElementById('foreign-edit-currency').value = row?.currency  || 'USD';
   document.getElementById('foreign-edit-modal').classList.remove('hidden');
@@ -116,6 +155,9 @@ function closeForeignEditModal() {
 }
 
 // ── CSV parser ────────────────────────────────────────────────
+// Reads symbol, quantity, avg_price (stored to DB) + total_value (memory only).
+// avg_price in CSV is in native currency (GBX = pence, USD = dollars).
+// total_value in CSV is in display currency (GBP for MKS, USD for others).
 
 function parseForeignCSV(text) {
   const lines = text.trim().split(/\r?\n/);
@@ -124,7 +166,8 @@ function parseForeignCSV(text) {
   const header = lines[0].split(',').map(h => h.trim().toLowerCase());
   const iSym = header.findIndex(h => h === 'symbol');
   const iQty = header.findIndex(h => h.includes('quantity') || h === 'qty');
-  const iPrc = header.findIndex(h => h.includes('avg_price') || h.includes('avg price') || h === 'price');
+  const iPrc = header.findIndex(h => h === 'avg_price' || h === 'avg price');
+  const iVal = header.findIndex(h => h === 'total_value' || h === 'current_value');
 
   if (iSym < 0 || iQty < 0 || iPrc < 0) return null;
 
@@ -135,7 +178,22 @@ function parseForeignCSV(text) {
     const qty  = parseFloat(cols[iQty]);
     const prc  = parseFloat(cols[iPrc]);
     if (!sym || isNaN(qty) || isNaN(prc)) continue;
-    rows.push({ symbol: sym, qty, avg_price: prc, currency: GBX_SYMBOLS.includes(sym) ? 'GBX' : 'USD' });
+
+    const isGBX    = GBX_SYMBOLS.includes(sym);
+    // total_value is in display currency; convert to native for consistent storage in _foreignLiveData
+    const curValRaw = iVal >= 0 ? parseFloat(cols[iVal]) : NaN;
+    const curValNative = !isNaN(curValRaw) ? (isGBX ? curValRaw * 100 : curValRaw) : null;
+    const unitNative   = curValNative != null && qty ? curValNative / qty : null;
+
+    rows.push({
+      symbol:        sym,
+      qty,
+      avg_price:     prc,
+      currency:      isGBX ? 'GBX' : 'USD',
+      // live data — memory only, NOT sent to DB
+      _unitPrice:    unitNative,
+      _currentValue: curValNative,
+    });
   }
   return rows;
 }
@@ -144,9 +202,7 @@ function parseForeignCSV(text) {
 
 document.addEventListener('fragments-loaded', () => {
 
-  // ── Import modal ────────────────────────────────────────────
   let _parsedForeignRows = [];
-
   const csvInput    = document.getElementById('foreign-csv-input');
   const previewSec  = document.getElementById('foreign-preview-section');
   const previewBody = document.getElementById('foreign-preview-body');
@@ -171,13 +227,21 @@ document.addEventListener('fragments-loaded', () => {
 
       if (previewBody) {
         previewBody.innerHTML = rows.map((r, i) => {
-          const ccy = r.currency === 'GBX' ? 'GBP' : 'USD';
+          const isGBX  = r.currency === 'GBX';
+          const factor = isGBX ? 100 : 1;
+          const ccy    = isGBX ? 'GBP' : 'USD';
+          const avgD   = (r.avg_price  / factor).toFixed(2);
+          const unitD  = r._unitPrice    != null ? (r._unitPrice    / factor).toFixed(2) : '—';
+          const curD   = r._currentValue != null ? (r._currentValue / factor).toFixed(2) : '—';
+          const tdS    = 'padding:7px 14px;border-bottom:1px solid var(--border)';
           return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
-            <td style="padding:7px 14px;font-weight:700;border-bottom:1px solid var(--border)">${r.symbol}</td>
-            <td style="padding:7px 14px;text-align:right;border-bottom:1px solid var(--border)">${r.qty.toFixed(4)}</td>
-            <td style="padding:7px 14px;text-align:right;border-bottom:1px solid var(--border)">${r.avg_price.toFixed(2)}</td>
-            <td style="padding:7px 14px;text-align:center;border-bottom:1px solid var(--border)">
-              <span style="background:${r.currency === 'GBX' ? '#e8f4fd' : '#e8fdf0'};color:${r.currency === 'GBX' ? '#1a6fa8' : '#15803d'};padding:1px 9px;border-radius:20px;font-size:11px;font-weight:600">${ccy}</span>
+            <td style="${tdS};font-weight:700">${r.symbol}</td>
+            <td style="${tdS};text-align:right">${r.qty.toFixed(4)}</td>
+            <td style="${tdS};text-align:right">${avgD}</td>
+            <td style="${tdS};text-align:right">${unitD}</td>
+            <td style="${tdS};text-align:right;font-weight:600">${ccy} ${curD}</td>
+            <td style="${tdS};text-align:center">
+              <span style="background:${isGBX ? '#e8f4fd' : '#e8fdf0'};color:${isGBX ? '#1a6fa8' : '#15803d'};padding:1px 9px;border-radius:20px;font-size:11px;font-weight:600">${ccy}</span>
             </td>
           </tr>`;
         }).join('');
@@ -188,8 +252,7 @@ document.addEventListener('fragments-loaded', () => {
 
   confirmBtn?.addEventListener('click', async () => {
     if (!_parsedForeignRows.length || !_currentUserId) return;
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Importing…';
+    confirmBtn.disabled = true; confirmBtn.textContent = 'Importing…';
 
     const { error: delErr } = await sb.from('foreign_stock_holdings').delete().eq('user_id', _currentUserId);
     if (delErr) {
@@ -200,11 +263,24 @@ document.addEventListener('fragments-loaded', () => {
     }
 
     const { error: insErr } = await sb.from('foreign_stock_holdings').insert(
-      _parsedForeignRows.map(r => ({ user_id: _currentUserId, symbol: r.symbol, qty: r.qty, avg_price: r.avg_price, currency: r.currency }))
+      _parsedForeignRows.map(r => ({
+        user_id:   _currentUserId,
+        symbol:    r.symbol,
+        qty:       r.qty,
+        avg_price: r.avg_price,   // only these 4 go to DB
+        currency:  r.currency,
+      }))
     );
     confirmBtn.disabled = false;
     confirmBtn.innerHTML = `📥 Import <span id="foreign-import-count">${_parsedForeignRows.length}</span> Holdings`;
     if (insErr) { showToast('Import failed: ' + insErr.message, 'error'); return; }
+
+    // Store live data in memory
+    _foreignLiveData = {};
+    _parsedForeignRows.forEach(r => {
+      _foreignLiveData[r.symbol] = { unitPrice: r._unitPrice, currentValue: r._currentValue };
+    });
+
     showToast(`${_parsedForeignRows.length} foreign holdings imported ✅`, 'success');
     closeForeignImportModal();
     loadForeignStocks(_currentUserId);
@@ -229,9 +305,9 @@ document.addEventListener('fragments-loaded', () => {
     const avgPrice = parseFloat(document.getElementById('foreign-edit-price').value);
     const currency = document.getElementById('foreign-edit-currency').value;
 
-    if (!symbol)                    { showToast('Symbol is required', 'error'); return; }
-    if (isNaN(qty)      || qty <= 0)  { showToast('Quantity must be > 0', 'error'); return; }
-    if (isNaN(avgPrice) || avgPrice <= 0) { showToast('Avg price must be > 0', 'error'); return; }
+    if (!symbol)                       { showToast('Symbol is required',    'error'); return; }
+    if (isNaN(qty)      || qty <= 0)   { showToast('Quantity must be > 0',  'error'); return; }
+    if (isNaN(avgPrice) || avgPrice<=0){ showToast('Avg price must be > 0', 'error'); return; }
 
     const saveBtn = document.getElementById('foreign-edit-save-btn');
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
@@ -250,7 +326,6 @@ document.addEventListener('fragments-loaded', () => {
     loadForeignStocks(_currentUserId);
   });
 
-  // Toolbar button
   document.getElementById('foreign-import-btn')?.addEventListener('click', openForeignImportModal);
 });
 

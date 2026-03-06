@@ -1,4 +1,4 @@
-  <!-- Foreign Stock Edit Modal -->
+<!-- Foreign Stock Edit Modal -->
   <div id="foreign-edit-modal" class="modal-overlay hidden">
     <div class="modal-card" style="max-width:420px">
       <div class="modal-header">
@@ -20,7 +20,7 @@
               style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">
           </div>
           <div style="flex:1;display:flex;flex-direction:column;gap:6px">
-            <label style="font-size:12px;font-weight:600;color:var(--muted2)">Avg Price</label>
+            <label style="font-size:12px;font-weight:600;color:var(--muted2)">Avg Price <span style="font-weight:400">(native)</span></label>
             <input id="foreign-edit-price" type="number" step="0.01" min="0" placeholder="e.g. 214.64"
               style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">
           </div>
@@ -33,6 +33,10 @@
             <option value="USD">USD — US Dollar</option>
             <option value="GBX">GBX — British Pence (÷ 100 for GBP display)</option>
           </select>
+        </div>
+
+        <div style="font-size:11.5px;color:var(--muted2);background:var(--surface2);border-radius:8px;padding:10px 12px;line-height:1.6">
+          💡 Unit price &amp; current value come from the CSV import and are not stored — re-import to refresh them.
         </div>
 
       </div>
