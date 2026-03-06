@@ -227,8 +227,8 @@ const MF_SYMBOL_MAP = [
 // Format: 'fund name fragment (lowercase)' → [regularSymbol, directSymbol]
 const MF_DUAL_PLAN_MAP = {
   'quant flexi cap':        ['0P0000XW4X', '0P0001BA3U'],
-  'tata large & mid cap':   ['0P0000XVOJ', '0P0001BBCV'],
-  'tata large and mid cap': ['0P0000XVOJ', '0P0001BBCV'],
+  'tata large & mid cap':   ['0P0001BBCV', '0P0000XVOJ'],
+  'tata large and mid cap': ['0P0001BBCV', '0P0000XVOJ'],
 };
 
 function guessNavSymbol(fundName) {
