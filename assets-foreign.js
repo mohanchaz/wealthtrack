@@ -54,7 +54,7 @@ function renderForeignStocks(rows) {
   if (!tbody) return;
 
   const thS = 'padding:5px 6px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted2);border-bottom:1px solid var(--border);white-space:nowrap';
-  const thL = thS.replace('text-align:right', 'text-align:left');
+  const thL = thS.replace('text-align:right','text-align:left');
 
   if (thead) {
     thead.innerHTML = `
@@ -63,7 +63,7 @@ function renderForeignStocks(rows) {
       <th style="${thS}">Qty</th>
       <th style="${thS}">Avg</th>
       <th style="${thS}">Price</th>
-      <th style="${thS.replace('text-align:right', 'text-align:center')}">CCY</th>
+      <th style="${thS.replace('text-align:right','text-align:center')}">CCY</th>
       <th style="${thS}">Invested</th>
       <th style="${thS}">Cur. Val</th>
       <th style="${thS}">Gain/Loss</th>
@@ -109,8 +109,8 @@ function renderForeignStocks(rows) {
       : `${gain >= 0 ? '+' : ''}${sym}${gain.toFixed(2)}<span style="font-size:10px">${gainPct}</span>`;
 
     // GBP equivalents
-    const invGBP = isGBX ? invested : toGBP(invested);
-    const curGBP = curVal != null ? (isGBX ? curVal : toGBP(curVal)) : null;
+    const invGBP  = isGBX ? invested : toGBP(invested);
+    const curGBP  = curVal != null ? (isGBX ? curVal : toGBP(curVal)) : null;
     const gainGBP = invGBP != null && curGBP != null ? curGBP - invGBP : null;
     const gainGBPPct = gainGBP != null && invGBP ? ` (${((gainGBP / invGBP) * 100).toFixed(1)}%)` : '';
     const gainGBPColor = gainGBP == null ? 'var(--muted2)' : gainGBP > 0 ? 'var(--green)' : gainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
@@ -118,7 +118,7 @@ function renderForeignStocks(rows) {
       : `${gainGBP >= 0 ? '+' : ''}£${Math.abs(gainGBP).toFixed(2)}<span style="font-size:10px">${gainGBPPct}</span>`;
 
     const badge = `<span style="background:${isGBX ? '#e8f4fd' : '#e8fdf0'};color:${isGBX ? '#1a6fa8' : '#15803d'};padding:1px 5px;border-radius:20px;font-size:10px;font-weight:600">${ccy}</span>`;
-    const td = 'padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap';
+    const td  = 'padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap';
     const tdr = td + ';text-align:right;font-variant-numeric:tabular-nums';
     const dash = '<span style="color:var(--muted2)">—</span>';
     const stockName = live?.name || '—';
@@ -211,6 +211,9 @@ function renderForeignStocks(rows) {
     gainGBPAllEl.style.color = !_gbpUsdRate ? 'var(--muted2)'
       : gainGBPAll > 0 ? 'var(--green)' : gainGBPAll < 0 ? 'var(--danger)' : 'var(--muted)';
   }
+
+  // Refresh actual gain tiles now that live values are updated
+  _refreshForeignActualGainTiles();
 
   const countEl = document.getElementById('assets-count-inline');
   if (countEl) countEl.textContent = `${rows.length} holding${rows.length !== 1 ? 's' : ''}`;
@@ -547,6 +550,43 @@ let _editingFaiId = null;
 
 // ── Load ──────────────────────────────────────────────────────
 
+
+// ── Refresh actual gain tiles using current live value tiles ──
+function _refreshForeignActualGainTiles() {
+  const actInvINREl = document.getElementById('foreign-actual-inv-inr');
+  const actInvGBPEl = document.getElementById('foreign-actual-inv-gbp');
+  if (!actInvINREl || !actInvINREl.textContent || actInvINREl.textContent === '—') return;
+
+  // INR
+  const actINR = parseFloat(actInvINREl.textContent.replace(/[^\d.-]/g, '')) || 0;
+  const curINREl = document.getElementById('foreign-total-val-inr');
+  const curINR = curINREl ? parseFloat(curINREl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
+  if (actINR > 0 && curINR > 0) {
+    const gainINR = curINR - actINR;
+    const pct = ` (${((gainINR / actINR) * 100).toFixed(1)}%)`;
+    const el = document.getElementById('foreign-actual-gain-inr');
+    if (el) {
+      el.textContent = (gainINR >= 0 ? '+' : '') + INR(Math.abs(gainINR)) + pct;
+      el.style.color = gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)';
+    }
+  }
+
+  // GBP
+  if (!actInvGBPEl || actInvGBPEl.textContent === '—') return;
+  const actGBP = parseFloat(actInvGBPEl.textContent.replace(/[^\d.-]/g, '')) || 0;
+  const curGBPEl = document.getElementById('foreign-total-val-gbp');
+  const curGBP = curGBPEl ? parseFloat(curGBPEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
+  if (actGBP > 0 && curGBP > 0) {
+    const gainGBP = curGBP - actGBP;
+    const pct = ` (${((gainGBP / actGBP) * 100).toFixed(1)}%)`;
+    const el = document.getElementById('foreign-actual-gain-gbp');
+    if (el) {
+      el.textContent = (gainGBP >= 0 ? '+' : '') + '\u00a3' + Math.abs(gainGBP).toFixed(2) + pct;
+      el.style.color = gainGBP > 0 ? 'var(--green)' : gainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
+    }
+  }
+}
+
 async function loadForeignActualInvested(userId) {
   const section = document.getElementById('foreign-monthly-summary');
   if (!section) return;
@@ -571,13 +611,48 @@ async function loadForeignActualInvested(userId) {
 // ── Render ────────────────────────────────────────────────────
 
 function renderForeignActualInvested(rows) {
-  const body = document.getElementById('foreign-monthly-body');
+  const body    = document.getElementById('foreign-monthly-body');
   const totalEl = document.getElementById('foreign-monthly-total');
   if (!body) return;
 
   const totalGBP = rows.reduce((s, r) => s + (+r.gbp_amount || 0), 0);
   const totalINR = rows.reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0);
   if (totalEl) totalEl.textContent = '£' + totalGBP.toFixed(2) + '  ·  ' + INR(totalINR);
+
+  // ── Populate Actual Invested tiles in INR and GBP rows ──
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+  // INR row
+  setEl('foreign-actual-inv-inr', totalINR > 0 ? INR(totalINR) : '—');
+  const curValINREl = document.getElementById('foreign-total-val-inr');
+  const curValINR = curValINREl ? parseFloat(curValINREl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
+  if (totalINR > 0 && curValINR > 0) {
+    const gainINR = curValINR - totalINR;
+    const gainINRPct = totalINR > 0 ? ` (${((gainINR / totalINR) * 100).toFixed(1)}%)` : '';
+    const gainINREl = document.getElementById('foreign-actual-gain-inr');
+    if (gainINREl) {
+      gainINREl.textContent = (gainINR >= 0 ? '+' : '') + INR(gainINR) + gainINRPct;
+      gainINREl.style.color = gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)';
+    }
+  } else {
+    setEl('foreign-actual-gain-inr', '—');
+  }
+
+  // GBP row
+  setEl('foreign-actual-inv-gbp', totalGBP > 0 ? '£' + totalGBP.toFixed(2) : '—');
+  const curValGBPEl = document.getElementById('foreign-total-val-gbp');
+  const curValGBP = curValGBPEl ? parseFloat(curValGBPEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
+  if (totalGBP > 0 && curValGBP > 0) {
+    const gainGBP = curValGBP - totalGBP;
+    const gainGBPPct = totalGBP > 0 ? ` (${((gainGBP / totalGBP) * 100).toFixed(1)}%)` : '';
+    const gainGBPEl = document.getElementById('foreign-actual-gain-gbp');
+    if (gainGBPEl) {
+      gainGBPEl.textContent = (gainGBP >= 0 ? '+' : '') + '£' + Math.abs(gainGBP).toFixed(2) + gainGBPPct;
+      gainGBPEl.style.color = gainGBP > 0 ? 'var(--green)' : gainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
+    }
+  } else {
+    setEl('foreign-actual-gain-gbp', '—');
+  }
 
   if (!rows.length) {
     body.innerHTML = '<tr><td colspan="4" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add</b></td></tr>';
@@ -586,20 +661,20 @@ function renderForeignActualInvested(rows) {
 
   const thS = 'padding:9px 14px;border-bottom:1px solid var(--border)';
   body.innerHTML = rows.map((r, i) => {
-    const d = new Date(r.entry_date);
+    const d       = new Date(r.entry_date);
     const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    const inrAmt = (+r.gbp_amount || 0) * (+r.inr_rate || 0);
+    const inrAmt  = (+r.gbp_amount || 0) * (+r.inr_rate || 0);
     return '<tr style="background:' + (i % 2 === 0 ? '#fff' : 'var(--surface2)') + '">' +
       '<td class="fai-cb-wrap" data-id="' + r.id + '" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="fai-cb" data-id="' + r.id + '" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>' +
       '<td style="' + thS + ';color:var(--accent);font-weight:500">' + dateStr + '</td>' +
       '<td style="' + thS + ';text-align:right;font-weight:600">£' + (+r.gbp_amount).toFixed(2) + '</td>' +
       '<td style="' + thS + ';text-align:right;color:var(--muted2)">' + INR(inrAmt) + '</td>' +
       '<td style="' + thS + ';white-space:nowrap">' +
-      '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" ' +
-      'data-id="' + r.id + '" data-date="' + r.entry_date + '" data-gbp="' + r.gbp_amount + '" data-rate="' + r.inr_rate + '" ' +
-      'class="fai-edit-btn" title="Edit">✏️</button>' +
+        '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" ' +
+          'data-id="' + r.id + '" data-date="' + r.entry_date + '" data-gbp="' + r.gbp_amount + '" data-rate="' + r.inr_rate + '" ' +
+          'class="fai-edit-btn" title="Edit">✏️</button>' +
       '</td>' +
-      '</tr>';
+    '</tr>';
   }).join('') +
     '<tr style="background:var(--surface2)">' +
     '<td style="padding:9px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2)">Total</td>' +
@@ -625,9 +700,9 @@ function openFaiModal(row = null) {
   if (titleEl) titleEl.textContent = row ? 'Edit Entry' : 'Add Entry';
   if (saveBtn) saveBtn.textContent = '💾 Save Entry';
 
-  document.getElementById('fai-date').value = row?.entry_date || '';
-  document.getElementById('fai-gbp').value = row?.gbp_amount || '';
-  document.getElementById('fai-inr-rate').value = row?.inr_rate || '';
+  document.getElementById('fai-date').value     = row?.entry_date || '';
+  document.getElementById('fai-gbp').value      = row?.gbp_amount || '';
+  document.getElementById('fai-inr-rate').value = row?.inr_rate   || '';
   _updateFaiPreview();
 
   document.getElementById('foreign-invested-modal').classList.remove('hidden');
@@ -641,9 +716,9 @@ function closeFaiModal() {
 }
 
 function _updateFaiPreview() {
-  const gbp = parseFloat(document.getElementById('fai-gbp')?.value) || 0;
+  const gbp  = parseFloat(document.getElementById('fai-gbp')?.value)     || 0;
   const rate = parseFloat(document.getElementById('fai-inr-rate')?.value) || 0;
-  const preview = document.getElementById('fai-inr-preview');
+  const preview    = document.getElementById('fai-inr-preview');
   const previewVal = document.getElementById('fai-inr-preview-val');
   if (!preview || !previewVal) return;
   if (gbp > 0 && rate > 0) {
@@ -659,23 +734,23 @@ function _updateFaiPreview() {
 document.addEventListener('fragments-loaded', () => {
   const modal = document.getElementById('foreign-invested-modal');
 
-  document.getElementById('foreign-invested-add-btn')?.addEventListener('click', () => openFaiModal());
-  document.getElementById('foreign-invested-close-btn')?.addEventListener('click', closeFaiModal);
+  document.getElementById('foreign-invested-add-btn')?.addEventListener('click',    () => openFaiModal());
+  document.getElementById('foreign-invested-close-btn')?.addEventListener('click',  closeFaiModal);
   document.getElementById('foreign-invested-cancel-btn')?.addEventListener('click', closeFaiModal);
   modal?.addEventListener('click', e => { if (e.target === modal) closeFaiModal(); });
 
   // Live INR preview while typing
-  document.getElementById('fai-gbp')?.addEventListener('input', _updateFaiPreview);
+  document.getElementById('fai-gbp')?.addEventListener('input',      _updateFaiPreview);
   document.getElementById('fai-inr-rate')?.addEventListener('input', _updateFaiPreview);
 
   document.getElementById('foreign-invested-save-btn')?.addEventListener('click', async () => {
-    const date = document.getElementById('fai-date').value;
-    const gbp = parseFloat(document.getElementById('fai-gbp').value);
+    const date    = document.getElementById('fai-date').value;
+    const gbp     = parseFloat(document.getElementById('fai-gbp').value);
     const inrRate = parseFloat(document.getElementById('fai-inr-rate').value);
 
-    if (!date) { showToast('Date is required', 'error'); return; }
-    if (!gbp || gbp <= 0) { showToast('GBP amount must be > 0', 'error'); return; }
-    if (!inrRate || inrRate <= 0) { showToast('INR rate must be > 0', 'error'); return; }
+    if (!date)                    { showToast('Date is required',         'error'); return; }
+    if (!gbp     || gbp     <= 0) { showToast('GBP amount must be > 0',   'error'); return; }
+    if (!inrRate || inrRate <= 0) { showToast('INR rate must be > 0',     'error'); return; }
 
     const saveBtn = document.getElementById('foreign-invested-save-btn');
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
@@ -733,9 +808,9 @@ document.addEventListener('fragments-loaded', () => {
   function _upd() {
     var n = document.querySelectorAll('.fai-cb:checked').length;
     var countEl = document.getElementById('foreign-bulk-count');
-    var delBtn = document.getElementById('foreign-bulk-delete');
+    var delBtn  = document.getElementById('foreign-bulk-delete');
     if (countEl) countEl.textContent = n + ' selected';
-    if (delBtn) delBtn.disabled = n === 0;
+    if (delBtn)  delBtn.disabled = n === 0;
   }
 
   document.addEventListener('fragments-loaded', function () {
