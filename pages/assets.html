@@ -720,6 +720,77 @@
           </table>
         </div>
       </div>
+      <!-- Foreign Stocks Actual Invested -->
+      <div id="foreign-monthly-summary" class="hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <h3 style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin:0">Actual Invested
+            </h3>
+            <div id="foreign-monthly-total" style="font-size:11.5px;color:var(--muted2);margin-top:2px"></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="foreign-select-btn"
+              style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(20,184,166,0.1);border:1.5px solid rgba(20,184,166,0.3);border-radius:8px;font-size:12px;font-weight:600;color:#0d9488;cursor:pointer;font-family:inherit"
+              onmouseover="this.style.background='rgba(20,184,166,0.18)';this.style.borderColor='#0d9488'"
+              onmouseout="this.style.background='rgba(20,184,166,0.1)';this.style.borderColor='rgba(20,184,166,0.3)'">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5" />
+                <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5" />
+                <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5" />
+                <path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg> Select</button>
+            <button id="foreign-invested-add-btn"
+              style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+
+              Add</button>
+          </div>
+        </div>
+        <!-- foreign bulk bar -->
+        <div id="foreign-bulk-bar" class="hidden"
+          style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:8px">
+          <div id="foreign-bulk-normal"
+            style="display:flex;align-items:center;justify-content:space-between;width:100%">
+            <span id="foreign-bulk-count" style="font-size:12.5px;font-weight:600;color:var(--text)">0 selected</span>
+            <div style="display:flex;gap:6px">
+              <button id="foreign-bulk-cancel" class="btn-secondary"
+                style="font-size:12px;padding:4px 10px">Cancel</button>
+              <button id="foreign-bulk-delete" class="btn-primary"
+                style="font-size:12px;padding:4px 10px;background:var(--danger)" disabled>🗑 Delete</button>
+            </div>
+          </div>
+          <div id="foreign-bulk-confirm"
+            style="display:none;align-items:center;justify-content:space-between;width:100%">
+            <span style="font-size:12.5px;font-weight:600;color:var(--danger)">⚠️ Delete <span
+                id="foreign-bulk-confirm-count"></span>? Cannot be undone.</span>
+            <div style="display:flex;gap:6px">
+              <button id="foreign-bulk-no" class="btn-secondary" style="font-size:12px;padding:4px 10px">No,
+                keep</button>
+              <button id="foreign-bulk-yes" class="btn-primary"
+                style="font-size:12px;padding:4px 12px;background:var(--danger)">Yes, delete</button>
+            </div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm)">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="background:var(--surface2)">
+                <th
+                  style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
+                  Date</th>
+                <th
+                  style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
+                  GBP</th>
+                <th
+                  style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted2);border-bottom:1px solid var(--border)">
+                  INR</th>
+                <th style="border-bottom:1px solid var(--border)"></th>
+              </tr>
+            </thead>
+            <tbody id="foreign-monthly-body"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div><!-- /right panel -->
   </div><!-- /assets-layout-row -->
 

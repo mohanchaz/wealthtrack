@@ -532,4 +532,251 @@ async function loadForeignStocksAndRefresh(userId) {
   } else {
     renderForeignStocks(rows);
   }
+}// ══════════════════════════════════════════════════════════════
+//  FOREIGN STOCKS — Actual Invested
+//  Table: foreign_actual_invested
+//  Columns: id, user_id, entry_date, gbp_amount, inr_rate
+//  Displayed: date | £GBP | ₹INR  (inr = gbp_amount × inr_rate)
+// ══════════════════════════════════════════════════════════════
+
+let _editingFaiId = null;
+
+// ── Load ──────────────────────────────────────────────────────
+
+async function loadForeignActualInvested(userId) {
+  const section = document.getElementById('foreign-monthly-summary');
+  if (!section) return;
+  section.classList.remove('hidden');
+
+  const body = document.getElementById('foreign-monthly-body');
+  if (body) body.innerHTML = '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>';
+
+  const { data, error } = await sb
+    .from('foreign_actual_invested')
+    .select('*')
+    .eq('user_id', userId)
+    .order('entry_date', { ascending: false });
+
+  if (error) {
+    if (body) body.innerHTML = '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--danger)">' + error.message + '</td></tr>';
+    return;
+  }
+  renderForeignActualInvested(data || []);
 }
+
+// ── Render ────────────────────────────────────────────────────
+
+function renderForeignActualInvested(rows) {
+  const body = document.getElementById('foreign-monthly-body');
+  const totalEl = document.getElementById('foreign-monthly-total');
+  if (!body) return;
+
+  const totalGBP = rows.reduce((s, r) => s + (+r.gbp_amount || 0), 0);
+  const totalINR = rows.reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0);
+  if (totalEl) totalEl.textContent = '£' + totalGBP.toFixed(2) + '  ·  ' + INR(totalINR);
+
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="4" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add</b></td></tr>';
+    return;
+  }
+
+  const thS = 'padding:9px 14px;border-bottom:1px solid var(--border)';
+  body.innerHTML = rows.map((r, i) => {
+    const d = new Date(r.entry_date);
+    const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const inrAmt = (+r.gbp_amount || 0) * (+r.inr_rate || 0);
+    return '<tr style="background:' + (i % 2 === 0 ? '#fff' : 'var(--surface2)') + '">' +
+      '<td class="fai-cb-wrap" data-id="' + r.id + '" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="fai-cb" data-id="' + r.id + '" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>' +
+      '<td style="' + thS + ';color:var(--accent);font-weight:500">' + dateStr + '</td>' +
+      '<td style="' + thS + ';text-align:right;font-weight:600">£' + (+r.gbp_amount).toFixed(2) + '</td>' +
+      '<td style="' + thS + ';text-align:right;color:var(--muted2)">' + INR(inrAmt) + '</td>' +
+      '<td style="' + thS + ';white-space:nowrap">' +
+      '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" ' +
+      'data-id="' + r.id + '" data-date="' + r.entry_date + '" data-gbp="' + r.gbp_amount + '" data-rate="' + r.inr_rate + '" ' +
+      'class="fai-edit-btn" title="Edit">✏️</button>' +
+      '</td>' +
+      '</tr>';
+  }).join('') +
+    '<tr style="background:var(--surface2)">' +
+    '<td style="padding:9px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2)">Total</td>' +
+    '<td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">£' + totalGBP.toFixed(2) + '</td>' +
+    '<td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">' + INR(totalINR) + '</td>' +
+    '<td></td></tr>';
+
+  if (window['_foreign_bindCheckboxes']) window['_foreign_bindCheckboxes']();
+  body.querySelectorAll('.fai-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openFaiModal({
+      id: btn.dataset.id, entry_date: btn.dataset.date,
+      gbp_amount: btn.dataset.gbp, inr_rate: btn.dataset.rate
+    }));
+  });
+}
+
+// ── Add / Edit modal ──────────────────────────────────────────
+
+function openFaiModal(row = null) {
+  _editingFaiId = row?.id || null;
+  const titleEl = document.getElementById('foreign-invested-modal-title');
+  const saveBtn = document.getElementById('foreign-invested-save-btn');
+  if (titleEl) titleEl.textContent = row ? 'Edit Entry' : 'Add Entry';
+  if (saveBtn) saveBtn.textContent = '💾 Save Entry';
+
+  document.getElementById('fai-date').value = row?.entry_date || '';
+  document.getElementById('fai-gbp').value = row?.gbp_amount || '';
+  document.getElementById('fai-inr-rate').value = row?.inr_rate || '';
+  _updateFaiPreview();
+
+  document.getElementById('foreign-invested-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFaiModal() {
+  document.getElementById('foreign-invested-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+  _editingFaiId = null;
+}
+
+function _updateFaiPreview() {
+  const gbp = parseFloat(document.getElementById('fai-gbp')?.value) || 0;
+  const rate = parseFloat(document.getElementById('fai-inr-rate')?.value) || 0;
+  const preview = document.getElementById('fai-inr-preview');
+  const previewVal = document.getElementById('fai-inr-preview-val');
+  if (!preview || !previewVal) return;
+  if (gbp > 0 && rate > 0) {
+    preview.style.display = '';
+    previewVal.textContent = INR(gbp * rate);
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+// ── Fragment-loaded wiring ────────────────────────────────────
+
+document.addEventListener('fragments-loaded', () => {
+  const modal = document.getElementById('foreign-invested-modal');
+
+  document.getElementById('foreign-invested-add-btn')?.addEventListener('click', () => openFaiModal());
+  document.getElementById('foreign-invested-close-btn')?.addEventListener('click', closeFaiModal);
+  document.getElementById('foreign-invested-cancel-btn')?.addEventListener('click', closeFaiModal);
+  modal?.addEventListener('click', e => { if (e.target === modal) closeFaiModal(); });
+
+  // Live INR preview while typing
+  document.getElementById('fai-gbp')?.addEventListener('input', _updateFaiPreview);
+  document.getElementById('fai-inr-rate')?.addEventListener('input', _updateFaiPreview);
+
+  document.getElementById('foreign-invested-save-btn')?.addEventListener('click', async () => {
+    const date = document.getElementById('fai-date').value;
+    const gbp = parseFloat(document.getElementById('fai-gbp').value);
+    const inrRate = parseFloat(document.getElementById('fai-inr-rate').value);
+
+    if (!date) { showToast('Date is required', 'error'); return; }
+    if (!gbp || gbp <= 0) { showToast('GBP amount must be > 0', 'error'); return; }
+    if (!inrRate || inrRate <= 0) { showToast('INR rate must be > 0', 'error'); return; }
+
+    const saveBtn = document.getElementById('foreign-invested-save-btn');
+    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+
+    const payload = { entry_date: date, gbp_amount: gbp, inr_rate: inrRate };
+    let op;
+    if (_editingFaiId) {
+      op = sb.from('foreign_actual_invested').update(payload).eq('id', _editingFaiId);
+    } else {
+      payload.user_id = _currentUserId;
+      op = sb.from('foreign_actual_invested').insert(payload);
+    }
+
+    const { error } = await op;
+    saveBtn.textContent = '💾 Save Entry'; saveBtn.disabled = false;
+
+    if (error) {
+      showToast('Save failed: ' + error.message, 'error');
+    } else {
+      showToast(_editingFaiId ? 'Entry updated ✅' : 'Entry added 🎉', 'success');
+      closeFaiModal();
+      loadForeignActualInvested(_currentUserId);
+    }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+//  Bulk select / delete wiring
+// ══════════════════════════════════════════════════════════════
+(function () {
+  var _sel = false;
+  var SEL_ICON = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function _enter() {
+    _sel = true;
+    var btn = document.getElementById('foreign-select-btn');
+    if (btn) { btn.innerHTML = '✕ Cancel'; btn.style.background = 'var(--surface2)'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--muted2)'; }
+    document.getElementById('foreign-bulk-bar')?.classList.remove('hidden');
+    document.querySelectorAll('.fai-cb-wrap').forEach(c => { c.style.display = ''; });
+    _upd();
+  }
+
+  function _exit() {
+    _sel = false;
+    var btn = document.getElementById('foreign-select-btn');
+    if (btn) { btn.innerHTML = SEL_ICON + ' Select'; btn.style.background = 'rgba(20,184,166,0.1)'; btn.style.borderColor = 'rgba(20,184,166,0.3)'; btn.style.color = '#0d9488'; }
+    document.getElementById('foreign-bulk-bar')?.classList.add('hidden');
+    document.getElementById('foreign-bulk-normal').style.display = 'flex';
+    document.getElementById('foreign-bulk-confirm').style.display = 'none';
+    document.querySelectorAll('.fai-cb-wrap').forEach(c => { c.style.display = 'none'; });
+    document.querySelectorAll('.fai-cb').forEach(c => { c.checked = false; });
+    _upd();
+  }
+
+  function _upd() {
+    var n = document.querySelectorAll('.fai-cb:checked').length;
+    var countEl = document.getElementById('foreign-bulk-count');
+    var delBtn = document.getElementById('foreign-bulk-delete');
+    if (countEl) countEl.textContent = n + ' selected';
+    if (delBtn) delBtn.disabled = n === 0;
+  }
+
+  document.addEventListener('fragments-loaded', function () {
+    document.getElementById('foreign-select-btn')?.addEventListener('click', function () {
+      if (_sel) _exit(); else _enter();
+    });
+    document.getElementById('foreign-bulk-cancel')?.addEventListener('click', _exit);
+
+    document.getElementById('foreign-bulk-delete')?.addEventListener('click', function () {
+      var n = document.querySelectorAll('.fai-cb:checked').length;
+      if (!n) return;
+      document.getElementById('foreign-bulk-normal').style.display = 'none';
+      document.getElementById('foreign-bulk-confirm').style.display = 'flex';
+      document.getElementById('foreign-bulk-confirm-count').textContent = n === 1 ? '1 entry' : n + ' entries';
+    });
+
+    document.getElementById('foreign-bulk-no')?.addEventListener('click', function () {
+      document.getElementById('foreign-bulk-normal').style.display = 'flex';
+      document.getElementById('foreign-bulk-confirm').style.display = 'none';
+    });
+
+    document.getElementById('foreign-bulk-yes')?.addEventListener('click', async function () {
+      var checked = [...document.querySelectorAll('.fai-cb:checked')];
+      if (!checked.length) return;
+      var yesBtn = document.getElementById('foreign-bulk-yes');
+      yesBtn.textContent = 'Deleting…'; yesBtn.disabled = true;
+      var anyErr = false;
+      for (var cb of checked) {
+        var r = await sb.from('foreign_actual_invested').delete().eq('id', cb.dataset.id);
+        if (r.error) { showToast('Delete failed: ' + r.error.message, 'error'); anyErr = true; }
+      }
+      yesBtn.textContent = 'Yes, delete'; yesBtn.disabled = false;
+      if (!anyErr) showToast(checked.length + ' ' + (checked.length === 1 ? 'entry' : 'entries') + ' deleted', 'success');
+      _exit();
+      loadForeignActualInvested(_currentUserId);
+    });
+  });
+
+  window['_foreign_bindCheckboxes'] = function () {
+    document.querySelectorAll('.fai-cb').forEach(cb => {
+      cb.addEventListener('change', _upd);
+    });
+    document.querySelectorAll('.fai-cb-wrap').forEach(c => {
+      c.style.display = _sel ? '' : 'none';
+    });
+    if (_sel) _upd();
+  };
+})();
