@@ -52,139 +52,139 @@ function getCompanyName(priceMap, instrument) {
 
 async function loadDashboardStats(userId) {
   try {
-  let totalInvested = 0, totalValue = 0, count = 0;
+    let totalInvested = 0, totalValue = 0, count = 0;
 
-  // zerodha_stocks doesn't store invested/current_value — must compute from qty * avg_cost / ltp
-  const fdLikeTables = ['bank_fd_assets', 'emergency_funds'];
-  const nonStockTables = Object.entries(ASSET_TABLES)
-    .filter(([, t]) => t !== 'zerodha_stocks' && t !== 'aionion_stocks' && t !== 'aionion_gold' && t !== 'mf_holdings' && t !== 'gold_holdings' && t !== 'bonds' && t !== 'amc_mf_holdings').map(([, t]) => t);
+    // zerodha_stocks doesn't store invested/current_value — must compute from qty * avg_cost / ltp
+    const fdLikeTables = ['bank_fd_assets', 'emergency_funds'];
+    const nonStockTables = Object.entries(ASSET_TABLES)
+      .filter(([, t]) => t !== 'zerodha_stocks' && t !== 'aionion_stocks' && t !== 'aionion_gold' && t !== 'mf_holdings' && t !== 'gold_holdings' && t !== 'bonds' && t !== 'amc_mf_holdings').map(([, t]) => t);
 
-  const [assetResults, zerodhaResult, aionionResult, aionionGoldResult, mfResult, goldResult, bondsResult2, amcMfResult2, { data: fdData }, { data: efData }, { data: zaiData }, { data: aaiData }, { data: agaiData }, { data: mfaiData }, { data: gaiData }] = await Promise.all([
-    Promise.all(nonStockTables.map(table =>
-      sb.from(table).select(fdLikeTables.includes(table) ? 'invested' : 'invested, current_value').eq('user_id', userId)
-    )),
-    sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
-    sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
-    sb.from('aionion_gold').select('qty, avg_cost, instrument').eq('user_id', userId),
-    sb.from('mf_holdings').select('qty, avg_cost').eq('user_id', userId),
-    sb.from('gold_holdings').select('qty, avg_cost').eq('user_id', userId),
-    sb.from('bonds').select('invested, face_value').eq('user_id', userId),
-    sb.from('amc_mf_holdings').select('qty, avg_cost').eq('user_id', userId),
-    sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
-    sb.from('ef_actual_invested').select('amount').eq('user_id', userId),
-    sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
-    sb.from('aionion_actual_invested').select('amount').eq('user_id', userId),
-    sb.from('aionion_gold_actual_invested').select('amount').eq('user_id', userId),
-    sb.from('mf_actual_invested').select('amount').eq('user_id', userId),
-    sb.from('gold_actual_invested').select('amount').eq('user_id', userId)
-  ]);
+    const [assetResults, zerodhaResult, aionionResult, aionionGoldResult, mfResult, goldResult, bondsResult2, amcMfResult2, { data: fdData }, { data: efData }, { data: zaiData }, { data: aaiData }, { data: agaiData }, { data: mfaiData }, { data: gaiData }] = await Promise.all([
+      Promise.all(nonStockTables.map(table =>
+        sb.from(table).select(fdLikeTables.includes(table) ? 'invested' : 'invested, current_value').eq('user_id', userId)
+      )),
+      sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
+      sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId),
+      sb.from('aionion_gold').select('qty, avg_cost, instrument').eq('user_id', userId),
+      sb.from('mf_holdings').select('qty, avg_cost').eq('user_id', userId),
+      sb.from('gold_holdings').select('qty, avg_cost').eq('user_id', userId),
+      sb.from('bonds').select('invested, face_value').eq('user_id', userId),
+      sb.from('amc_mf_holdings').select('qty, avg_cost').eq('user_id', userId),
+      sb.from('fd_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('ef_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('aionion_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('aionion_gold_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('mf_actual_invested').select('amount').eq('user_id', userId),
+      sb.from('gold_actual_invested').select('amount').eq('user_id', userId)
+    ]);
 
-  assetResults.forEach(({ data }, i) => {
-    if (!data) return;
-    const isFdLike = fdLikeTables.includes(nonStockTables[i]);
-    data.forEach(row => {
-      const inv = +row.invested || 0;
-      totalInvested += inv;
-      totalValue += isFdLike ? inv : (+row.current_value || 0);
+    assetResults.forEach(({ data }, i) => {
+      if (!data) return;
+      const isFdLike = fdLikeTables.includes(nonStockTables[i]);
+      data.forEach(row => {
+        const inv = +row.invested || 0;
+        totalInvested += inv;
+        totalValue += isFdLike ? inv : (+row.current_value || 0);
+        count++;
+      });
+    });
+
+    // Bonds: current value = face_value
+    (bondsResult2.data || []).forEach(row => {
+      totalInvested += +row.invested || 0;
+      totalValue += +row.face_value || +row.invested || 0;
       count++;
     });
-  });
 
-  // Bonds: current value = face_value
-  (bondsResult2.data || []).forEach(row => {
-    totalInvested += +row.invested || 0;
-    totalValue    += +row.face_value || +row.invested || 0;
-    count++;
-  });
+    // AMC MF: use avg_cost as placeholder
+    (amcMfResult2.data || []).forEach(row => {
+      const qty = +row.qty || 0;
+      totalInvested += qty * (+row.avg_cost || 0);
+      totalValue += qty * (+row.avg_cost || 0);
+      count++;
+    });
 
-  // AMC MF: use avg_cost as placeholder
-  (amcMfResult2.data || []).forEach(row => {
-    const qty = +row.qty || 0;
-    totalInvested += qty * (+row.avg_cost || 0);
-    totalValue    += qty * (+row.avg_cost || 0);
-    count++;
-  });
+    // Zerodha: fetch live prices; fall back to avg_cost if unavailable
+    const zerodhaAssets = zerodhaResult.data || [];
+    const zerodhaInstruments = zerodhaAssets.map(r => r.instrument);
+    const zerodhaPrices = zerodhaInstruments.length ? (await fetchLivePrices(zerodhaInstruments)) || {} : {};
+    zerodhaAssets.forEach(row => {
+      const qty = +row.qty || 0;
+      const ltp = getLTP(zerodhaPrices, row.instrument) || +row.avg_cost || 0;
+      totalInvested += qty * (+row.avg_cost || 0);
+      totalValue += qty * ltp;
+      count++;
+    });
 
-  // Zerodha: fetch live prices; fall back to avg_cost if unavailable
-  const zerodhaAssets = zerodhaResult.data || [];
-  const zerodhaInstruments = zerodhaAssets.map(r => r.instrument);
-  const zerodhaPrices = zerodhaInstruments.length ? (await fetchLivePrices(zerodhaInstruments)) || {} : {};
-  zerodhaAssets.forEach(row => {
-    const qty = +row.qty || 0;
-    const ltp = getLTP(zerodhaPrices, row.instrument) || +row.avg_cost || 0;
-    totalInvested += qty * (+row.avg_cost || 0);
-    totalValue    += qty * ltp;
-    count++;
-  });
+    // Aionion: fetch live prices; fall back to avg_cost if unavailable
+    const aionionAssets = aionionResult.data || [];
+    const aionionInstruments = aionionAssets.map(r => r.instrument);
+    const aionionPrices = aionionInstruments.length ? (await fetchLivePrices(aionionInstruments)) || {} : {};
+    aionionAssets.forEach(row => {
+      const qty = +row.qty || 0;
+      const ltp = getLTP(aionionPrices, row.instrument) || +row.avg_cost || 0;
+      const invested = qty * (+row.avg_cost || 0);
+      totalInvested += invested;
+      totalValue += qty * ltp;
+      count++;
+    });
 
-  // Aionion: fetch live prices; fall back to avg_cost if unavailable
-  const aionionAssets = aionionResult.data || [];
-  const aionionInstruments = aionionAssets.map(r => r.instrument);
-  const aionionPrices = aionionInstruments.length ? (await fetchLivePrices(aionionInstruments)) || {} : {};
-  aionionAssets.forEach(row => {
-    const qty      = +row.qty || 0;
-    const ltp      = getLTP(aionionPrices, row.instrument) || +row.avg_cost || 0;
-    const invested = qty * (+row.avg_cost || 0);
-    totalInvested += invested;
-    totalValue    += qty * ltp;
-    count++;
-  });
+    // Aionion Gold: same as aionion stocks
+    const aionionGoldAssets = aionionGoldResult.data || [];
+    const aionionGoldInstruments = aionionGoldAssets.map(r => r.instrument);
+    const aionionGoldPrices = aionionGoldInstruments.length ? (await fetchLivePrices(aionionGoldInstruments)) || {} : {};
+    aionionGoldAssets.forEach(row => {
+      const qty = +row.qty || 0;
+      const ltp = getLTP(aionionGoldPrices, row.instrument) || +row.avg_cost || 0;
+      totalInvested += qty * (+row.avg_cost || 0);
+      totalValue += qty * ltp;
+      count++;
+    });
 
-  // Aionion Gold: same as aionion stocks
-  const aionionGoldAssets = aionionGoldResult.data || [];
-  const aionionGoldInstruments = aionionGoldAssets.map(r => r.instrument);
-  const aionionGoldPrices = aionionGoldInstruments.length ? (await fetchLivePrices(aionionGoldInstruments)) || {} : {};
-  aionionGoldAssets.forEach(row => {
-    const qty      = +row.qty || 0;
-    const ltp      = getLTP(aionionGoldPrices, row.instrument) || +row.avg_cost || 0;
-    totalInvested += qty * (+row.avg_cost || 0);
-    totalValue    += qty * ltp;
-    count++;
-  });
+    // MF: use avg_cost as current value (no live NAV mapping yet on dashboard)
+    (mfResult.data || []).forEach(row => {
+      const qty = +row.qty || 0;
+      const invested = qty * (+row.avg_cost || 0);
+      totalInvested += invested;
+      totalValue += invested;
+      count++;
+    });
 
-  // MF: use avg_cost as current value (no live NAV mapping yet on dashboard)
-  (mfResult.data || []).forEach(row => {
-    const qty = +row.qty || 0;
-    const invested = qty * (+row.avg_cost || 0);
-    totalInvested += invested;
-    totalValue    += invested;
-    count++;
-  });
+    // Gold: use avg_cost as current value placeholder
+    (goldResult.data || []).forEach(row => {
+      const qty = +row.qty || 0;
+      const invested = qty * (+row.avg_cost || 0);
+      totalInvested += invested;
+      totalValue += invested;
+      count++;
+    });
 
-  // Gold: use avg_cost as current value placeholder
-  (goldResult.data || []).forEach(row => {
-    const qty = +row.qty || 0;
-    const invested = qty * (+row.avg_cost || 0);
-    totalInvested += invested;
-    totalValue    += invested;
-    count++;
-  });
+    const fdActual = (fdData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const efActual = (efData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const zaiActual = (zaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const aaiActual = (aaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const agaiActual = (agaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const mfaiActual = (mfaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const gaiActual = (gaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const actualInvested = fdActual + efActual + zaiActual + aaiActual + agaiActual + mfaiActual + gaiActual;
+    const fdCount = (fdData || []).length;
+    const zaiCount = (zaiData || []).length;
+    const aaiCount = (aaiData || []).length;
+    const agaiCount = (agaiData || []).length;
+    const mfaiCount = (mfaiData || []).length;
+    const gaiCount = (gaiData || []).length;
+    const total = fdCount + zaiCount + aaiCount + agaiCount + mfaiCount + gaiCount;
+    const entryLabel = `${fdCount} FD · ${zaiCount} Zerodha · ${aaiCount} Aionion · ${agaiCount} Aionion Gold · ${mfaiCount} MF · ${gaiCount} Gold entr${total !== 1 ? 'ies' : 'y'}`;
 
-  const fdActual   = (fdData   || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const efActual   = (efData   || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const zaiActual  = (zaiData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const aaiActual  = (aaiData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const agaiActual = (agaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const mfaiActual = (mfaiData || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const gaiActual  = (gaiData  || []).reduce((s, r) => s + (+r.amount || 0), 0);
-  const actualInvested = fdActual + efActual + zaiActual + aaiActual + agaiActual + mfaiActual + gaiActual;
-  const fdCount   = (fdData   || []).length;
-  const zaiCount  = (zaiData  || []).length;
-  const aaiCount  = (aaiData  || []).length;
-  const agaiCount = (agaiData || []).length;
-  const mfaiCount = (mfaiData || []).length;
-  const gaiCount  = (gaiData  || []).length;
-  const total = fdCount + zaiCount + aaiCount + agaiCount + mfaiCount + gaiCount;
-  const entryLabel = `${fdCount} FD · ${zaiCount} Zerodha · ${aaiCount} Aionion · ${agaiCount} Aionion Gold · ${mfaiCount} MF · ${gaiCount} Gold entr${total !== 1 ? 'ies' : 'y'}`;
-
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('dash-net-worth', INR(totalValue));
-  set('dash-net-worth-sub', count ? `${count} asset${count > 1 ? 's' : ''} tracked` : 'Add assets to calculate');
-  set('dash-total-assets', INR(totalValue));
-  set('dash-total-assets-sub', `${count} asset${count > 1 ? 's' : ''} tracked`);
-  set('dash-actual-invested', INR(actualInvested));
-  set('dash-actual-invested-sub', entryLabel);
-  } catch(err) {
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('dash-net-worth', INR(totalValue));
+    set('dash-net-worth-sub', count ? `${count} asset${count > 1 ? 's' : ''} tracked` : 'Add assets to calculate');
+    set('dash-total-assets', INR(totalValue));
+    set('dash-total-assets-sub', `${count} asset${count > 1 ? 's' : ''} tracked`);
+    set('dash-actual-invested', INR(actualInvested));
+    set('dash-actual-invested-sub', entryLabel);
+  } catch (err) {
     console.error('[loadDashboardStats] crash:', err);
     const el = document.getElementById('page-dashboard');
     if (el) el.innerHTML = `<div style="padding:40px;color:#c00;font-family:sans-serif"><h3>Dashboard error</h3><pre style="white-space:pre-wrap">${err.stack || err.message}</pre></div>`;
@@ -202,7 +202,7 @@ async function loadGroupOverview(userId, group) {
   document.getElementById('select-btn-row')?.classList.add('hidden');
   document.getElementById('bulk-delete-bar')?.classList.add('hidden');
   document.querySelector('.assets-summary-row')?.classList.add('hidden');
-  ['zerodha','aionion','aionion-gold','mf','gold','amc-mf'].forEach(p => {
+  ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf'].forEach(p => {
     document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-last-updated`)?.classList.add('hidden');
@@ -214,26 +214,26 @@ async function loadGroupOverview(userId, group) {
   if (subtitle) subtitle.textContent = `${group} — all holdings at a glance`;
 
   const totalsEl = document.getElementById('group-overview-totals');
-  const bodyEl   = document.getElementById('group-overview-body');
+  const bodyEl = document.getElementById('group-overview-body');
   if (totalsEl) totalsEl.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted2)">Loading…</div>`;
-  if (bodyEl)   bodyEl.innerHTML   = '';
+  if (bodyEl) bodyEl.innerHTML = '';
 
   // Define sub-categories per group
   const subCats = group === 'Zerodha'
     ? [
-        { label: 'Stocks',       table: 'zerodha_stocks',  type: 'stock',  actualTable: 'zerodha_actual_invested',  icon: '📊' },
-        { label: 'Mutual Funds', table: 'mf_holdings',     type: 'mf',     actualTable: 'mf_actual_invested',       icon: '💹' },
-        { label: 'Gold',         table: 'gold_holdings',   type: 'gold',   actualTable: null,                       icon: '🥇' },
-      ]
+      { label: 'Stocks', table: 'zerodha_stocks', type: 'stock', actualTable: 'zerodha_actual_invested', icon: '📊' },
+      { label: 'Mutual Funds', table: 'mf_holdings', type: 'mf', actualTable: 'mf_actual_invested', icon: '💹' },
+      { label: 'Gold', table: 'gold_holdings', type: 'gold', actualTable: null, icon: '🥇' },
+    ]
     : [
-        { label: 'Stocks',       table: 'aionion_stocks',  type: 'stock',  actualTable: 'aionion_actual_invested',  icon: '📈' },
-        { label: 'Gold',         table: 'aionion_gold',    type: 'astock', actualTable: null,                       icon: '🥇' },
-      ];
+      { label: 'Stocks', table: 'aionion_stocks', type: 'stock', actualTable: 'aionion_actual_invested', icon: '📈' },
+      { label: 'Gold', table: 'aionion_gold', type: 'astock', actualTable: null, icon: '🥇' },
+    ];
 
   // Fetch all holdings + actual invested in parallel
   const holdingsQueries = subCats.map(sc => {
-    if (sc.type === 'mf')     return sb.from(sc.table).select('qty, avg_cost, nav_symbol').eq('user_id', userId);
-    if (sc.type === 'gold')   return sb.from(sc.table).select('qty, avg_cost, yahoo_symbol').eq('user_id', userId);
+    if (sc.type === 'mf') return sb.from(sc.table).select('qty, avg_cost, nav_symbol').eq('user_id', userId);
+    if (sc.type === 'gold') return sb.from(sc.table).select('qty, avg_cost, yahoo_symbol').eq('user_id', userId);
     return sb.from(sc.table).select('qty, avg_cost, instrument').eq('user_id', userId);
   });
   const actualQueries = subCats.map(sc =>
@@ -250,9 +250,9 @@ async function loadGroupOverview(userId, group) {
   // For stock tables, fetch live prices
   const rows = [];
   for (let i = 0; i < subCats.length; i++) {
-    const sc       = subCats[i];
+    const sc = subCats[i];
     const holdings = holdingsResults[i].data || [];
-    const actual   = (actualResults[i].data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const actual = (actualResults[i].data || []).reduce((s, r) => s + (+r.amount || 0), 0);
 
     let invested = 0, curVal = 0;
 
@@ -263,18 +263,18 @@ async function loadGroupOverview(userId, group) {
         const qty = +r.qty || 0;
         const ltp = getLTP(prices, r.instrument) || +r.avg_cost || 0;
         invested += qty * (+r.avg_cost || 0);
-        curVal   += qty * ltp;
+        curVal += qty * ltp;
       });
     } else if (sc.type === 'mf') {
       // Fetch live NAV for MF using nav_symbol
       const symbols = holdings.filter(r => r.nav_symbol).map(r => r.nav_symbol);
-      const prices  = symbols.length ? (await fetchLivePricesRaw(symbols)) || {} : {};
+      const prices = symbols.length ? (await fetchLivePricesRaw(symbols)) || {} : {};
       holdings.forEach(r => {
         const qty = +r.qty || 0;
         const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
         const liveNav = key ? getLTP(prices, key) : null;
         invested += qty * (+r.avg_cost || 0);
-        curVal   += qty * (liveNav || +r.avg_cost || 0);
+        curVal += qty * (liveNav || +r.avg_cost || 0);
       });
     } else if (sc.type === 'gold') {
       // Fetch live price for gold using yahoo_symbol
@@ -284,20 +284,20 @@ async function loadGroupOverview(userId, group) {
         try {
           const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbolSet.join(','))}`);
           if (res.ok) { const raw = await res.json(); if (!raw.error) prices = raw; }
-        } catch(e) {}
+        } catch (e) { }
       }
       holdings.forEach(r => {
         const qty = +r.qty || 0;
         const key = r.yahoo_symbol ? r.yahoo_symbol.replace(/\.(NS|BO)$/, '') : null;
         const livePrice = key ? getLTP(prices, key) : null;
         invested += qty * (+r.avg_cost || 0);
-        curVal   += qty * (livePrice || +r.avg_cost || 0);
+        curVal += qty * (livePrice || +r.avg_cost || 0);
       });
     } else {
       holdings.forEach(r => {
         const qty = +r.qty || 0;
         invested += qty * (+r.avg_cost || 0);
-        curVal   += qty * (+r.avg_cost || 0);
+        curVal += qty * (+r.avg_cost || 0);
       });
     }
 
@@ -306,16 +306,16 @@ async function loadGroupOverview(userId, group) {
 
   // Totals
   const totalInvested = rows.reduce((s, r) => s + r.invested, 0);
-  const totalCurVal   = rows.reduce((s, r) => s + r.curVal,   0);
-  const totalActual   = rows.reduce((s, r) => s + r.actual,   0);
-  const totalGain     = totalCurVal - totalInvested;
+  const totalCurVal = rows.reduce((s, r) => s + r.curVal, 0);
+  const totalActual = rows.reduce((s, r) => s + r.actual, 0);
+  const totalGain = totalCurVal - totalInvested;
   const totalActualGain = totalCurVal - totalActual;
 
   // Update top stat cards
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   set('assets-total-invested', INR(totalInvested));
-  set('assets-total-value',    INR(totalCurVal));
-  const cEl = document.getElementById('assets-count-inline'); if(cEl) cEl.textContent = rows.length + ' holding' + (rows.length !== 1 ? 's' : '');
+  set('assets-total-value', INR(totalCurVal));
+  const cEl = document.getElementById('assets-count-inline'); if (cEl) cEl.textContent = rows.length + ' holding' + (rows.length !== 1 ? 's' : '');
   const gainEl = document.getElementById('assets-total-gain');
   if (gainEl) {
     const pct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
@@ -332,11 +332,11 @@ async function loadGroupOverview(userId, group) {
   };
 
   totalsEl.innerHTML = [
-    { label: 'Total Invested',      val: `<b style="color:var(--accent)">${INR(totalInvested)}</b>` },
-    { label: 'Current Value',       val: `<b style="color:var(--teal)">${INR(totalCurVal)}</b>` },
-    { label: 'Gain / Loss',         val: fmtGain(totalGain, totalInvested) },
-    { label: 'Actual Invested',     val: totalActual > 0 ? `<b style="color:var(--green)">${INR(totalActual)}</b>` : `<span style="color:var(--muted2)">—</span>` },
-    { label: 'Actual Gain / Loss',  val: totalActual > 0 ? fmtGain(totalActualGain, totalActual) : `<span style="color:var(--muted2)">—</span>` },
+    { label: 'Total Invested', val: `<b style="color:var(--accent)">${INR(totalInvested)}</b>` },
+    { label: 'Current Value', val: `<b style="color:var(--teal)">${INR(totalCurVal)}</b>` },
+    { label: 'Gain / Loss', val: fmtGain(totalGain, totalInvested) },
+    { label: 'Actual Invested', val: totalActual > 0 ? `<b style="color:var(--green)">${INR(totalActual)}</b>` : `<span style="color:var(--muted2)">—</span>` },
+    { label: 'Actual Gain / Loss', val: totalActual > 0 ? fmtGain(totalActualGain, totalActual) : `<span style="color:var(--muted2)">—</span>` },
   ].map(t => `<div style="${tileStyle()}">
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);margin-bottom:6px">${t.label}</div>
     <div style="font-size:18px">${t.val}</div>
@@ -345,8 +345,8 @@ async function loadGroupOverview(userId, group) {
   // Per-row breakdown
   const tdS = 'padding:12px 16px;border-bottom:1px solid var(--border)';
   bodyEl.innerHTML = rows.map((r, i) => {
-    const gain       = r.curVal - r.invested;
-    const gainPct    = r.invested > 0 ? ` (${((gain / r.invested) * 100).toFixed(1)}%)` : '';
+    const gain = r.curVal - r.invested;
+    const gainPct = r.invested > 0 ? ` (${((gain / r.invested) * 100).toFixed(1)}%)` : '';
     const actualGain = r.curVal - r.actual;
     const actualGainPct = r.actual > 0 ? ` (${((actualGain / r.actual) * 100).toFixed(1)}%)` : '';
     const rowBg = i % 2 === 0 ? '#fff' : 'var(--surface2)';
@@ -385,7 +385,7 @@ async function loadAssets(userId, filter = null) {
   // Group overview mode — intercept before normal table rendering
   if (filter === 'Zerodha' || filter === 'Aionion') {
     _currentAssetFilter = filter;
-    _currentAssetTable  = null;
+    _currentAssetTable = null;
     await loadGroupOverview(userId, filter);
     return;
   }
@@ -396,7 +396,7 @@ async function loadAssets(userId, filter = null) {
   const subtitle = document.querySelector('#page-assets .page-subtitle');
 
   if (!filter) {
-    _currentAssetTable  = null;
+    _currentAssetTable = null;
     _currentAssetFilter = null;
     if (subtitle) subtitle.textContent = 'All Assets — overview';
     if (toolbarLabel) toolbarLabel.textContent = 'All Assets';
@@ -407,288 +407,288 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('group-overview-panel')?.classList.remove('hidden');
     document.querySelector('.assets-summary-row')?.classList.add('hidden');
     document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
-  document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
-    ['assets-monthly-summary','zerodha-monthly-summary','aionion-monthly-summary','mf-monthly-summary'].forEach(id =>
+    document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
+    ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'mf-monthly-summary'].forEach(id =>
       document.getElementById(id)?.classList.add('hidden')
     );
-    ['zerodha','aionion','aionion-gold','mf','gold','amc-mf'].forEach(p => {
+    ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf'].forEach(p => {
       document.getElementById(p + '-import-btn')?.classList.add('hidden');
       document.getElementById(p + '-refresh-btn')?.classList.add('hidden');
       document.getElementById(p + '-last-updated')?.classList.add('hidden');
     });
 
     const totalsEl = document.getElementById('group-overview-totals');
-    const bodyEl   = document.getElementById('group-overview-body');
+    const bodyEl = document.getElementById('group-overview-body');
     if (totalsEl) totalsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted2)">Loading\u2026</div>';
-    if (bodyEl)   bodyEl.innerHTML   = '';
+    if (bodyEl) bodyEl.innerHTML = '';
 
     try {
 
-    // ── Helpers ────────────────────────────────────────────────
-    async function fetchStockSub(table, actualTable) {
-      const { data } = await sb.from(table).select('qty, avg_cost, instrument').eq('user_id', userId);
-      const rows = data || [];
-      const prices = rows.length ? (await fetchLivePrices(rows.map(r => r.instrument))) || {} : {};
-      let inv = 0, cur = 0;
-      rows.forEach(r => {
-        const qty = +r.qty || 0;
-        inv += qty * (+r.avg_cost || 0);
-        cur += qty * (getLTP(prices, r.instrument) || +r.avg_cost || 0);
-      });
-      let actual = 0;
-      if (actualTable) {
-        const { data: ad } = await sb.from(actualTable).select('amount').eq('user_id', userId);
-        actual = (ad || []).reduce((s, r) => s + (+r.amount || 0), 0);
+      // ── Helpers ────────────────────────────────────────────────
+      async function fetchStockSub(table, actualTable) {
+        const { data } = await sb.from(table).select('qty, avg_cost, instrument').eq('user_id', userId);
+        const rows = data || [];
+        const prices = rows.length ? (await fetchLivePrices(rows.map(r => r.instrument))) || {} : {};
+        let inv = 0, cur = 0;
+        rows.forEach(r => {
+          const qty = +r.qty || 0;
+          inv += qty * (+r.avg_cost || 0);
+          cur += qty * (getLTP(prices, r.instrument) || +r.avg_cost || 0);
+        });
+        let actual = 0;
+        if (actualTable) {
+          const { data: ad } = await sb.from(actualTable).select('amount').eq('user_id', userId);
+          actual = (ad || []).reduce((s, r) => s + (+r.amount || 0), 0);
+        }
+        return { inv, cur, actual };
       }
-      return { inv, cur, actual };
-    }
 
-    async function fetchMfSub(actualTable) {
-      const { data } = await sb.from('mf_holdings').select('qty, avg_cost, nav_symbol').eq('user_id', userId);
-      const rows = data || [];
-      const syms = rows.filter(r => r.nav_symbol).map(r => r.nav_symbol);
-      const prices = syms.length ? (await fetchLivePricesRaw(syms)) || {} : {};
-      let inv = 0, cur = 0;
-      rows.forEach(r => {
+      async function fetchMfSub(actualTable) {
+        const { data } = await sb.from('mf_holdings').select('qty, avg_cost, nav_symbol').eq('user_id', userId);
+        const rows = data || [];
+        const syms = rows.filter(r => r.nav_symbol).map(r => r.nav_symbol);
+        const prices = syms.length ? (await fetchLivePricesRaw(syms)) || {} : {};
+        let inv = 0, cur = 0;
+        rows.forEach(r => {
+          const qty = +r.qty || 0;
+          const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
+          inv += qty * (+r.avg_cost || 0);
+          cur += qty * (key ? getLTP(prices, key) : null || +r.avg_cost || 0);
+        });
+        let actual = 0;
+        if (actualTable) {
+          const { data: ad } = await sb.from(actualTable).select('amount').eq('user_id', userId);
+          actual = (ad || []).reduce((s, r) => s + (+r.amount || 0), 0);
+        }
+        return { inv, cur, actual };
+      }
+
+      async function fetchGoldSub(table) {
+        const { data } = await sb.from(table).select('qty, avg_cost, yahoo_symbol').eq('user_id', userId);
+        const rows = data || [];
+        const symSet = [...new Set(rows.filter(r => r.yahoo_symbol).map(r => r.yahoo_symbol))];
+        let prices = {};
+        if (symSet.length) {
+          try {
+            const res = await fetch('/api/prices?symbols=' + encodeURIComponent(symSet.join(',')));
+            if (res.ok) { const raw = await res.json(); if (!raw.error) prices = raw; }
+          } catch (e) { }
+        }
+        let inv = 0, cur = 0;
+        rows.forEach(r => {
+          const qty = +r.qty || 0;
+          const key = r.yahoo_symbol ? r.yahoo_symbol.replace(/\.(NS|BO)$/, '') : null;
+          inv += qty * (+r.avg_cost || 0);
+          cur += qty * (key ? getLTP(prices, key) : null || +r.avg_cost || 0);
+        });
+        return { inv, cur, actual: 0 };
+      }
+
+      // ── Fetch all categories in parallel where possible ────────
+      const [
+        cashResult,
+        fdResult, fdActual,
+        efResult, efActual,
+        bondsResult,
+        zerodhaStocksRes, zerodhaActualRes,
+        mfRes, mfActualRes,
+        goldRes,
+        aionionStocksRes, aionionActualRes,
+        aionionGoldRes,
+        amcMfRes, amcMfActualRes,
+      ] = await Promise.all([
+        sb.from('cash_assets').select('invested, current_value').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('bank_fd_assets').select('invested').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('fd_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('emergency_funds').select('invested').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('ef_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('bonds').select('invested, face_value').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('mf_holdings').select('qty, avg_cost, nav_symbol').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('mf_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('gold_holdings').select('qty, avg_cost, yahoo_symbol').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('aionion_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('aionion_gold').select('qty, avg_cost, instrument').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('amc_mf_holdings').select('qty, avg_cost, nav_symbol').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('amc_mf_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+      ]);
+
+      // Cash
+      let cashInv = 0, cashCur = 0;
+      (cashResult.data || []).forEach(r => { cashInv += +r.invested || 0; cashCur += +r.current_value || 0; });
+
+      // Bank FD
+      let fdInv = 0, fdCur = 0;
+      (fdResult.data || []).forEach(r => { fdInv += +r.invested || 0; fdCur += +r.invested || 0; });
+      const fdActualTotal = (fdActual.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+
+      // Emergency Funds
+      let efInv = 0, efCur = 0;
+      (efResult.data || []).forEach(r => { efInv += +r.invested || 0; efCur += +r.invested || 0; });
+      const efActualTotal = (efActual.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+
+      // Bonds
+      let bondsInv = 0, bondsCur = 0;
+      (bondsResult.data || []).forEach(r => { bondsInv += +r.invested || 0; bondsCur += +r.face_value || +r.invested || 0; });
+
+      // Zerodha stocks (needs live prices)
+      const zerodhaRows = zerodhaStocksRes.data || [];
+      const zPrices = zerodhaRows.length ? (await fetchLivePrices(zerodhaRows.map(r => r.instrument))) || {} : {};
+      let zInv = 0, zCur = 0;
+      zerodhaRows.forEach(r => {
+        const qty = +r.qty || 0;
+        zInv += qty * (+r.avg_cost || 0);
+        zCur += qty * (getLTP(zPrices, r.instrument) || +r.avg_cost || 0);
+      });
+
+      // MF (needs live NAV)
+      const mfRows = mfRes.data || [];
+      const mfSyms = mfRows.filter(r => r.nav_symbol).map(r => r.nav_symbol);
+      const mfPrices = mfSyms.length ? (await fetchLivePricesRaw(mfSyms)) || {} : {};
+      let mfInv = 0, mfCur = 0;
+      mfRows.forEach(r => {
         const qty = +r.qty || 0;
         const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
-        inv += qty * (+r.avg_cost || 0);
-        cur += qty * (key ? getLTP(prices, key) : null || +r.avg_cost || 0);
+        const nav = key ? getLTP(mfPrices, key) : null;
+        mfInv += qty * (+r.avg_cost || 0);
+        mfCur += qty * (nav || +r.avg_cost || 0);
       });
-      let actual = 0;
-      if (actualTable) {
-        const { data: ad } = await sb.from(actualTable).select('amount').eq('user_id', userId);
-        actual = (ad || []).reduce((s, r) => s + (+r.amount || 0), 0);
-      }
-      return { inv, cur, actual };
-    }
 
-    async function fetchGoldSub(table) {
-      const { data } = await sb.from(table).select('qty, avg_cost, yahoo_symbol').eq('user_id', userId);
-      const rows = data || [];
-      const symSet = [...new Set(rows.filter(r => r.yahoo_symbol).map(r => r.yahoo_symbol))];
-      let prices = {};
-      if (symSet.length) {
+      // Gold (needs live price)
+      const goldRows = goldRes.data || [];
+      const goldSymSet = [...new Set(goldRows.filter(r => r.yahoo_symbol).map(r => r.yahoo_symbol))];
+      let goldPrices = {};
+      if (goldSymSet.length) {
         try {
-          const res = await fetch('/api/prices?symbols=' + encodeURIComponent(symSet.join(',')));
-          if (res.ok) { const raw = await res.json(); if (!raw.error) prices = raw; }
-        } catch(e) {}
+          const gres = await fetch('/api/prices?symbols=' + encodeURIComponent(goldSymSet.join(',')));
+          if (gres.ok) { const raw = await gres.json(); if (!raw.error) goldPrices = raw; }
+        } catch (e) { }
       }
-      let inv = 0, cur = 0;
-      rows.forEach(r => {
+      let goldInv = 0, goldCur = 0;
+      goldRows.forEach(r => {
         const qty = +r.qty || 0;
         const key = r.yahoo_symbol ? r.yahoo_symbol.replace(/\.(NS|BO)$/, '') : null;
-        inv += qty * (+r.avg_cost || 0);
-        cur += qty * (key ? getLTP(prices, key) : null || +r.avg_cost || 0);
+        goldInv += qty * (+r.avg_cost || 0);
+        goldCur += qty * (key ? getLTP(goldPrices, key) : null || +r.avg_cost || 0);
       });
-      return { inv, cur, actual: 0 };
-    }
 
-    // ── Fetch all categories in parallel where possible ────────
-    const [
-      cashResult,
-      fdResult, fdActual,
-      efResult, efActual,
-      bondsResult,
-      zerodhaStocksRes, zerodhaActualRes,
-      mfRes, mfActualRes,
-      goldRes,
-      aionionStocksRes, aionionActualRes,
-      aionionGoldRes,
-      amcMfRes, amcMfActualRes,
-    ] = await Promise.all([
-      sb.from('cash_assets').select('invested, current_value').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('bank_fd_assets').select('invested').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('fd_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('emergency_funds').select('invested').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('ef_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('bonds').select('invested, face_value').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('zerodha_stocks').select('qty, avg_cost, instrument').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('zerodha_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('mf_holdings').select('qty, avg_cost, nav_symbol').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('mf_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('gold_holdings').select('qty, avg_cost, yahoo_symbol').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('aionion_stocks').select('qty, avg_cost, instrument').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('aionion_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('aionion_gold').select('qty, avg_cost, instrument').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('amc_mf_holdings').select('qty, avg_cost, nav_symbol').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-      sb.from('amc_mf_actual_invested').select('amount').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-    ]);
+      // Aionion stocks
+      const aionionRows = aionionStocksRes.data || [];
+      const aPrices = aionionRows.length ? (await fetchLivePrices(aionionRows.map(r => r.instrument))) || {} : {};
+      let aInv = 0, aCur = 0;
+      aionionRows.forEach(r => {
+        const qty = +r.qty || 0;
+        aInv += qty * (+r.avg_cost || 0);
+        aCur += qty * (getLTP(aPrices, r.instrument) || +r.avg_cost || 0);
+      });
 
-    // Cash
-    let cashInv = 0, cashCur = 0;
-    (cashResult.data || []).forEach(r => { cashInv += +r.invested || 0; cashCur += +r.current_value || 0; });
+      // Aionion gold
+      const agRows = aionionGoldRes.data || [];
+      const agPrices = agRows.length ? (await fetchLivePrices(agRows.map(r => r.instrument))) || {} : {};
+      let agInv = 0, agCur = 0;
+      agRows.forEach(r => {
+        const qty = +r.qty || 0;
+        agInv += qty * (+r.avg_cost || 0);
+        agCur += qty * (getLTP(agPrices, r.instrument) || +r.avg_cost || 0);
+      });
 
-    // Bank FD
-    let fdInv = 0, fdCur = 0;
-    (fdResult.data || []).forEach(r => { fdInv += +r.invested || 0; fdCur += +r.invested || 0; });
-    const fdActualTotal = (fdActual.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+      const zerodhaActualTotal = (zerodhaActualRes.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+      const mfActualTotal = (mfActualRes.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+      const aionionActualTotal = (aionionActualRes.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
 
-    // Emergency Funds
-    let efInv = 0, efCur = 0;
-    (efResult.data || []).forEach(r => { efInv += +r.invested || 0; efCur += +r.invested || 0; });
-    const efActualTotal = (efActual.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+      // AMC MF (needs live NAV)
+      const amcMfRows = amcMfRes.data || [];
+      const amcSyms = amcMfRows.filter(r => r.nav_symbol).map(r => r.nav_symbol);
+      const amcPrices = amcSyms.length ? (await fetchLivePricesRaw(amcSyms)) || {} : {};
+      let amcInv = 0, amcCur = 0;
+      amcMfRows.forEach(r => {
+        const qty = +r.qty || 0;
+        const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
+        const nav = key ? getLTP(amcPrices, key) : null;
+        amcInv += qty * (+r.avg_cost || 0);
+        amcCur += qty * (nav || +r.avg_cost || 0);
+      });
+      const amcMfActualTotal = (amcMfActualRes.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
 
-    // Bonds
-    let bondsInv = 0, bondsCur = 0;
-    (bondsResult.data || []).forEach(r => { bondsInv += +r.invested || 0; bondsCur += +r.face_value || +r.invested || 0; });
+      // ── Build category rows ────────────────────────────────────
+      const catRows = [
+        { label: 'Cash', icon: '💵', filter: 'Cash', inv: cashInv, cur: cashCur, actual: cashInv },
+        { label: 'Fixed Deposits', icon: '🏦', filter: 'Fixed Deposits', inv: fdInv, cur: fdCur, actual: fdActualTotal },
+        { label: 'Emergency Funds', icon: '🛡️', filter: 'Emergency Funds', inv: efInv, cur: efCur, actual: efActualTotal },
+        { label: 'Bonds', icon: '📜', filter: 'Bonds', inv: bondsInv, cur: bondsCur, actual: bondsInv },
+        { label: 'Zerodha', icon: '📈', filter: 'Zerodha', inv: zInv + mfInv + goldInv, cur: zCur + mfCur + goldCur, actual: zerodhaActualTotal + mfActualTotal },
+        { label: 'Aionion', icon: '📊', filter: 'Aionion', inv: aInv + agInv, cur: aCur + agCur, actual: aionionActualTotal },
+        { label: 'AMC Mutual Funds', icon: '💼', filter: 'AMC Mutual Funds', inv: amcInv, cur: amcCur, actual: amcMfActualTotal },
+      ].filter(r => r.inv > 0 || r.cur > 0);
 
-    // Zerodha stocks (needs live prices)
-    const zerodhaRows = zerodhaStocksRes.data || [];
-    const zPrices = zerodhaRows.length ? (await fetchLivePrices(zerodhaRows.map(r => r.instrument))) || {} : {};
-    let zInv = 0, zCur = 0;
-    zerodhaRows.forEach(r => {
-      const qty = +r.qty || 0;
-      zInv += qty * (+r.avg_cost || 0);
-      zCur += qty * (getLTP(zPrices, r.instrument) || +r.avg_cost || 0);
-    });
+      // ── Grand totals ───────────────────────────────────────────
+      const grandInv = catRows.reduce((s, r) => s + r.inv, 0);
+      const grandCur = catRows.reduce((s, r) => s + r.cur, 0);
+      const grandActual = catRows.reduce((s, r) => s + r.actual, 0);
+      const grandGain = grandCur - grandInv;
+      const grandActualGain = grandCur - grandActual;
 
-    // MF (needs live NAV)
-    const mfRows = mfRes.data || [];
-    const mfSyms = mfRows.filter(r => r.nav_symbol).map(r => r.nav_symbol);
-    const mfPrices = mfSyms.length ? (await fetchLivePricesRaw(mfSyms)) || {} : {};
-    let mfInv = 0, mfCur = 0;
-    mfRows.forEach(r => {
-      const qty = +r.qty || 0;
-      const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
-      const nav = key ? getLTP(mfPrices, key) : null;
-      mfInv += qty * (+r.avg_cost || 0);
-      mfCur += qty * (nav || +r.avg_cost || 0);
-    });
+      // Update top stat tiles
+      const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setEl('assets-total-invested', INR(grandInv));
+      setEl('assets-total-value', INR(grandCur));
+      const cElA = document.getElementById('assets-count-inline');
+      if (cElA) cElA.textContent = '';
+      const gainElA = document.getElementById('assets-total-gain');
+      if (gainElA) {
+        const pct = grandInv > 0 ? ' (' + ((grandGain / grandInv) * 100).toFixed(1) + '%)' : '';
+        gainElA.textContent = (grandGain >= 0 ? '+' : '') + INR(grandGain) + pct;
+        gainElA.style.color = grandGain > 0 ? 'var(--green)' : grandGain < 0 ? 'var(--danger)' : 'var(--muted)';
+      }
 
-    // Gold (needs live price)
-    const goldRows = goldRes.data || [];
-    const goldSymSet = [...new Set(goldRows.filter(r => r.yahoo_symbol).map(r => r.yahoo_symbol))];
-    let goldPrices = {};
-    if (goldSymSet.length) {
-      try {
-        const gres = await fetch('/api/prices?symbols=' + encodeURIComponent(goldSymSet.join(',')));
-        if (gres.ok) { const raw = await gres.json(); if (!raw.error) goldPrices = raw; }
-      } catch(e) {}
-    }
-    let goldInv = 0, goldCur = 0;
-    goldRows.forEach(r => {
-      const qty = +r.qty || 0;
-      const key = r.yahoo_symbol ? r.yahoo_symbol.replace(/\.(NS|BO)$/, '') : null;
-      goldInv += qty * (+r.avg_cost || 0);
-      goldCur += qty * (key ? getLTP(goldPrices, key) : null || +r.avg_cost || 0);
-    });
-
-    // Aionion stocks
-    const aionionRows = aionionStocksRes.data || [];
-    const aPrices = aionionRows.length ? (await fetchLivePrices(aionionRows.map(r => r.instrument))) || {} : {};
-    let aInv = 0, aCur = 0;
-    aionionRows.forEach(r => {
-      const qty = +r.qty || 0;
-      aInv += qty * (+r.avg_cost || 0);
-      aCur += qty * (getLTP(aPrices, r.instrument) || +r.avg_cost || 0);
-    });
-
-    // Aionion gold
-    const agRows = aionionGoldRes.data || [];
-    const agPrices = agRows.length ? (await fetchLivePrices(agRows.map(r => r.instrument))) || {} : {};
-    let agInv = 0, agCur = 0;
-    agRows.forEach(r => {
-      const qty = +r.qty || 0;
-      agInv += qty * (+r.avg_cost || 0);
-      agCur += qty * (getLTP(agPrices, r.instrument) || +r.avg_cost || 0);
-    });
-
-    const zerodhaActualTotal  = (zerodhaActualRes.data  || []).reduce((s, r) => s + (+r.amount || 0), 0);
-    const mfActualTotal       = (mfActualRes.data       || []).reduce((s, r) => s + (+r.amount || 0), 0);
-    const aionionActualTotal  = (aionionActualRes.data  || []).reduce((s, r) => s + (+r.amount || 0), 0);
-
-    // AMC MF (needs live NAV)
-    const amcMfRows = amcMfRes.data || [];
-    const amcSyms = amcMfRows.filter(r => r.nav_symbol).map(r => r.nav_symbol);
-    const amcPrices = amcSyms.length ? (await fetchLivePricesRaw(amcSyms)) || {} : {};
-    let amcInv = 0, amcCur = 0;
-    amcMfRows.forEach(r => {
-      const qty = +r.qty || 0;
-      const key = r.nav_symbol ? r.nav_symbol.replace(/\.(NS|BO)$/, '') : null;
-      const nav = key ? getLTP(amcPrices, key) : null;
-      amcInv += qty * (+r.avg_cost || 0);
-      amcCur += qty * (nav || +r.avg_cost || 0);
-    });
-    const amcMfActualTotal = (amcMfActualRes.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
-
-    // ── Build category rows ────────────────────────────────────
-    const catRows = [
-      { label: 'Cash',    icon: '💵', filter: 'Cash',    inv: cashInv,                cur: cashCur,                       actual: cashInv },
-      { label: 'Fixed Deposits', icon: '🏦', filter: 'Fixed Deposits', inv: fdInv, cur: fdCur, actual: fdActualTotal },
-      { label: 'Emergency Funds',  icon: '🛡️', filter: 'Emergency Funds',  inv: efInv, cur: efCur, actual: efActualTotal },
-      { label: 'Bonds',   icon: '📜', filter: 'Bonds',   inv: bondsInv,               cur: bondsCur,                      actual: bondsInv },
-      { label: 'Zerodha', icon: '📈', filter: 'Zerodha', inv: zInv + mfInv + goldInv, cur: zCur + mfCur + goldCur,   actual: zerodhaActualTotal + mfActualTotal },
-      { label: 'Aionion', icon: '📊', filter: 'Aionion', inv: aInv + agInv,           cur: aCur + agCur,                  actual: aionionActualTotal },
-      { label: 'AMC Mutual Funds',  icon: '💼', filter: 'AMC Mutual Funds',  inv: amcInv,                 cur: amcCur,                         actual: amcMfActualTotal },
-    ].filter(r => r.inv > 0 || r.cur > 0);
-
-    // ── Grand totals ───────────────────────────────────────────
-    const grandInv        = catRows.reduce((s, r) => s + r.inv, 0);
-    const grandCur        = catRows.reduce((s, r) => s + r.cur, 0);
-    const grandActual     = catRows.reduce((s, r) => s + r.actual, 0);
-    const grandGain       = grandCur - grandInv;
-    const grandActualGain = grandCur - grandActual;
-
-    // Update top stat tiles
-    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    setEl('assets-total-invested', INR(grandInv));
-    setEl('assets-total-value',    INR(grandCur));
-    const cElA = document.getElementById('assets-count-inline');
-    if (cElA) cElA.textContent = '';
-    const gainElA = document.getElementById('assets-total-gain');
-    if (gainElA) {
-      const pct = grandInv > 0 ? ' (' + ((grandGain / grandInv) * 100).toFixed(1) + '%)' : '';
-      gainElA.textContent = (grandGain >= 0 ? '+' : '') + INR(grandGain) + pct;
-      gainElA.style.color = grandGain > 0 ? 'var(--green)' : grandGain < 0 ? 'var(--danger)' : 'var(--muted)';
-    }
-
-    // ── Render summary tiles ───────────────────────────────────
-    const gainColor = v => v > 0 ? 'var(--green)' : v < 0 ? 'var(--danger)' : 'var(--muted)';
-    const fmtGain   = (v, base) => {
-      const pct = base > 0 ? ' (' + ((v / base) * 100).toFixed(1) + '%)' : '';
-      return '<b style="color:' + gainColor(v) + '">' + (v >= 0 ? '+' : '') + INR(v) + pct + '</b>';
-    };
-    totalsEl.innerHTML = [
-      { label: 'Total Invested',     val: '<b style="color:var(--accent)">'  + INR(grandInv)    + '</b>' },
-      { label: 'Current Value',      val: '<b style="color:var(--teal)">'    + INR(grandCur)    + '</b>' },
-      { label: 'Gain / Loss',        val: fmtGain(grandGain, grandInv) },
-      { label: 'Actual Invested',    val: grandActual > 0 ? '<b style="color:var(--green)">' + INR(grandActual) + '</b>' : '<span style="color:var(--muted2)">—</span>' },
-      { label: 'Actual Gain / Loss', val: grandActual > 0 ? fmtGain(grandActualGain, grandActual) : '<span style="color:var(--muted2)">—</span>' },
-    ].map(t =>
-      '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px">' +
+      // ── Render summary tiles ───────────────────────────────────
+      const gainColor = v => v > 0 ? 'var(--green)' : v < 0 ? 'var(--danger)' : 'var(--muted)';
+      const fmtGain = (v, base) => {
+        const pct = base > 0 ? ' (' + ((v / base) * 100).toFixed(1) + '%)' : '';
+        return '<b style="color:' + gainColor(v) + '">' + (v >= 0 ? '+' : '') + INR(v) + pct + '</b>';
+      };
+      totalsEl.innerHTML = [
+        { label: 'Total Invested', val: '<b style="color:var(--accent)">' + INR(grandInv) + '</b>' },
+        { label: 'Current Value', val: '<b style="color:var(--teal)">' + INR(grandCur) + '</b>' },
+        { label: 'Gain / Loss', val: fmtGain(grandGain, grandInv) },
+        { label: 'Actual Invested', val: grandActual > 0 ? '<b style="color:var(--green)">' + INR(grandActual) + '</b>' : '<span style="color:var(--muted2)">—</span>' },
+        { label: 'Actual Gain / Loss', val: grandActual > 0 ? fmtGain(grandActualGain, grandActual) : '<span style="color:var(--muted2)">—</span>' },
+      ].map(t =>
+        '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px">' +
         '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);margin-bottom:6px">' + t.label + '</div>' +
         '<div style="font-size:18px">' + t.val + '</div>' +
-      '</div>'
-    ).join('');
+        '</div>'
+      ).join('');
 
-    // ── Render breakdown table ─────────────────────────────────
-    const tdS = 'padding:12px 16px;border-bottom:1px solid var(--border)';
-    bodyEl.innerHTML = catRows.map((r, i) => {
-      const gain          = r.cur - r.inv;
-      const gainPct       = r.inv > 0    ? ' (' + ((gain / r.inv) * 100).toFixed(1) + '%)'           : '';
-      const actualGain    = r.cur - r.actual;
-      const actualGainPct = r.actual > 0 ? ' (' + ((actualGain / r.actual) * 100).toFixed(1) + '%)' : '';
-      const rowBg         = i % 2 === 0  ? '#fff' : 'var(--surface2)';
-      return '<tr style="background:' + rowBg + ';cursor:pointer" class="group-overview-row" data-filter="' + r.filter + '">' +
-        '<td style="' + tdS + '"><span style="font-size:15px;margin-right:8px">' + r.icon + '</span><b>' + r.label + '</b></td>' +
-        '<td style="' + tdS + ';text-align:right">' + INR(r.inv) + '</td>' +
-        '<td style="' + tdS + ';text-align:right;font-weight:600">' + INR(r.cur) + '</td>' +
-        '<td style="' + tdS + ';text-align:right;color:' + gainColor(gain) + ';font-weight:600">' +
+      // ── Render breakdown table ─────────────────────────────────
+      const tdS = 'padding:12px 16px;border-bottom:1px solid var(--border)';
+      bodyEl.innerHTML = catRows.map((r, i) => {
+        const gain = r.cur - r.inv;
+        const gainPct = r.inv > 0 ? ' (' + ((gain / r.inv) * 100).toFixed(1) + '%)' : '';
+        const actualGain = r.cur - r.actual;
+        const actualGainPct = r.actual > 0 ? ' (' + ((actualGain / r.actual) * 100).toFixed(1) + '%)' : '';
+        const rowBg = i % 2 === 0 ? '#fff' : 'var(--surface2)';
+        return '<tr style="background:' + rowBg + ';cursor:pointer" class="group-overview-row" data-filter="' + r.filter + '">' +
+          '<td style="' + tdS + '"><span style="font-size:15px;margin-right:8px">' + r.icon + '</span><b>' + r.label + '</b></td>' +
+          '<td style="' + tdS + ';text-align:right">' + INR(r.inv) + '</td>' +
+          '<td style="' + tdS + ';text-align:right;font-weight:600">' + INR(r.cur) + '</td>' +
+          '<td style="' + tdS + ';text-align:right;color:' + gainColor(gain) + ';font-weight:600">' +
           (gain >= 0 ? '+' : '') + INR(gain) + '<span style="font-size:11px">' + gainPct + '</span>' +
-        '</td>' +
-        '<td style="' + tdS + ';text-align:right">' + (r.actual > 0 ? INR(r.actual) : '<span style="color:var(--muted2)">—</span>') + '</td>' +
-        '<td style="' + tdS + ';text-align:right;font-weight:600;color:' + (r.actual > 0 ? gainColor(actualGain) : 'var(--muted2)') + '">' +
+          '</td>' +
+          '<td style="' + tdS + ';text-align:right">' + (r.actual > 0 ? INR(r.actual) : '<span style="color:var(--muted2)">—</span>') + '</td>' +
+          '<td style="' + tdS + ';text-align:right;font-weight:600;color:' + (r.actual > 0 ? gainColor(actualGain) : 'var(--muted2)') + '">' +
           (r.actual > 0 ? (actualGain >= 0 ? '+' : '') + INR(actualGain) + '<span style="font-size:11px">' + actualGainPct + '</span>' : '—') +
-        '</td>' +
-      '</tr>';
-    }).join('');
+          '</td>' +
+          '</tr>';
+      }).join('');
 
-    bodyEl.querySelectorAll('.group-overview-row').forEach(row => {
-      row.addEventListener('click', () => loadAssets(_currentUserId, row.dataset.filter));
-    });
+      bodyEl.querySelectorAll('.group-overview-row').forEach(row => {
+        row.addEventListener('click', () => loadAssets(_currentUserId, row.dataset.filter));
+      });
 
-    } catch(err) {
+    } catch (err) {
       console.error('Assets overview error:', err);
       if (totalsEl) totalsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--danger)">Failed to load overview: ' + err.message + '</div>';
     }
@@ -696,7 +696,7 @@ async function loadAssets(userId, filter = null) {
     return;
   }
 
-    const tableName = ASSET_TABLES[filter];
+  const tableName = ASSET_TABLES[filter];
   if (!tableName) {
     if (addBtn) addBtn.classList.add('hidden');
     tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">🚧</div>${filter} — coming soon!</div></td></tr>`;
@@ -719,6 +719,15 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('foreign-refresh-btn')?.classList.remove('hidden');
     document.getElementById('foreign-last-updated')?.classList.remove('hidden');
     if (addBtn) addBtn.classList.add('hidden');
+    // Hide Actual Invested stat cards + all right-panel monthly summaries
+    // (they may be left visible from a previously visited category such as AMC MF)
+    document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+    document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
+    ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
+      'aionion-gold-monthly-summary', 'mf-monthly-summary', 'gold-monthly-summary',
+      'amc-mf-monthly-summary', 'ef-monthly-summary'].forEach(id =>
+        document.getElementById(id)?.classList.add('hidden')
+      );
     loadForeignStocks(userId);
     return;
   }
@@ -732,32 +741,32 @@ async function loadAssets(userId, filter = null) {
   // Pre-emptively hide all actual invested panels — renderAssetsTable will re-show the right one
   document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
   document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
-  ['assets-monthly-summary','zerodha-monthly-summary','aionion-monthly-summary','ef-monthly-summary','mf-monthly-summary','amc-mf-monthly-summary'].forEach(id => {
+  ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'ef-monthly-summary', 'mf-monthly-summary', 'amc-mf-monthly-summary'].forEach(id => {
     document.getElementById(id)?.classList.add('hidden');
   });
 
   const isStockTable = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'aionion_gold' || tableName === 'mf_holdings' || tableName === 'gold_holdings';
   const orderCol = tableName === 'bonds' ? 'name'
     : tableName === 'amc_mf_holdings' ? 'nav_symbol'
-    : isStockTable ? (tableName === 'mf_holdings' ? 'fund_name' : tableName === 'gold_holdings' ? 'holding_name' : 'instrument')
-    : 'created_at';
+      : isStockTable ? (tableName === 'mf_holdings' ? 'fund_name' : tableName === 'gold_holdings' ? 'holding_name' : 'instrument')
+        : 'created_at';
   const orderAsc = isStockTable || tableName === 'bonds';
 
   const selectCols = tableName === 'aionion_stocks'
     ? 'id,user_id,instrument,qty,prev_qty,avg_cost,created_at,updated_at'
     : tableName === 'zerodha_stocks'
-    ? 'id,user_id,instrument,qty,prev_qty,avg_cost,imported_at'
-    : tableName === 'mf_holdings'
-    ? 'id,user_id,fund_name,qty,prev_qty,avg_cost,nav_symbol,imported_at'
-    : tableName === 'aionion_gold'
-    ? 'id,user_id,instrument,qty,avg_cost'
-    : tableName === 'gold_holdings'
-    ? 'id,user_id,holding_name,holding_type,qty,avg_cost,yahoo_symbol,imported_at'
-    : tableName === 'bonds'
-    ? 'id,user_id,name,platform,isin,bond_id,sb_account_number,invested,face_value,interest_rate,purchase_date,maturity_date,created_at'
-    : tableName === 'amc_mf_holdings'
-    ? 'id,user_id,platform,folio_number,qty,avg_cost,nav_symbol,created_at'
-    : '*';
+      ? 'id,user_id,instrument,qty,prev_qty,avg_cost,imported_at'
+      : tableName === 'mf_holdings'
+        ? 'id,user_id,fund_name,qty,prev_qty,avg_cost,nav_symbol,imported_at'
+        : tableName === 'aionion_gold'
+          ? 'id,user_id,instrument,qty,avg_cost'
+          : tableName === 'gold_holdings'
+            ? 'id,user_id,holding_name,holding_type,qty,avg_cost,yahoo_symbol,imported_at'
+            : tableName === 'bonds'
+              ? 'id,user_id,name,platform,isin,bond_id,sb_account_number,invested,face_value,interest_rate,purchase_date,maturity_date,created_at'
+              : tableName === 'amc_mf_holdings'
+                ? 'id,user_id,platform,folio_number,qty,avg_cost,nav_symbol,created_at'
+                : '*';
   const { data, error } = await sb
     .from(tableName)
     .select(selectCols)
@@ -850,25 +859,25 @@ function renderAssetsTable(assets, tableName) {
   const totalValue = tableName === 'zerodha_stocks'
     ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)  // placeholder until live prices load
     : tableName === 'aionion_stocks'
-    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
-    : tableName === 'aionion_gold'
-    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
-    : tableName === 'mf_holdings'
-    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
-    : tableName === 'gold_holdings'
-    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
-    : tableName === 'bonds'
-    ? assets.reduce((s, a) => s + (+a.face_value || +a.invested || 0), 0)
-    : tableName === 'amc_mf_holdings'
-    ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
-    : (tableName === 'bank_fd_assets' || tableName === 'emergency_funds')
-    ? assets.reduce((s, a) => s + (+a.invested || 0), 0)
-    : assets.reduce((s, a) => s + (+a.current_value || 0), 0);
+      ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
+      : tableName === 'aionion_gold'
+        ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
+        : tableName === 'mf_holdings'
+          ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
+          : tableName === 'gold_holdings'
+            ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
+            : tableName === 'bonds'
+              ? assets.reduce((s, a) => s + (+a.face_value || +a.invested || 0), 0)
+              : tableName === 'amc_mf_holdings'
+                ? assets.reduce((s, a) => s + ((+a.qty || 0) * (+a.avg_cost || 0)), 0)
+                : (tableName === 'bank_fd_assets' || tableName === 'emergency_funds')
+                  ? assets.reduce((s, a) => s + (+a.invested || 0), 0)
+                  : assets.reduce((s, a) => s + (+a.current_value || 0), 0);
   const totalGain = totalValue - totalInvested;
 
   document.getElementById('assets-total-invested').textContent = INR(totalInvested);
   document.getElementById('assets-total-value').textContent = INR(totalValue);
-  const cEl3 = document.getElementById('assets-count-inline'); if(cEl3) cEl3.textContent = assets.length + ' holding' + (assets.length !== 1 ? 's' : '');
+  const cEl3 = document.getElementById('assets-count-inline'); if (cEl3) cEl3.textContent = assets.length + ' holding' + (assets.length !== 1 ? 's' : '');
 
   const gainEl = document.getElementById('assets-total-gain');
   const totalGainPct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
@@ -882,10 +891,10 @@ function renderAssetsTable(assets, tableName) {
         ${tableName === 'zerodha_stocks'
         ? 'No holdings yet — click <b>📥 Import CSV</b> to import your Zerodha portfolio'
         : tableName === 'mf_holdings'
-        ? 'No funds yet — click <b>📥 Import CSV</b> to import from your Zerodha holdings'
-        : tableName === 'gold_holdings'
-        ? 'No gold yet — click <b>📥 Import CSV</b> to import from your Zerodha holdings'
-        : 'No entries yet.<br/>Click <b>+ Add Asset</b> to get started.'}
+          ? 'No funds yet — click <b>📥 Import CSV</b> to import from your Zerodha holdings'
+          : tableName === 'gold_holdings'
+            ? 'No gold yet — click <b>📥 Import CSV</b> to import from your Zerodha holdings'
+            : 'No entries yet.<br/>Click <b>+ Add Asset</b> to get started.'}
       </div></td></tr>`;
     return;
   }
@@ -899,63 +908,63 @@ function renderAssetsTable(assets, tableName) {
         _name: null,  // patched live by fetchAndRefreshZerodhaPrices
         _ltp: null,   // patched live by fetchAndRefreshZerodhaPrices
         _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
-        invested:      (+a.qty || 0) * (+a.avg_cost || 0),
+        invested: (+a.qty || 0) * (+a.avg_cost || 0),
         current_value: (+a.qty || 0) * (+a.avg_cost || 0),  // placeholder; patched by fetchAndRefreshZerodhaPrices
         _alloc_pct: 0,  // placeholder; patched by fetchAndRefreshZerodhaPrices
       }
       : tableName === 'mf_holdings'
-      ? {
-        ...a,
-        _ticker:   a.nav_symbol ? a.nav_symbol.replace(/\.(NS|BO)$/, '') : null,
-        _live_nav: null,  // patched live by fetchAndRefreshMfPrices
-        _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
-        invested:      (+a.qty || 0) * (+a.avg_cost || 0),
-        current_value: (+a.qty || 0) * (+a.avg_cost || 0),
-        _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
-      }
-      : tableName === 'aionion_stocks'
-      ? {
-        ...a,
-        _name: null,  // patched live by fetchAndRefreshAionionPrices
-        _ltp: null,   // patched live by fetchAndRefreshAionionPrices
-        _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
-        invested:      (+a.qty || 0) * (+a.avg_cost || 0),
-        current_value: (+a.qty || 0) * (+a.avg_cost || 0),
-        _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
-      }
-      : tableName === 'aionion_gold'
-      ? {
-        ...a,
-        _ltp:          null,
-        invested:      (+a.qty || 0) * (+a.avg_cost || 0),
-        current_value: (+a.qty || 0) * (+a.avg_cost || 0),
-        _alloc_pct:    totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
-      }
-      : tableName === 'gold_holdings'
-      ? {
-        ...a,
-        _ltp:          null,  // patched live by fetchAndRefreshGoldPrices
-        invested:      (+a.qty || 0) * (+a.avg_cost || 0),
-        current_value: (+a.qty || 0) * (+a.avg_cost || 0),
-        _alloc_pct:    totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
-      }
-      : (tableName === 'bank_fd_assets' || tableName === 'emergency_funds')
-      ? { ...a, current_value: +a.invested || 0 }
-      : tableName === 'bonds'
-      ? {
-        ...a,
-        current_value: +a.face_value || +a.invested || 0,
-      }
-      : tableName === 'amc_mf_holdings'
-      ? {
-        ...a,
-        _name:         null,   // patched live by fetchAndRefreshAmcMfPrices
-        _live_nav:     null,   // patched live
-        invested:      (+a.qty || 0) * (+a.avg_cost || 0),
-        current_value: (+a.qty || 0) * (+a.avg_cost || 0),
-        _alloc_pct:    totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
-      }
-      : a;
+        ? {
+          ...a,
+          _ticker: a.nav_symbol ? a.nav_symbol.replace(/\.(NS|BO)$/, '') : null,
+          _live_nav: null,  // patched live by fetchAndRefreshMfPrices
+          _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
+          invested: (+a.qty || 0) * (+a.avg_cost || 0),
+          current_value: (+a.qty || 0) * (+a.avg_cost || 0),
+          _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
+        }
+        : tableName === 'aionion_stocks'
+          ? {
+            ...a,
+            _name: null,  // patched live by fetchAndRefreshAionionPrices
+            _ltp: null,   // patched live by fetchAndRefreshAionionPrices
+            _qty_diff: (+a.qty || 0) - (+a.prev_qty || 0),
+            invested: (+a.qty || 0) * (+a.avg_cost || 0),
+            current_value: (+a.qty || 0) * (+a.avg_cost || 0),
+            _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
+          }
+          : tableName === 'aionion_gold'
+            ? {
+              ...a,
+              _ltp: null,
+              invested: (+a.qty || 0) * (+a.avg_cost || 0),
+              current_value: (+a.qty || 0) * (+a.avg_cost || 0),
+              _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
+            }
+            : tableName === 'gold_holdings'
+              ? {
+                ...a,
+                _ltp: null,  // patched live by fetchAndRefreshGoldPrices
+                invested: (+a.qty || 0) * (+a.avg_cost || 0),
+                current_value: (+a.qty || 0) * (+a.avg_cost || 0),
+                _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
+              }
+              : (tableName === 'bank_fd_assets' || tableName === 'emergency_funds')
+                ? { ...a, current_value: +a.invested || 0 }
+                : tableName === 'bonds'
+                  ? {
+                    ...a,
+                    current_value: +a.face_value || +a.invested || 0,
+                  }
+                  : tableName === 'amc_mf_holdings'
+                    ? {
+                      ...a,
+                      _name: null,   // patched live by fetchAndRefreshAmcMfPrices
+                      _live_nav: null,   // patched live
+                      invested: (+a.qty || 0) * (+a.avg_cost || 0),
+                      current_value: (+a.qty || 0) * (+a.avg_cost || 0),
+                      _alloc_pct: totalValue > 0 ? (((+a.qty || 0) * (+a.avg_cost || 0)) / totalValue) * 100 : 0,
+                    }
+                    : a;
 
     const invested = +row.invested || 0;
     const current = +row.current_value || 0;
@@ -987,20 +996,20 @@ function renderAssetsTable(assets, tableName) {
       // For zerodha/aionion: tag live-updatable cells with data attributes
       const liveKey2 = tableName === 'mf_holdings' ? a.fund_name
         : tableName === 'gold_holdings' ? a.holding_name
-        : tableName === 'amc_mf_holdings' ? a.nav_symbol
-        : a.instrument;
+          : tableName === 'amc_mf_holdings' ? a.nav_symbol
+            : a.instrument;
       const liveAttr = ((tableName === 'zerodha_stocks' && ['current_value', '_alloc_pct', '_name', '_ltp'].includes(c.key)) ||
-                        (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct', '_name', '_ltp'].includes(c.key)) ||
-                        (tableName === 'aionion_gold'   && ['current_value', '_alloc_pct', '_ltp'].includes(c.key)) ||
-                        (tableName === 'mf_holdings'    && ['current_value', '_alloc_pct', '_live_nav'].includes(c.key)) ||
-                        (tableName === 'gold_holdings'  && ['current_value', '_alloc_pct', '_ltp'].includes(c.key)) ||
-                        (tableName === 'amc_mf_holdings' && ['current_value', '_alloc_pct', '_live_nav', '_name'].includes(c.key)))
+        (tableName === 'aionion_stocks' && ['current_value', '_alloc_pct', '_name', '_ltp'].includes(c.key)) ||
+        (tableName === 'aionion_gold' && ['current_value', '_alloc_pct', '_ltp'].includes(c.key)) ||
+        (tableName === 'mf_holdings' && ['current_value', '_alloc_pct', '_live_nav'].includes(c.key)) ||
+        (tableName === 'gold_holdings' && ['current_value', '_alloc_pct', '_ltp'].includes(c.key)) ||
+        (tableName === 'amc_mf_holdings' && ['current_value', '_alloc_pct', '_live_nav', '_name'].includes(c.key)))
         ? ` data-live-${c.key}="${liveKey2}"`
         : '';
       return `<td${style ? ` style="${style}"` : ''}${liveAttr}>${inner}</td>`;
     }).join('');
 
-    const liveKey  = tableName === 'mf_holdings' ? a.fund_name : tableName === 'gold_holdings' ? a.holding_name : tableName === 'amc_mf_holdings' ? a.nav_symbol : a.instrument;
+    const liveKey = tableName === 'mf_holdings' ? a.fund_name : tableName === 'gold_holdings' ? a.holding_name : tableName === 'amc_mf_holdings' ? a.nav_symbol : a.instrument;
     const gainAttr = (tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' || tableName === 'aionion_gold' || tableName === 'mf_holdings' || tableName === 'aionion_gold' || tableName === 'gold_holdings' || tableName === 'amc_mf_holdings') ? ` data-live-gain="${liveKey}"` : '';
     html += `
       <tr data-id="${a.id}">
@@ -1019,24 +1028,24 @@ function renderAssetsTable(assets, tableName) {
 
   // Show correct Actual Invested section; hide the other
   const actualCard = document.getElementById('assets-actual-invested-card');
-  const fdSec      = document.getElementById('assets-monthly-summary');
+  const fdSec = document.getElementById('assets-monthly-summary');
   const zerodhaSec = document.getElementById('zerodha-monthly-summary');
   const aionionSec = document.getElementById('aionion-monthly-summary');
-  const mfSec      = document.getElementById('mf-monthly-summary');
-  const amcMfSec   = document.getElementById('amc-mf-monthly-summary');
-  const efSec      = document.getElementById('ef-monthly-summary');
+  const mfSec = document.getElementById('mf-monthly-summary');
+  const amcMfSec = document.getElementById('amc-mf-monthly-summary');
+  const efSec = document.getElementById('ef-monthly-summary');
   const allSecs = [fdSec, zerodhaSec, aionionSec, efSec, mfSec, amcMfSec];
   allSecs.forEach(s => s?.classList.add('hidden'));
 
   if (tableName === 'bank_fd_assets') {
     if (actualCard) actualCard.classList.remove('hidden');
     document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
-    if (fdSec)      fdSec.classList.remove('hidden');
+    if (fdSec) fdSec.classList.remove('hidden');
     loadFdActualInvested(_currentUserId);
   } else if (tableName === 'emergency_funds') {
     if (actualCard) actualCard.classList.remove('hidden');
     document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
-    if (efSec)      efSec.classList.remove('hidden');
+    if (efSec) efSec.classList.remove('hidden');
     loadEfActualInvested(_currentUserId);
   } else if (tableName === 'zerodha_stocks') {
     if (actualCard) actualCard.classList.remove('hidden');
@@ -1053,14 +1062,14 @@ function renderAssetsTable(assets, tableName) {
   } else if (tableName === 'mf_holdings') {
     if (actualCard) actualCard.classList.remove('hidden');
     document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
-    if (mfSec)      mfSec.classList.remove('hidden');
+    if (mfSec) mfSec.classList.remove('hidden');
     loadMfActualInvested(_currentUserId);
   } else if (tableName === 'gold_holdings') {
     if (actualCard) actualCard.classList.add('hidden');
   } else if (tableName === 'amc_mf_holdings') {
     if (actualCard) actualCard.classList.remove('hidden');
     document.getElementById('assets-actual-gain-card')?.classList.remove('hidden');
-    if (amcMfSec)   amcMfSec.classList.remove('hidden');
+    if (amcMfSec) amcMfSec.classList.remove('hidden');
     loadAmcMfActualInvested(_currentUserId);
   } else {
     if (actualCard) actualCard.classList.add('hidden');
@@ -1070,9 +1079,9 @@ function renderAssetsTable(assets, tableName) {
   if (tableName === 'foreign_stock_holdings' && assets.length) fetchAndRefreshForeignPrices(assets);
   if (tableName === 'zerodha_stocks' && assets.length) fetchAndRefreshZerodhaPrices(assets);
   if (tableName === 'aionion_stocks' && assets.length) fetchAndRefreshAionionPrices(assets);
-  if (tableName === 'aionion_gold'   && assets.length) fetchAndRefreshAionionGoldPrices(assets);
-  if (tableName === 'mf_holdings'     && assets.length) fetchAndRefreshMfPrices(assets);
-  if (tableName === 'gold_holdings'   && assets.length) fetchAndRefreshGoldPrices(assets);
+  if (tableName === 'aionion_gold' && assets.length) fetchAndRefreshAionionGoldPrices(assets);
+  if (tableName === 'mf_holdings' && assets.length) fetchAndRefreshMfPrices(assets);
+  if (tableName === 'gold_holdings' && assets.length) fetchAndRefreshGoldPrices(assets);
   if (tableName === 'amc_mf_holdings' && assets.length) fetchAndRefreshAmcMfPrices(assets);
 
   tbody.querySelectorAll('.asset-edit-btn').forEach(btn => {
@@ -1387,7 +1396,7 @@ document.addEventListener('fragments-loaded', () => {
     try {
       const result = await dbOp;
       error = result.error;
-    } catch(e) {
+    } catch (e) {
       error = { message: e.message };
     }
     saveBtn.textContent = '💾 Save Asset'; saveBtn.disabled = false;
