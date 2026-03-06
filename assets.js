@@ -709,6 +709,18 @@ async function loadAssets(userId, filter = null) {
   if (toolbarLabel) toolbarLabel.textContent = `Showing ${filter} assets`;
   if (addBtn) addBtn.classList.remove('hidden');
 
+  // Foreign Stocks — handled by dedicated module
+  if (tableName === 'foreign_stock_holdings') {
+    document.getElementById('assets-layout-row')?.classList.remove('hidden');
+    document.getElementById('group-overview-panel')?.classList.add('hidden');
+    document.querySelector('.assets-summary-row')?.classList.remove('hidden');
+    document.getElementById('select-btn-row')?.classList.add('hidden');
+    document.getElementById('foreign-import-btn')?.classList.remove('hidden');
+    if (addBtn) addBtn.classList.add('hidden');
+    loadForeignStocks(userId);
+    return;
+  }
+
   // Show layout row when a category is selected; hide group overview
   const activeLayoutRow = document.getElementById('assets-layout-row');
   if (activeLayoutRow) activeLayoutRow.classList.remove('hidden');
@@ -814,6 +826,9 @@ function renderAssetsTable(assets, tableName) {
   } else if (tableName === 'amc_mf_holdings') {
     document.getElementById('amc-mf-last-updated')?.classList.remove('hidden');
     if (addBtn2) addBtn2.classList.remove('hidden');
+  } else if (tableName === 'foreign_stock_holdings') {
+    document.getElementById('foreign-import-btn')?.classList.remove('hidden');
+    if (addBtn2) addBtn2.classList.add('hidden');
   }
 
   // Update thead dynamically

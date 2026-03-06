@@ -65,6 +65,7 @@ const ASSET_TABLES = {
   'Aionion Gold':   'aionion_gold',
   'Mutual Funds': 'mf_holdings',
   'Gold': 'gold_holdings',
+  'Foreign Stocks': 'foreign_stock_holdings',
 };
 
 // Per-table column definitions
