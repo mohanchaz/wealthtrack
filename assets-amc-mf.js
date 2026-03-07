@@ -398,7 +398,7 @@ document.addEventListener('fragments-loaded', () => {
       yesBtn.textContent = 'Deleting\u2026'; yesBtn.disabled = true;
       var anyErr = false;
       for (var cb of checked) {
-        var r = await sb.from('amc_mf_actual_invested').delete().eq('id', cb.dataset.id);
+        var r = await sb.from('amc_mf_actual_invested').delete().eq('id', cb.dataset.id).then(r=>r);
         if (r.error) { showToast('Delete failed: ' + r.error.message, 'error'); anyErr = true; }
       }
       yesBtn.textContent = 'Yes, delete'; yesBtn.disabled = false;

@@ -1,80 +1,128 @@
 // ══════════════════════════════════════════════════════════════
-//  ZERODHA GOLD — live prices, CSV import, edit modal
-//  Table: gold_holdings (holding_name, holding_type, qty, avg_cost, yahoo_symbol)
-//  DOM cells keyed by holding_name (per renderAssetsTable liveKey)
+//  AIONION GOLD — manual entry ETF, live price refresh
 // ══════════════════════════════════════════════════════════════
 
-// ── Symbol resolution ─────────────────────────────────────────
-// Returns symbol with the requested suffix, e.g. "GOLDBEES.NS" or "0P0000XVDS.BO"
-// If the stored yahoo_symbol already has a suffix, uses that (ignores the suffix param).
-function resolveGoldSymbol(asset, suffix) {
-  const raw = (asset.yahoo_symbol || '').trim().toUpperCase()
-           || (asset.holding_name  || '').trim().toUpperCase().replace(/\s+/g, '');
-  if (!raw) return null;
-  // Already has a suffix — return as-is (MF symbols like 0P0000XVDS.BO must keep their .BO)
-  if (/\.(NS|BO)$/i.test(raw)) return raw;
-  // Plain ticker — append requested suffix
-  return raw + '.' + suffix;
+// ── Actual Invested ───────────────────────────────────────────
+
+let _editingAgaiId = null;
+
+async function loadAionionGoldActualInvested(userId) {
+  const section = document.getElementById('aionion-gold-monthly-summary');
+  if (!section) return;
+  section.classList.remove('hidden');
+
+  const body = document.getElementById('aionion-gold-monthly-body');
+  if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--muted2)">Loading…</td></tr>`;
+
+  const { data, error } = await sb
+    .from('aionion_gold_actual_invested')
+    .select('*')
+    .eq('user_id', userId)
+    .order('entry_date', { ascending: false });
+
+  if (error) {
+    if (body) body.innerHTML = `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--danger)">${error.message}</td></tr>`;
+    return;
+  }
+  renderAionionGoldActualInvested(data || []);
 }
 
-// ── Live price refresh ────────────────────────────────────────
+function renderAionionGoldActualInvested(rows) {
+  const body    = document.getElementById('aionion-gold-monthly-body');
+  const totalEl = document.getElementById('aionion-gold-monthly-total');
+  if (!body) return;
 
-async function fetchAndRefreshGoldPrices(assets) {
-  const lastUpdateEl = document.getElementById('gold-last-updated');
-  const refreshBtn   = document.getElementById('gold-refresh-btn');
-  if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching live prices…';
-  if (refreshBtn)   refreshBtn.disabled = true;
+  const grand = rows.reduce((s, r) => s + (+r.amount || 0), 0);
+  if (totalEl) totalEl.textContent = `Total: ${INR(grand)}`;
 
-  // Resolve each asset's symbol — some will be .NS (ETFs), some .BO (MFs)
-  // Group by suffix so we can fetch each exchange in one call
-  const nsSymbols = new Set();
-  const boSymbols = new Set();
-  assets.forEach(a => {
-    const sym = resolveGoldSymbol(a, 'NS'); // default to NS for unknown
-    if (!sym) return;
-    if (/\.BO$/i.test(sym)) boSymbols.add(sym);
-    else                    nsSymbols.add(sym);
-  });
+  const statTile = document.getElementById('assets-actual-invested');
+  if (statTile) statTile.textContent = INR(grand);
 
-  const [nsPrices, boPrices] = await Promise.all([
-    nsSymbols.size ? fetchLivePricesRaw([...nsSymbols]).catch(() => null) : Promise.resolve(null),
-    boSymbols.size ? fetchLivePricesRaw([...boSymbols]).catch(() => null) : Promise.resolve(null),
-  ]);
+  const curValEl     = document.getElementById('assets-total-value');
+  const currentValue = curValEl ? parseFloat(curValEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
+  const actualGain   = currentValue - grand;
+  const gainPct      = grand > 0 ? ` (${((actualGain / grand) * 100).toFixed(1)}%)` : '';
+  const gainColor    = actualGain > 0 ? 'var(--green)' : actualGain < 0 ? 'var(--danger)' : 'var(--muted)';
+  const gainTile     = document.getElementById('assets-actual-gain');
+  if (gainTile) { gainTile.textContent = (actualGain >= 0 ? '+' : '') + INR(actualGain) + gainPct; gainTile.style.color = gainColor; }
 
-  if (refreshBtn) refreshBtn.disabled = false;
-
-  const prices = { ...(boPrices || {}), ...(nsPrices || {}) };
-
-  if (!Object.keys(prices).length) {
-    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ Could not fetch prices';
-    showToast('Live gold price fetch failed — check browser console', 'error');
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="3" style="padding:18px 14px;text-align:center;color:var(--muted2)">No entries yet — click <b>+ Add Entry</b></td></tr>`;
     return;
   }
 
-  function getGoldLTP(asset) {
-    const sym  = resolveGoldSymbol(asset, 'NS');
-    if (!sym) return null;
-    const base = sym.replace(/\.(NS|BO)$/i, '');
-    return getLTP(prices, base) || null;
+  body.innerHTML = rows.map((r, i) => {
+    const d       = new Date(r.entry_date);
+    const dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
+        <td class="agai-cb-wrap" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="agai-cb" data-id="${r.id}" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>
+      <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${dateStr}</td>
+      <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>
+      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
+        <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
+          data-agai-id="${r.id}" data-agai-date="${r.entry_date}" data-agai-amount="${r.amount}"
+          class="agai-edit-btn" title="Edit">🖊️</button>
+      </td>
+    </tr>`;
+  }).join('') +
+    `<tr style="background:var(--surface2)">
+    <td style="padding:9px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2)">Total</td>
+    <td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">${INR(grand)}</td>
+    <td colspan="2"></td>
+  </tr>`;
+
+  if (window['_aionionGold_bindCheckboxes']) window['_aionionGold_bindCheckboxes']();
+  body.querySelectorAll('.agai-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openAgaiModal({
+      id: btn.dataset.agaiId, entry_date: btn.dataset.agaiDate, amount: btn.dataset.agaiAmount
+    }));
+  });
+}
+
+function openAgaiModal(row = null) {
+  _editingAgaiId = row?.id || null;
+  const titleEl = document.getElementById('aionion-gold-invested-modal-title');
+  if (titleEl) titleEl.textContent = row ? 'Edit Entry' : 'Add Entry';
+  document.getElementById('agai-date').value   = row?.entry_date || '';
+  document.getElementById('agai-amount').value = row?.amount    || '';
+  document.getElementById('aionion-gold-invested-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAgaiModal() {
+  document.getElementById('aionion-gold-invested-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+  _editingAgaiId = null;
+}
+
+// ── Live Price Refresh ────────────────────────────────────────
+
+async function fetchAndRefreshAionionGoldPrices(assets) {
+  const lastUpdateEl = document.getElementById('aionion-gold-last-updated');
+  const refreshBtn   = document.getElementById('aionion-gold-refresh-btn');
+  if (lastUpdateEl) lastUpdateEl.textContent = '🔄 Fetching live prices…';
+  if (refreshBtn)   refreshBtn.disabled = true;
+
+  const instruments = assets.map(a => a.instrument);
+  const prices      = await fetchLivePrices(instruments);
+
+  if (refreshBtn) refreshBtn.disabled = false;
+
+  if (!prices) {
+    if (lastUpdateEl) lastUpdateEl.textContent = '⚠️ Could not fetch prices';
+    showToast('Live price fetch failed', 'error');
+    return;
   }
 
-  // Totals
   let totalValue = 0, totalInvested = 0;
   assets.forEach(a => {
-    const qty      = +a.qty || 0;
-    const ltp      = getGoldLTP(a);
-    totalInvested += qty * (+a.avg_cost || 0);
-    totalValue    += qty * (ltp || +a.avg_cost || 0);
+    const ltp      = getLTP(prices, a.instrument);
+    totalValue    += (+a.qty || 0) * (ltp || +a.avg_cost || 0);
+    totalInvested += (+a.qty || 0) * (+a.avg_cost || 0);
   });
 
-  // Update DOM cells (keyed by holding_name)
   assets.forEach(a => {
-    const ltp        = getGoldLTP(a);
-    const holdingKey = a.holding_name;
-
-    const ltpCell = document.querySelector(`[data-live-_ltp="${holdingKey}"]`);
-    if (ltpCell) ltpCell.textContent = ltp ? INR(ltp) : '—';
-
+    const ltp = getLTP(prices, a.instrument);
     if (!ltp) return;
 
     const qty         = +a.qty || 0;
@@ -82,295 +130,229 @@ async function fetchAndRefreshGoldPrices(assets) {
     const investedAmt = qty * (+a.avg_cost || 0);
     const gain        = curVal - investedAmt;
     const gainPct     = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
-    const allocPct    = totalValue > 0 ? (curVal / totalValue) * 100 : 0;
+    const allocPct    = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
 
-    const cvCell = document.querySelector(`[data-live-current_value="${holdingKey}"]`);
+    const ltpCell = document.querySelector(`[data-live-_ltp="${a.instrument}"]`);
+    if (ltpCell) ltpCell.textContent = INR(ltp);
+
+    const cvCell = document.querySelector(`[data-live-current_value="${a.instrument}"]`);
     if (cvCell) cvCell.textContent = INR(curVal);
 
-    const allocCell = document.querySelector(`[data-live-_alloc_pct="${holdingKey}"]`);
+    const allocCell = document.querySelector(`[data-live-_alloc_pct="${a.instrument}"]`);
     if (allocCell) {
-      const bw = Math.min(allocPct, 100).toFixed(1);
-      allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end"><span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block"><span style="display:block;height:100%;width:${bw}%;background:var(--accent);border-radius:99px"></span></span><b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b></span>`;
+      const barWidth = Math.min(allocPct, 100).toFixed(1);
+      allocCell.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end">
+        <span style="width:48px;height:5px;background:var(--border2);border-radius:99px;overflow:hidden;display:inline-block">
+          <span style="display:block;height:100%;width:${barWidth}%;background:var(--accent);border-radius:99px"></span>
+        </span>
+        <b style="font-size:12px;color:var(--accent)">${allocPct.toFixed(1)}%</b>
+      </span>`;
     }
 
-    const gainTd = document.querySelector(`[data-live-gain="${holdingKey}"]`);
+    const gainTd = document.querySelector(`[data-live-gain="${a.instrument}"]`);
     if (gainTd) {
-      const arrow = gain >= 0 ? '▲' : '▼';
-      const bc    = gain > 0 ? 'pos' : gain < 0 ? 'neg' : 'zero';
-      gainTd.innerHTML = `<span class="gain-badge ${bc}">${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}</span>`;
+      const arrow    = gain >= 0 ? '▲' : '▼';
+      const badgeCls = gain > 0 ? 'pos' : gain < 0 ? 'neg' : 'zero';
+      gainTd.innerHTML = `<span class="gain-badge ${badgeCls}">${arrow} ${INR(Math.abs(gain))}${gainPct ? ` (${gainPct}%)` : ''}</span>`;
     }
   });
 
-  // Summary cards
   const totalGain    = totalValue - totalInvested;
   const totalGainPct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
-  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  setEl('assets-total-value',    INR(totalValue));
-  setEl('assets-total-invested', INR(totalInvested));
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('assets-total-value',    INR(totalValue));
+  set('assets-total-invested', INR(totalInvested));
   const gainEl = document.getElementById('assets-total-gain');
   if (gainEl) {
     gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain) + totalGainPct;
     gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
   }
-  const nowStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${nowStr}`;
+
+  const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (lastUpdateEl) lastUpdateEl.textContent = `🟢 Live · ${now}`;
 }
 
-// ══════════════════════════════════════════════════════════════
-//  CSV Import
-// ══════════════════════════════════════════════════════════════
+// ── Edit / Add Modal ──────────────────────────────────────────
 
-// Gold ETF tickers → Yahoo Finance symbol (NSE, .NS suffix)
-const GOLD_ETF_MAP = [
-  ['goldbees',                  'GOLDBEES.NS'],
-  ['sgold',                     'SGOLD.NS'],
-  ['hdfcgold',                  'HDFCGOLD.NS'],
-  ['kotakgold',                 'KOTAKGOLD.NS'],
-  ['sbietfgold',                'SBIETFGOLD.NS'],
-  ['utigold',                   'UTIGOLD.NS'],
-  ['axisgold',                  'AXISGOLD.NS'],
-  ['ivzingold',                 'IVZINGOLD.NS'],
-  ['qgoldhalf',                 'QGOLDHALF.NS'],
-  ['nippon india etf gold',     'GOLDBEES.NS'],
-  ['nippon india gold etf',     'GOLDBEES.NS'],
-  ['hdfc gold etf',             'HDFCGOLD.NS'],
-  ['kotak gold etf',            'KOTAKGOLD.NS'],
-  ['sbi gold etf',              'SBIETFGOLD.NS'],
-  ['uti gold etf',              'UTIGOLD.NS'],
-  ['axis gold etf',             'AXISGOLD.NS'],
-  ['invesco india gold etf',    'IVZINGOLD.NS'],
-  ['quantum gold etf',          'QGOLDHALF.NS'],
-  ['gold etf',                  'GOLDBEES.NS'],
-];
+let _editingAionionGoldId  = null;
+let _editingAionionGoldQty = null;
 
-// Gold Mutual Funds → Yahoo Finance symbol (Morningstar .BO format)
-const GOLD_MF_MAP = [
-  ['nippon india gold savings',           '0P0000XVDS.BO'],
-  ['hdfc gold fund',                      '0P0000XW76.BO'],
-  ['kotak gold fund',                     '0P0000XW3X.BO'],
-  ['sbi gold fund',                       '0P0000XW2U.BO'],
-  ['axis gold fund',                      '0P0001HKZR.BO'],
-  ['invesco india gold fund',             '0P0000Y6RW.BO'],
-  ['quantum gold savings',                '0P0000Z2BE.BO'],
-  ['aditya birla sun life gold',          '0P0000XVDS.BO'],
-  ['icici prudential regular gold savings','0P0000Z2BT.BO'],
-  ['icici prudential gold savings',       '0P0000Z2BT.BO'],
-  ['dsp world gold',                      '0P0000Y6QO.BO'],
-];
+function openAionionGoldEditModal(row) {
+  const isAdd = !row;
+  _editingAionionGoldId  = row?.id  || null;
+  _editingAionionGoldQty = +row?.qty || 0;
 
-function guessGoldYahooSymbol(name) {
-  if (!name) return null;
-  const trimmed = name.trim();
-  const lower   = trimmed.toLowerCase();
+  document.getElementById('aionion-gold-edit-modal-title').textContent = isAdd ? 'Add Gold ETF' : `Edit — ${row.instrument}`;
 
-  // Pure ticker (all caps, no spaces) → ETF on NSE
-  if (/^[A-Z0-9]+$/.test(trimmed)) return trimmed + '.NS';
+  const instrEl    = document.getElementById('age-instrument');
+  instrEl.value    = row?.instrument ?? '';
+  instrEl.readOnly = !isAdd;
+  instrEl.style.background = isAdd ? '' : 'var(--surface2)';
+  instrEl.style.color      = isAdd ? '' : 'var(--muted)';
+  instrEl.style.cursor     = isAdd ? '' : 'not-allowed';
 
-  // Check MF list first (more specific names)
-  for (const [frag, sym] of GOLD_MF_MAP) {
-    if (lower.includes(frag)) return sym;
-  }
+  document.getElementById('age-qty').value      = row?.qty      ?? '';
+  document.getElementById('age-avg-cost').value = row?.avg_cost ?? '';
 
-  // Then ETF list
-  for (const [frag, sym] of GOLD_ETF_MAP) {
-    if (lower.includes(frag)) return sym;
-  }
+  const saveBtn = document.getElementById('aionion-gold-edit-save-btn');
+  if (saveBtn) saveBtn.textContent = isAdd ? '💾 Add ETF' : '💾 Save Changes';
 
-  return null;
-}
-
-function parseGoldCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const rawHeader = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-  function find(...needles) {
-    for (const needle of needles) {
-      const idx = rawHeader.findIndex(h => h.toLowerCase().includes(needle.toLowerCase()));
-      if (idx !== -1) return idx;
-    }
-    return -1;
-  }
-  const iName    = find('instrument', 'fund name', 'scheme', 'name', 'symbol');
-  const iQty     = find('qty', 'units', 'quantity');
-  const iAvgCost = find('avg. cost', 'avg cost', 'avg nav', 'average cost', 'average');
-  const iType    = find('type');
-  const holdings = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const cols = [];
-    let inQ = false, cur = '';
-    for (let j = 0; j < lines[i].length; j++) {
-      const ch = lines[i][j];
-      if (ch === '"') { inQ = !inQ; continue; }
-      if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
-      cur += ch;
-    }
-    cols.push(cur.trim());
-    const clean = idx => idx >= 0 ? (cols[idx] || '').replace(/^"|"$/g, '').trim() : '';
-    const num   = idx => idx >= 0 ? (parseFloat((cols[idx] || '').replace(/[,₹\s]/g, '')) || 0) : 0;
-    const rawName = clean(iName);
-    if (!rawName) continue;
-    const isGoldTicker = /goldbees|sgold|hdfcgold|kotakgold|sbietfgold|utigold|axisgold|ivzingold|qgoldhalf/i.test(rawName);
-    const isGoldName   = /gold/i.test(rawName);
-    if (!isGoldTicker && !isGoldName) continue;
-    const qty     = num(iQty);
-    const avgCost = num(iAvgCost);
-    const hType   = clean(iType) || (isGoldTicker ? 'ETF' : 'MF');
-    holdings.push({ holding_name: rawName, holding_type: hType, qty, avg_cost: avgCost, yahoo_symbol: guessGoldYahooSymbol(rawName) });
-  }
-  return holdings;
-}
-
-let _goldPreviewRows = [];
-
-function openGoldImportModal() {
-  _goldPreviewRows = [];
-  const inp = document.getElementById('gold-csv-input');
-  if (inp) inp.value = '';
-  const fn = document.getElementById('gold-csv-filename');
-  if (fn) fn.textContent = '';
-  document.getElementById('gold-preview-section')?.classList.add('hidden');
-  document.getElementById('gold-import-confirm-btn')?.classList.add('hidden');
-  document.getElementById('gold-import-modal')?.classList.remove('hidden');
+  document.getElementById('aionion-gold-edit-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 
-function closeGoldImportModal() {
-  document.getElementById('gold-import-modal')?.classList.add('hidden');
+function closeAionionGoldEditModal() {
+  document.getElementById('aionion-gold-edit-modal').classList.add('hidden');
   document.body.style.overflow = '';
+  _editingAionionGoldId = null;
 }
 
-function handleGoldCSV(file) {
-  if (!file) return;
-  const fn = document.getElementById('gold-csv-filename');
-  if (fn) fn.textContent = file.name;
-  const reader = new FileReader();
-  reader.onload = e => {
-    _goldPreviewRows = parseGoldCSV(e.target.result);
-    const count = _goldPreviewRows.length;
-    const countEl       = document.getElementById('gold-holding-count');
-    const importCountEl = document.getElementById('gold-import-count');
-    if (countEl)       countEl.textContent       = count;
-    if (importCountEl) importCountEl.textContent = count;
-    const thead = document.getElementById('gold-preview-thead');
-    const tbody = document.getElementById('gold-preview-body');
-    if (!thead || !tbody) return;
-    const thS = 'padding:7px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);background:var(--surface2);border-bottom:1px solid var(--border)';
-    thead.innerHTML = `<tr>
-      <th style="${thS};text-align:center;width:32px">✓</th>
-      <th style="${thS};text-align:left">Name</th>
-      <th style="${thS}">Type</th>
-      <th style="${thS};text-align:right">Qty</th>
-      <th style="${thS};text-align:right">Avg Cost</th>
-      <th style="${thS};text-align:left">Yahoo Symbol</th>
-    </tr>`;
-    const tdS = 'padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px';
-    tbody.innerHTML = count === 0
-      ? `<tr><td colspan="6" style="padding:18px;text-align:center;color:var(--muted2)">No gold holdings found in this CSV</td></tr>`
-      : _goldPreviewRows.map((r, i) => `
-        <tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}" data-idx="${i}">
-          <td style="${tdS};text-align:center"><input type="checkbox" class="gold-row-chk" data-idx="${i}" checked style="cursor:pointer;width:15px;height:15px"></td>
-          <td style="${tdS};font-weight:600">${r.holding_name}</td>
-          <td style="${tdS};text-align:center">${r.holding_type || '—'}</td>
-          <td style="${tdS};text-align:right">${r.qty}</td>
-          <td style="${tdS};text-align:right">${INR(r.avg_cost)}</td>
-          <td style="${tdS};font-size:11px;color:var(--muted2)">${r.yahoo_symbol || '<span style="color:var(--danger)">Not mapped</span>'}</td>
-        </tr>`).join('');
-    const updateCount = () => {
-      const checked = tbody.querySelectorAll('.gold-row-chk:checked').length;
-      if (countEl)       countEl.textContent       = checked;
-      if (importCountEl) importCountEl.textContent = checked;
-      document.getElementById('gold-import-confirm-btn')?.classList.toggle('hidden', checked === 0);
-    };
-    tbody.querySelectorAll('.gold-row-chk').forEach(chk => chk.addEventListener('change', updateCount));
-    document.getElementById('gold-preview-section')?.classList.remove('hidden');
-    document.getElementById('gold-import-confirm-btn')?.classList.toggle('hidden', count === 0);
-  };
-  reader.readAsText(file);
-}
-
-async function importGoldHoldings(allRows) {
-  const checkedIdxs = new Set([...document.querySelectorAll('.gold-row-chk:checked')].map(c => +c.dataset.idx));
-  const rows = allRows.filter((_, i) => checkedIdxs.has(i));
-  if (!rows.length) { showToast('No holdings selected', 'error'); return; }
-  const confirmBtn = document.getElementById('gold-import-confirm-btn');
-  if (confirmBtn) { confirmBtn.textContent = 'Importing…'; confirmBtn.disabled = true; }
-  const { error } = await sb.from('gold_holdings').upsert(
-    rows.map(r => ({
-      user_id:      _currentUserId,
-      holding_name: r.holding_name,
-      holding_type: r.holding_type || 'ETF',
-      qty:          r.qty,
-      avg_cost:     r.avg_cost,
-      yahoo_symbol: r.yahoo_symbol || null,
-      imported_at:  new Date().toISOString(),
-    })),
-    { onConflict: 'user_id,holding_name' }
-  );
-  if (confirmBtn) { confirmBtn.textContent = `📥 Import ${rows.length} Holdings`; confirmBtn.disabled = false; }
-  if (error) { showToast('Import failed: ' + error.message, 'error'); }
-  else { showToast(`✅ Imported ${rows.length} gold holding${rows.length !== 1 ? 's' : ''}!`, 'success'); closeGoldImportModal(); loadAssets(_currentUserId, 'Gold'); }
-}
-
-// ── Edit modal ────────────────────────────────────────────────
-
-let _editingGoldId = null;
-
-function openGoldEditModal(row) {
-  _editingGoldId = row ? (row.id || null) : null;
-  const titleEl = document.getElementById('gold-edit-modal-title');
-  if (titleEl) titleEl.textContent = 'Edit — ' + (row ? (row.holding_name || 'Gold Holding') : 'Gold Holding');
-  if (document.getElementById('ge-name'))     document.getElementById('ge-name').value     = row ? (row.holding_name || '') : '';
-  if (document.getElementById('ge-type'))     document.getElementById('ge-type').value     = row ? (row.holding_type || '') : '';
-  if (document.getElementById('ge-qty'))      document.getElementById('ge-qty').value      = row ? (row.qty          || '') : '';
-  if (document.getElementById('ge-avg-cost')) document.getElementById('ge-avg-cost').value = row ? (row.avg_cost     || '') : '';
-  document.getElementById('gold-edit-modal').classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeGoldEditModal() {
-  document.getElementById('gold-edit-modal').classList.add('hidden');
-  document.body.style.overflow = '';
-  _editingGoldId = null;
-}
-
-// ── Event wiring ──────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+//  EVENT WIRING  (all inside fragments-loaded)
+// ══════════════════════════════════════════════════════════════
 
 document.addEventListener('fragments-loaded', () => {
 
-  // Refresh button
-  document.getElementById('gold-refresh-btn')?.addEventListener('click', () => {
-    if (_currentAssetFilter === 'Gold') loadAssets(_currentUserId, 'Gold');
-  });
+  // ── Actual Invested modal ──────────────────────────────────
+  const modal = document.getElementById('aionion-gold-invested-modal');
+  document.getElementById('aionion-gold-invested-add-btn')?.addEventListener('click',    () => openAgaiModal());
+  document.getElementById('aionion-gold-invested-close-btn')?.addEventListener('click',  closeAgaiModal);
+  document.getElementById('aionion-gold-invested-cancel-btn')?.addEventListener('click', closeAgaiModal);
+  modal?.addEventListener('click', e => { if (e.target === modal) closeAgaiModal(); });
 
-  // Import modal
-  const goldImportModal = document.getElementById('gold-import-modal');
-  document.getElementById('gold-import-btn')?.addEventListener('click',        openGoldImportModal);
-  document.getElementById('gold-import-close-btn')?.addEventListener('click',  closeGoldImportModal);
-  document.getElementById('gold-import-cancel-btn')?.addEventListener('click', closeGoldImportModal);
-  goldImportModal?.addEventListener('click', e => { if (e.target === goldImportModal) closeGoldImportModal(); });
-  document.getElementById('gold-csv-input')?.addEventListener('change', e => handleGoldCSV(e.target.files[0]));
-  document.getElementById('gold-import-confirm-btn')?.addEventListener('click', () => {
-    if (_goldPreviewRows.length) importGoldHoldings(_goldPreviewRows);
-  });
+  document.getElementById('aionion-gold-invested-save-btn')?.addEventListener('click', async () => {
+    const date   = document.getElementById('agai-date').value;
+    const amount = parseFloat(document.getElementById('agai-amount').value);
+    if (!date)                  { showToast('Date is required', 'error'); return; }
+    if (!amount || amount <= 0) { showToast('Amount must be greater than 0', 'error'); return; }
 
-  // Edit modal
-  const goldEditModal = document.getElementById('gold-edit-modal');
-  document.getElementById('gold-edit-close-btn')?.addEventListener('click',  closeGoldEditModal);
-  document.getElementById('gold-edit-cancel-btn')?.addEventListener('click', closeGoldEditModal);
-  goldEditModal?.addEventListener('click', e => { if (e.target === goldEditModal) closeGoldEditModal(); });
-  document.getElementById('gold-edit-save-btn')?.addEventListener('click', async () => {
-    if (!_editingGoldId) return;
-    const qty     = parseFloat(document.getElementById('ge-qty').value);
-    const avgCost = parseFloat(document.getElementById('ge-avg-cost').value);
-    if (!qty || qty <= 0)         { showToast('Qty must be greater than 0', 'error'); return; }
-    if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
-    const saveBtn = document.getElementById('gold-edit-save-btn');
+    const saveBtn = document.getElementById('aionion-gold-invested-save-btn');
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
-    const { error } = await sb.from('gold_holdings').update({ qty, avg_cost: avgCost }).eq('id', _editingGoldId);
-    saveBtn.textContent = '💾 Save Changes'; saveBtn.disabled = false;
+    const payload = { entry_date: date, amount };
+    let op;
+    if (_editingAgaiId) {
+      op = sb.from('aionion_gold_actual_invested').update(payload).eq('id', _editingAgaiId);
+    } else {
+      payload.user_id = _currentUserId;
+      op = sb.from('aionion_gold_actual_invested').insert(payload);
+    }
+    const { error } = await op;
+    saveBtn.textContent = '💾 Save Entry'; saveBtn.disabled = false;
     if (error) { showToast('Save failed: ' + error.message, 'error'); }
-    else { showToast('Updated ✅', 'success'); closeGoldEditModal(); loadAssets(_currentUserId, _currentAssetFilter); }
+    else { showToast(_editingAgaiId ? 'Entry updated ✅' : 'Entry added 🎉', 'success'); closeAgaiModal(); loadAionionGoldActualInvested(_currentUserId); }
   });
+
+  // ── Refresh button ─────────────────────────────────────────
+  document.getElementById('aionion-gold-refresh-btn')?.addEventListener('click', () => {
+    if (_currentAssetFilter === 'Aionion Gold') loadAssets(_currentUserId, 'Aionion Gold');
+  });
+
+  // ── Edit modal ─────────────────────────────────────────────
+  const modal2 = document.getElementById('aionion-gold-edit-modal');
+  document.getElementById('aionion-gold-edit-close-btn')?.addEventListener('click',  closeAionionGoldEditModal);
+  document.getElementById('aionion-gold-edit-cancel-btn')?.addEventListener('click', closeAionionGoldEditModal);
+  modal2?.addEventListener('click', e => { if (e.target === modal2) closeAionionGoldEditModal(); });
+
+  document.getElementById('aionion-gold-edit-save-btn')?.addEventListener('click', async () => {
+    const isAddMode  = !_editingAionionGoldId;
+    const instrument = document.getElementById('age-instrument').value.trim().toUpperCase();
+    if (isAddMode && !instrument) { showToast('Instrument symbol is required', 'error'); return; }
+
+    const qty     = parseFloat(document.getElementById('age-qty').value);
+    const avgCost = parseFloat(document.getElementById('age-avg-cost').value);
+    if (!qty || qty <= 0)         { showToast('Quantity must be greater than 0', 'error'); return; }
+    if (!avgCost || avgCost <= 0) { showToast('Avg Cost must be greater than 0', 'error'); return; }
+
+    const saveBtn = document.getElementById('aionion-gold-edit-save-btn');
+    saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+
+    let error;
+    if (isAddMode) {
+      ({ error } = await sb.from('aionion_gold').insert({
+        user_id: _currentUserId, instrument, qty, avg_cost: avgCost,
+      }));
+    } else {
+      ({ error } = await sb.from('aionion_gold').update({ qty, avg_cost: avgCost }).eq('id', _editingAionionGoldId));
+    }
+
+    saveBtn.textContent = isAddMode ? '💾 Add ETF' : '💾 Save Changes';
+    saveBtn.disabled    = false;
+
+    if (error) { showToast('Save failed: ' + error.message, 'error'); }
+    else { showToast(isAddMode ? 'ETF added 🎉' : 'Updated ✅', 'success'); closeAionionGoldEditModal(); loadAssets(_currentUserId, _currentAssetFilter); }
+  });
+
+  // ── Bulk-select for Actual Invested ───────────────────────
+  (function() {
+    var _sel = false;
+    var SEL_ICON = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    function _enter() {
+      _sel = true;
+      var btn = document.getElementById('aionion-gold-select-btn');
+      if (btn) { btn.innerHTML = '✕ Cancel'; btn.style.background = 'var(--surface2)'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--muted2)'; }
+      document.getElementById('aionion-gold-bulk-bar')?.classList.remove('hidden');
+      document.querySelectorAll('.agai-cb-wrap').forEach(c => { c.style.display = ''; });
+      _upd();
+    }
+
+    function _exit() {
+      _sel = false;
+      var btn = document.getElementById('aionion-gold-select-btn');
+      if (btn) { btn.innerHTML = SEL_ICON + ' Select'; btn.style.background = 'rgba(20,184,166,0.1)'; btn.style.borderColor = 'rgba(20,184,166,0.3)'; btn.style.color = '#0d9488'; }
+      document.getElementById('aionion-gold-bulk-bar')?.classList.add('hidden');
+      document.getElementById('aionion-gold-bulk-normal').style.display = 'flex';
+      document.getElementById('aionion-gold-bulk-confirm').style.display = 'none';
+      document.querySelectorAll('.agai-cb-wrap').forEach(c => { c.style.display = 'none'; });
+      document.querySelectorAll('.agai-cb').forEach(c => { c.checked = false; });
+      _upd();
+    }
+
+    function _upd() {
+      var n       = document.querySelectorAll('.agai-cb:checked').length;
+      var countEl = document.getElementById('aionion-gold-bulk-count');
+      var delBtn  = document.getElementById('aionion-gold-bulk-delete');
+      if (countEl) countEl.textContent = n + ' selected';
+      if (delBtn)  delBtn.disabled = n === 0;
+    }
+
+    document.getElementById('aionion-gold-select-btn')?.addEventListener('click', () => { if (_sel) _exit(); else _enter(); });
+    document.getElementById('aionion-gold-bulk-cancel')?.addEventListener('click', _exit);
+
+    document.getElementById('aionion-gold-bulk-delete')?.addEventListener('click', () => {
+      var n = document.querySelectorAll('.agai-cb:checked').length;
+      if (!n) return;
+      document.getElementById('aionion-gold-bulk-normal').style.display = 'none';
+      document.getElementById('aionion-gold-bulk-confirm').style.display = 'flex';
+      document.getElementById('aionion-gold-bulk-confirm-count').textContent = n === 1 ? '1 entry' : n + ' entries';
+    });
+
+    document.getElementById('aionion-gold-bulk-no')?.addEventListener('click', () => {
+      document.getElementById('aionion-gold-bulk-normal').style.display = 'flex';
+      document.getElementById('aionion-gold-bulk-confirm').style.display = 'none';
+    });
+
+    document.getElementById('aionion-gold-bulk-yes')?.addEventListener('click', async () => {
+      var checked = [...document.querySelectorAll('.agai-cb:checked')];
+      if (!checked.length) return;
+      var yesBtn = document.getElementById('aionion-gold-bulk-yes');
+      yesBtn.textContent = 'Deleting…'; yesBtn.disabled = true;
+      var anyErr = false;
+      for (var cb of checked) {
+        var r = await sb.from('aionion_gold_actual_invested').delete().eq('id', cb.dataset.id).then(r=>r);
+        if (r.error) { showToast('Delete failed: ' + r.error.message, 'error'); anyErr = true; }
+      }
+      yesBtn.textContent = 'Yes, delete'; yesBtn.disabled = false;
+      if (!anyErr) showToast(checked.length + ' ' + (checked.length === 1 ? 'entry' : 'entries') + ' deleted', 'success');
+      _exit();
+      loadAionionGoldActualInvested(_currentUserId);
+    });
+
+    window['_aionionGold_bindCheckboxes'] = function() {
+      document.querySelectorAll('.agai-cb').forEach(cb => { cb.addEventListener('change', _upd); });
+      document.querySelectorAll('.agai-cb-wrap').forEach(c => { c.style.display = _sel ? '' : 'none'; });
+      if (_sel) _upd();
+    };
+  })();
 
 });
