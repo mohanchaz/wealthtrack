@@ -378,14 +378,14 @@ function _refreshCryptoActualGainTile() {
     const curINR = curGBP * weightedRate;
     setEl('crypto-total-val-inr', INR(curINR));
 
-    // Total Invested INR — read from the inv tile (set by renderCryptoHoldings via live FX)
-    // If unavailable, fall back to actINR as best estimate
-    const invINREl = document.getElementById('crypto-total-inv-inr');
-    const invINR = invINREl ? parseFloat(invINREl.textContent.replace(/[^\\d.-]/g, '')) || actINR : actINR;
-
-    // Total Gain = current value vs total invested (holdings cost basis)
-    const totalGainINR = curINR - invINR;
-    const totalPct = invINR > 0 ? ` (${((totalGainINR / invINR) * 100).toFixed(1)}%)` : '';
+    // Total Gain INR: use invGBP (from GBP summary tile) × weightedRate
+    const invGBPTile2 = document.getElementById('assets-total-invested');
+    const invGBPText2 = invGBPTile2 ? invGBPTile2.textContent.trim() : '';
+    const invGBPVal2 = invGBPText2.startsWith('£') ? parseFloat(invGBPText2.replace(/[^\d.-]/g, '')) || 0 : 0;
+    const weightedRate2 = actINR / actGBP;
+    const invINR2 = invGBPVal2 > 0 ? invGBPVal2 * weightedRate2 : actINR;
+    const totalGainINR = curINR - invINR2;
+    const totalPct = invINR2 > 0 ? ` (${((totalGainINR / invINR2) * 100).toFixed(1)}%)` : '';
     setC('crypto-total-gain-inr',
       (totalGainINR >= 0 ? '+' : '') + INR(totalGainINR) + totalPct,
       totalGainINR > 0 ? 'var(--green)' : totalGainINR < 0 ? 'var(--danger)' : 'var(--muted)');
@@ -462,9 +462,11 @@ function renderCryptoActualInvested(rows) {
     setEl('crypto-total-val-inr', curINR > 0 ? INR(curINR) : '—');
 
     if (curINR > 0) {
-      // Total Gain INR = curINR vs holdings cost basis (read from the inv tile)
-      const invINREl = document.getElementById('crypto-total-inv-inr');
-      const invINR = invINREl ? parseFloat(invINREl.textContent.replace(/[^\d.-]/g, '')) || totalINR : totalINR;
+      // Total Gain INR: cost basis = invGBP(from GBP tile) × weightedRate
+      const invGBPTile = document.getElementById('assets-total-invested');
+      const invGBPText = invGBPTile ? invGBPTile.textContent.trim() : '';
+      const invGBPVal = invGBPText.startsWith('£') ? parseFloat(invGBPText.replace(/[^\d.-]/g, '')) || 0 : 0;
+      const invINR = invGBPVal > 0 ? invGBPVal * weightedInrRate : totalINR;
       const totalGainINR = curINR - invINR;
       const totalPct = invINR > 0 ? ` (${((totalGainINR / invINR) * 100).toFixed(1)}%)` : '';
       setElColor('crypto-total-gain-inr',
