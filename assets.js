@@ -737,6 +737,27 @@ async function loadAssets(userId, filter = null) {
   if (toolbarLabel) toolbarLabel.textContent = `Showing ${filter} assets`;
   if (addBtn) addBtn.classList.remove('hidden');
 
+  // Crypto — handled by dedicated module
+  if (tableName === 'crypto_holdings') {
+    document.getElementById('assets-layout-row')?.classList.remove('hidden');
+    document.getElementById('group-overview-panel')?.classList.add('hidden');
+    document.querySelector('.assets-summary-row')?.classList.remove('hidden');
+    document.getElementById('select-btn-row')?.classList.add('hidden');
+    document.getElementById('crypto-import-btn')?.classList.remove('hidden');
+    document.getElementById('crypto-refresh-btn')?.classList.remove('hidden');
+    document.getElementById('crypto-last-updated')?.classList.remove('hidden');
+    if (addBtn) addBtn.classList.add('hidden');
+    document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+    document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
+    ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
+      'aionion-gold-monthly-summary', 'mf-monthly-summary', 'gold-monthly-summary',
+      'amc-mf-monthly-summary', 'ef-monthly-summary'].forEach(id =>
+        document.getElementById(id)?.classList.add('hidden')
+    );
+    loadCryptoHoldings(userId);
+    return;
+  }
+
   // Foreign Stocks — handled by dedicated module
   if (tableName === 'foreign_stock_holdings') {
     document.getElementById('assets-layout-row')?.classList.remove('hidden');
@@ -831,6 +852,9 @@ function renderAssetsTable(assets, tableName) {
     document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-last-updated`)?.classList.add('hidden');
   });
+  document.getElementById('crypto-import-btn')?.classList.add('hidden');
+  document.getElementById('crypto-refresh-btn')?.classList.add('hidden');
+  document.getElementById('crypto-last-updated')?.classList.add('hidden');
   // Hide Foreign Stocks extra rows (only shown when tableName === 'foreign_stock_holdings')
   document.getElementById('foreign-inr-row')?.classList.add('hidden');
   document.getElementById('foreign-gbp-row')?.classList.add('hidden');
@@ -878,6 +902,11 @@ function renderAssetsTable(assets, tableName) {
     document.getElementById('foreign-import-btn')?.classList.remove('hidden');
     document.getElementById('foreign-refresh-btn')?.classList.remove('hidden');
     document.getElementById('foreign-last-updated')?.classList.remove('hidden');
+    if (addBtn2) addBtn2.classList.add('hidden');
+  } else if (tableName === 'crypto_holdings') {
+    document.getElementById('crypto-import-btn')?.classList.remove('hidden');
+    document.getElementById('crypto-refresh-btn')?.classList.remove('hidden');
+    document.getElementById('crypto-last-updated')?.classList.remove('hidden');
     if (addBtn2) addBtn2.classList.add('hidden');
   }
 

@@ -51,6 +51,8 @@
       modalForeignImport,
       modalForeignEdit,
       modalForeignInvested,
+      modalCryptoImport,
+      modalCryptoEdit,
     ] = await Promise.all([
       loadHTML('pages/login.html'),
       loadHTML('pages/dashboard-shell.html'),
@@ -80,6 +82,8 @@
       loadHTML('modals/foreign-import.html'),
       loadHTML('modals/foreign-edit.html'),
       loadHTML('modals/foreign-invested.html'),
+      loadHTML('modals/crypto-import.html'),
+      loadHTML('modals/crypto-edit.html'),
     ]);
 
     // 1. Inject login / auth view
@@ -126,6 +130,8 @@
     await append(modalForeignImport);
     await append(modalForeignEdit);
     await append(modalForeignInvested);
+    await append(modalCryptoImport);
+    await append(modalCryptoEdit);
 
     // 4. Signal that HTML is ready — app scripts may now safely query the DOM
     document.dispatchEvent(new Event('fragments-loaded'));
