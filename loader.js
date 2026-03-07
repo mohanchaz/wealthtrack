@@ -53,6 +53,7 @@
       modalForeignInvested,
       modalCryptoImport,
       modalCryptoEdit,
+      modalCryptoInvested,
     ] = await Promise.all([
       loadHTML('pages/login.html'),
       loadHTML('pages/dashboard-shell.html'),
@@ -133,6 +134,7 @@
     await append(modalForeignInvested);
     await append(modalCryptoImport);
     await append(modalCryptoEdit);
+    await append(modalCryptoInvested);
 
     // 4. Signal that HTML is ready — app scripts may now safely query the DOM
     document.dispatchEvent(new Event('fragments-loaded'));
