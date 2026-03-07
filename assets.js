@@ -254,6 +254,22 @@ async function loadGroupOverview(userId, group) {
     Promise.all(actualQueries),
   ]);
 
+  // Fetch FX rates for Foreign Investments group (needed for INR conversion)
+  let _ovGbpUsdRate = null, _ovUsdInrRate = null;
+  if (group === 'Foreign Investments') {
+    try {
+      const fxRes = await fetch('/api/prices?symbols=GBPUSD%3DX%2CUSDINR%3DX');
+      if (fxRes.ok) {
+        const fxMap = await fxRes.json();
+        const gbpEntry = fxMap['GBPUSD=X'] || fxMap['GBPUSDX'] || fxMap['GBPUSD'];
+        const inrEntry = fxMap['USDINR=X'] || fxMap['USDINRX'] || fxMap['USDINR'];
+        if (gbpEntry) _ovGbpUsdRate = typeof gbpEntry === 'object' ? gbpEntry.price : gbpEntry;
+        if (inrEntry) _ovUsdInrRate = typeof inrEntry === 'object' ? inrEntry.price : inrEntry;
+      }
+    } catch (e) { /* FX fetch failed — will show — in tiles */ }
+  }
+  const _ovGbpInrRate = (_ovGbpUsdRate && _ovUsdInrRate) ? _ovGbpUsdRate * _ovUsdInrRate : null;
+
   // For stock tables, fetch live prices
   const rows = [];
   for (let i = 0; i < subCats.length; i++) {
@@ -318,19 +334,31 @@ async function loadGroupOverview(userId, group) {
         curVal += qty * (livePrice || +r.avg_cost || 0);
       });
     } else if (sc.type === 'foreign') {
-      // Use avg_price as invested (native units); no live price fetch in overview
+      // Convert native price → INR: GBX (pence) → GBP (÷100) → INR; USD → INR
       holdings.forEach(r => {
         const qty = +r.qty || 0;
-        const nativeInv = qty * (+r.avg_price || 0);
-        invested += nativeInv;
-        curVal += nativeInv;
+        const isGBX = r.currency === 'GBX';
+        const nativeAmt = qty * (+r.avg_price || 0);
+        let inrAmt = 0;
+        if (isGBX && _ovGbpInrRate) {
+          inrAmt = (nativeAmt / 100) * _ovGbpInrRate;  // GBX → GBP → INR
+        } else if (!isGBX && _ovUsdInrRate) {
+          inrAmt = nativeAmt * _ovUsdInrRate;           // USD → INR
+        } else {
+          // FX rates unavailable — use actual invested INR total as fallback
+          inrAmt = 0;
+        }
+        invested += inrAmt;
+        curVal += inrAmt;  // no live prices in overview; same as invested
       });
     } else if (sc.type === 'crypto') {
+      // avg_price_gbp is in GBP → convert to INR
       holdings.forEach(r => {
         const qty = +r.qty || 0;
-        const inv = qty * (+r.avg_price_gbp || 0);
-        invested += inv;
-        curVal += inv;
+        const gbpAmt = qty * (+r.avg_price_gbp || 0);
+        const inrAmt = _ovGbpInrRate ? gbpAmt * _ovGbpInrRate : 0;
+        invested += inrAmt;
+        curVal += inrAmt;
       });
     } else {
       holdings.forEach(r => {
