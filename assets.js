@@ -405,18 +405,15 @@ async function loadAssets(userId, filter = null) {
 
   tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
 
-  // Always reset ALL UI chrome before branching — prevents bleed-through when switching pages
-  // Hide all special summary rows
+  // Always reset special rows/panels/buttons before branching — prevents bleed-through
   document.getElementById('foreign-inr-row')?.classList.add('hidden');
   document.getElementById('foreign-gbp-row')?.classList.add('hidden');
   document.getElementById('crypto-inr-row')?.classList.add('hidden');
   document.getElementById('crypto-gbp-row')?.classList.add('hidden');
-  // Hide all monthly/actual-invested panels
   ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
    'aionion-gold-monthly-summary', 'ef-monthly-summary', 'mf-monthly-summary',
    'gold-monthly-summary', 'amc-mf-monthly-summary', 'foreign-monthly-summary',
    'crypto-monthly-summary'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
-  // Hide ALL toolbar buttons
   ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf', 'foreign'].forEach(p => {
     document.getElementById(p + '-import-btn')?.classList.add('hidden');
     document.getElementById(p + '-refresh-btn')?.classList.add('hidden');
@@ -425,6 +422,9 @@ async function loadAssets(userId, filter = null) {
   document.getElementById('crypto-import-btn')?.classList.add('hidden');
   document.getElementById('crypto-refresh-btn')?.classList.add('hidden');
   document.getElementById('crypto-last-updated')?.classList.add('hidden');
+  document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+  document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
+  document.getElementById('generic-summary-row')?.classList.add('hidden');
 
   // Update subtitle
   const subtitle = document.querySelector('#page-assets .page-subtitle');
