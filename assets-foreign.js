@@ -434,7 +434,7 @@ document.addEventListener('fragments-loaded', () => {
     const saveBtn = document.getElementById('foreign-edit-save-btn');
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
-    const payload = { symbol, qty2, avg_price: avgPrice, currency };
+    const payload = { symbol, qty: qty2, avg_price: avgPrice, currency };
     let error;
     if (_editingForeignId) {
       ({ error } = await sb.from('foreign_stock_holdings').update(payload).eq('id', _editingForeignId));
