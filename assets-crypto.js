@@ -114,7 +114,7 @@ function renderCryptoHoldings(rows) {
       <td style="${td};text-align:right">
         <button class="crypto-edit-btn" data-id="${r.id}"
           style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 3px;opacity:0.65;transition:opacity 0.15s"
-          onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.65" title="Edit">✏️</button>
+          onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.65" title="Edit">🖊️</button>
       </td>
     </tr>`;
   }).join('');
@@ -489,7 +489,7 @@ function renderCryptoActualInvested(rows) {
       '<td style="' + thS + ';white-space:nowrap">' +
         '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" ' +
           'data-id="' + r.id + '" data-date="' + r.entry_date + '" data-gbp="' + r.gbp_amount + '" data-rate="' + (r.inr_rate || '') + '" ' +
-          'class="cai-edit-btn" title="Edit">✏️</button>' +
+          'class="cai-edit-btn" title="Edit">🖊️</button>' +
       '</td>' +
     '</tr>';
   }).join('') +

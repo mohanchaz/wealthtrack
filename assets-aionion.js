@@ -60,7 +60,7 @@ function renderAionionActualInvested(rows) {
       <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-aai-id="${r.id}" data-aai-date="${r.entry_date}" data-aai-amount="${r.amount}"
-          class="aai-edit-btn" title="Edit">✏️</button>
+          class="aai-edit-btn" title="Edit">🖊️</button>
       </td>
     </tr>`;
   }).join('') +

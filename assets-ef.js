@@ -60,7 +60,7 @@ function renderEfActualInvested(rows) {
         <td class="efi-cb-wrap" data-id="${r.id}" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="efi-cb" data-id="${r.id}" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>
       <td style="padding:9px 14px;color:var(--accent);font-weight:500;border-bottom:1px solid var(--border)">${dateStr}</td>
       <td style="padding:9px 14px;text-align:right;font-weight:600;border-bottom:1px solid var(--border)">${INR(r.amount)}</td>      <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
-        <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" data-efi-id="${r.id}" data-efi-date="${r.entry_date}" data-efi-amount="${r.amount}" class="efi-edit-btn" title="Edit">✏️</button></span>
+        <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" data-efi-id="${r.id}" data-efi-date="${r.entry_date}" data-efi-amount="${r.amount}" class="efi-edit-btn" title="Edit">🖊️</button></span>
       </td>
     </tr>`;
   }).join('') +

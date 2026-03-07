@@ -62,7 +62,7 @@ function renderMfActualInvested(rows) {
       <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-mfai-id="${r.id}" data-mfai-date="${r.entry_date}" data-mfai-amount="${r.amount}"
-          class="mfai-edit-btn" title="Edit">✏️</button>
+          class="mfai-edit-btn" title="Edit">🖊️</button>
       </td>
     </tr>`;
   }).join('') +

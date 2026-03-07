@@ -60,7 +60,7 @@ function renderZerodhaActualInvested(rows) {
       <td style="padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap">
         <button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7"
           data-zai-id="${r.id}" data-zai-date="${r.entry_date}" data-zai-amount="${r.amount}"
-          class="zai-edit-btn" title="Edit">✏️</button>
+          class="zai-edit-btn" title="Edit">🖊️</button>
       </td>
     </tr>`;
   }).join('') +
