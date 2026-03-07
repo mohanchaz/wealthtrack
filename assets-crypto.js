@@ -19,7 +19,7 @@ function cryptoTicker(yahooSymbol) {
 
 // ── Render ────────────────────────────────────────────────────
 
-function renderCryptoHoldings(rows) {
+function renderCryptoHoldings(rows, gbpInrRate) {
   const tbody = document.getElementById('assets-table-body');
   const thead = document.getElementById('assets-thead-row');
   if (!tbody) return;
@@ -163,6 +163,27 @@ function renderCryptoHoldings(rows) {
       gainEl2.style.color = totalGainGBP > 0 ? 'var(--green)' : totalGainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   }
+
+  // ── INR summary tiles (Total Invested / Current Value / Gain) ──
+  // Populated only when a live GBP/INR rate is available (passed from fetchAndRefreshCryptoPrices)
+  const setEl2 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const setElC = (id, v, c) => { const el = document.getElementById(id); if (el) { el.textContent = v; el.style.color = c; } };
+  if (gbpInrRate) {
+    const totalInvINR = totalInvGBP * gbpInrRate;
+    const totalCurINR = totalCurGBP * gbpInrRate;
+    const gainINR     = totalCurINR - totalInvINR;
+    const gainINRPct  = totalInvINR > 0 ? ` (${((gainINR / totalInvINR) * 100).toFixed(1)}%)` : '';
+    setEl2('crypto-total-inv-inr', INR(totalInvINR));
+    setEl2('crypto-total-val-inr', hasPrices ? INR(totalCurINR) : '—');
+    if (hasPrices) {
+      setElC('crypto-total-gain-inr',
+        (gainINR >= 0 ? '+' : '') + INR(gainINR) + gainINRPct,
+        gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)');
+    } else {
+      setElC('crypto-total-gain-inr', '—', 'var(--muted)');
+    }
+  }
+
   const countEl = document.getElementById('assets-count-inline');
   if (countEl) countEl.textContent = rows.length + ' holding' + (rows.length !== 1 ? 's' : '');
 }
@@ -184,9 +205,12 @@ async function fetchAndRefreshCryptoPrices(rows) {
     return;
   }
 
+  // Include FX symbols to get GBP→INR conversion rate
+  const fetchSymbols = [...symbols, 'GBPUSD=X', 'USDINR=X'];
+
   let priceMap = null;
   try {
-    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols.join(','))}`);
+    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(fetchSymbols.join(','))}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     priceMap = await res.json();
     if (priceMap.error) throw new Error(priceMap.error);
@@ -200,6 +224,13 @@ async function fetchAndRefreshCryptoPrices(rows) {
 
   if (refreshBtn) refreshBtn.disabled = false;
 
+  // Extract GBP/INR rate
+  const gbpUsdEntry = priceMap['GBPUSD=X'] || priceMap['GBPUSDX'] || priceMap['GBPUSD'];
+  const usdInrEntry = priceMap['USDINR=X'] || priceMap['USDINRX'] || priceMap['USDINR'];
+  const gbpUsdRate  = gbpUsdEntry ? (typeof gbpUsdEntry === 'object' ? gbpUsdEntry.price : gbpUsdEntry) : null;
+  const usdInrRate  = usdInrEntry ? (typeof usdInrEntry === 'object' ? usdInrEntry.price : usdInrEntry) : null;
+  const _liveGbpInrRate = (gbpUsdRate && usdInrRate) ? gbpUsdRate * usdInrRate : null;
+
   // API strips '-GBP' → key is 'BTC', 'ETH' etc.
   _cryptoLive = {};
   Object.entries(priceMap).forEach(([key, val]) => {
@@ -209,7 +240,7 @@ async function fetchAndRefreshCryptoPrices(rows) {
     };
   });
 
-  renderCryptoHoldings(rows);
+  renderCryptoHoldings(rows, _liveGbpInrRate);
   _refreshCryptoActualGainTile();
 
   const now = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
