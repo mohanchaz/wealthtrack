@@ -699,6 +699,52 @@ async function loadAssets(userId, filter = null) {
       });
       const amcMfActualTotal = (amcMfActualRes.data || []).reduce((s, r) => s + (+r.amount || 0), 0);
 
+      // ── Foreign Investments (Foreign Stocks + Crypto) ──────────
+      // Fetch FX rates + foreign/crypto holdings in parallel
+      const [
+        foreignHoldingsRes, foreignActualRes,
+        cryptoHoldingsRes, cryptoActualRes,
+        fxRes,
+      ] = await Promise.all([
+        sb.from('foreign_stock_holdings').select('qty, avg_price, currency').eq('user_id', userId).catch(() => ({ data: [] })),
+        sb.from('foreign_actual_invested').select('gbp_amount, inr_rate').eq('user_id', userId).catch(() => ({ data: [] })),
+        sb.from('crypto_holdings').select('qty, avg_price_gbp').eq('user_id', userId).catch(() => ({ data: [] })),
+        sb.from('crypto_actual_invested').select('gbp_amount, inr_rate').eq('user_id', userId).catch(() => ({ data: [] })),
+        fetch('/api/prices?symbols=GBPUSD%3DX%2CUSDINR%3DX').then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      ]);
+
+      // Extract FX rates
+      const fxMap = fxRes || {};
+      const fxGbpUsd = fxMap['GBPUSD=X'] || fxMap['GBPUSDX'] || fxMap['GBPUSD'];
+      const fxUsdInr = fxMap['USDINR=X'] || fxMap['USDINRX'] || fxMap['USDINR'];
+      const ovGbpUsdRate = fxGbpUsd ? (typeof fxGbpUsd === 'object' ? fxGbpUsd.price : fxGbpUsd) : null;
+      const ovUsdInrRate = fxUsdInr ? (typeof fxUsdInr === 'object' ? fxUsdInr.price : fxUsdInr) : null;
+      const ovGbpInrRate = (ovGbpUsdRate && ovUsdInrRate) ? ovGbpUsdRate * ovUsdInrRate : null;
+
+      // Foreign stocks → INR
+      let foreignInv = 0;
+      (foreignHoldingsRes.data || []).forEach(r => {
+        const qty = +r.qty || 0;
+        const isGBX = r.currency === 'GBX';
+        const nativeAmt = qty * (+r.avg_price || 0);
+        if (isGBX && ovGbpInrRate) foreignInv += (nativeAmt / 100) * ovGbpInrRate;
+        else if (!isGBX && ovUsdInrRate) foreignInv += nativeAmt * ovUsdInrRate;
+      });
+
+      // Crypto → INR
+      let cryptoInv = 0;
+      (cryptoHoldingsRes.data || []).forEach(r => {
+        const gbpAmt = (+r.qty || 0) * (+r.avg_price_gbp || 0);
+        if (ovGbpInrRate) cryptoInv += gbpAmt * ovGbpInrRate;
+      });
+
+      const foreignInvTotal = foreignInv + cryptoInv;
+
+      // Actual invested (gbp_amount × inr_rate for both tables)
+      const foreignActualTotal = (foreignActualRes.data || []).reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0);
+      const cryptoActualTotal  = (cryptoActualRes.data  || []).reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0);
+      const foreignActualGrand = foreignActualTotal + cryptoActualTotal;
+
       // ── Build category rows ────────────────────────────────────
       const catRows = [
         { label: 'Cash', icon: '💵', filter: 'Cash', inv: cashInv, cur: cashCur, actual: cashInv },
@@ -708,6 +754,7 @@ async function loadAssets(userId, filter = null) {
         { label: 'Zerodha', icon: '📈', filter: 'Zerodha', inv: zInv + mfInv + goldInv, cur: zCur + mfCur + goldCur, actual: zerodhaActualTotal + mfActualTotal },
         { label: 'Aionion', icon: '📊', filter: 'Aionion', inv: aInv + agInv, cur: aCur + agCur, actual: aionionActualTotal },
         { label: 'AMC Mutual Funds', icon: '💼', filter: 'AMC Mutual Funds', inv: amcInv, cur: amcCur, actual: amcMfActualTotal },
+        { label: 'Foreign Investments', icon: '🌍', filter: 'Foreign Investments', inv: foreignInvTotal, cur: foreignInvTotal, actual: foreignActualGrand },
       ].filter(r => r.inv > 0 || r.cur > 0);
 
       // ── Grand totals ───────────────────────────────────────────
