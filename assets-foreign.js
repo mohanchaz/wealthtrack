@@ -172,8 +172,8 @@ function renderForeignStocks(rows) {
   const totalCurGBPAll = totalCurGBP + (_gbpUsdRate ? totalCurUSD / _gbpUsdRate : 0);
   const fmt = (usd, gbp) => {
     const p = [];
-    if (usd) p.push(`$${$(+usd).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`);
-    if (gbp) p.push(`${(+gbp).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}).replace(/^/, '£')}`);
+    if (usd) p.push('$' + (+usd).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2}));
+    if (gbp) p.push(GBP(gbp));
     return p.join('  +  ') || '—';
   };
   const setEl = (id, v) => { const el2 = document.getElementById(id); if (el2) el2.textContent = v; };
