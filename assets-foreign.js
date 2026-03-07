@@ -107,7 +107,7 @@ function renderForeignStocks(rows) {
     const gainPct = gain != null && invested ? ` (${((gain / invested) * 100).toFixed(1)}%)` : '';
     const gainColor = gain == null ? 'var(--muted2)' : gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)';
     const gainStr = gain == null ? '<span style="color:var(--muted2)">—</span>'
-      : `${gain >= 0 ? '+' : ''}${sym}${gain.toFixed(2)}<span style="font-size:10px">${gainPct}</span>`;
+      : `${gain >= 0 ? '+' : ''}${sym}${(+gain).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}<span style="font-size:10px">${gainPct}</span>`;
 
     // GBP equivalents
     const invGBP  = isGBX ? invested : toGBP(invested);
@@ -116,7 +116,7 @@ function renderForeignStocks(rows) {
     const gainGBPPct = gainGBP != null && invGBP ? ` (${((gainGBP / invGBP) * 100).toFixed(1)}%)` : '';
     const gainGBPColor = gainGBP == null ? 'var(--muted2)' : gainGBP > 0 ? 'var(--green)' : gainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
     const gainGBPStr = gainGBP == null ? '<span style="color:var(--muted2)">—</span>'
-      : `${gainGBP >= 0 ? '+' : ''}£${Math.abs(gainGBP).toFixed(2)}<span style="font-size:10px">${gainGBPPct}</span>`;
+      : `${gainGBP >= 0 ? '+' : ''}${GBP(Math.abs(gainGBP))}<span style="font-size:10px">${gainGBPPct}</span>`;
 
     const badge = `<span style="background:${isGBX ? '#e8f4fd' : '#e8fdf0'};color:${isGBX ? '#1a6fa8' : '#15803d'};padding:1px 5px;border-radius:20px;font-size:10px;font-weight:600">${ccy}</span>`;
     const td  = 'padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap';
@@ -132,14 +132,14 @@ function renderForeignStocks(rows) {
       <td style="${td};font-weight:700">${r.symbol}</td>
       <td style="${td};color:var(--muted2);font-size:11px;max-width:90px;overflow:hidden;text-overflow:ellipsis" title="${live?.name || ''}">${stockName}</td>
       <td style="${tdr}">${(+r.qty).toFixed(4)}</td>
-      <td style="${tdr}">${avgDisp.toFixed(2)}</td>
-      <td style="${tdr}">${unitDisp != null ? unitDisp.toFixed(2) : dash}</td>
+      <td style="${tdr}">${(+avgDisp).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td style="${tdr}">${unitDisp != null ? (+unitDisp).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}) : dash}</td>
       <td style="${td};text-align:center">${badge}</td>
-      <td style="${tdr}">${sym}${invested.toFixed(2)}</td>
-      <td style="${tdr};font-weight:600">${curVal != null ? `${sym}${curVal.toFixed(2)}` : dash}</td>
+      <td style="${tdr}">${sym}${(+invested).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td style="${tdr};font-weight:600">${curVal != null ? `${sym}${(+curVal).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}` : dash}</td>
       <td style="${tdr};font-weight:600;color:${gainColor}">${gainStr}</td>
-      <td style="${tdr}">${invGBP != null ? '£' + invGBP.toFixed(2) : dash}</td>
-      <td style="${tdr};font-weight:600">${curGBP != null ? '£' + curGBP.toFixed(2) : dash}</td>
+      <td style="${tdr}">${invGBP != null ? GBP(invGBP) : dash}</td>
+      <td style="${tdr};font-weight:600">${curGBP != null ? GBP(curGBP) : dash}</td>
       <td style="${tdr};font-weight:600;color:${gainGBPColor}">${gainGBPStr}</td>
       <td style="${td};text-align:right">
         <button class="foreign-edit-btn" data-id="${r.id}"
@@ -172,8 +172,8 @@ function renderForeignStocks(rows) {
   const totalCurGBPAll = totalCurGBP + (_gbpUsdRate ? totalCurUSD / _gbpUsdRate : 0);
   const fmt = (usd, gbp) => {
     const p = [];
-    if (usd) p.push(`$${usd.toFixed(2)}`);
-    if (gbp) p.push(`£${gbp.toFixed(2)}`);
+    if (usd) p.push(`$${$(+usd).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`);
+    if (gbp) p.push(`${(+gbp).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}).replace(/^/, '£')}`);
     return p.join('  +  ') || '—';
   };
   const setEl = (id, v) => { const el2 = document.getElementById(id); if (el2) el2.textContent = v; };
@@ -183,8 +183,8 @@ function renderForeignStocks(rows) {
   const gainUSD = totalCurUSD - totalInvUSD;
   const gainGBP2 = totalCurGBP - totalInvGBP;
   const gainParts = [];
-  if (totalInvUSD) gainParts.push(`${gainUSD >= 0 ? '+' : ''}$${gainUSD.toFixed(2)}`);
-  if (totalInvGBP) gainParts.push(`${gainGBP2 >= 0 ? '+' : ''}£${gainGBP2.toFixed(2)}`);
+  if (totalInvUSD) gainParts.push((gainUSD >= 0 ? '+' : '') + '$' + (+Math.abs(gainUSD)).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}));
+  if (totalInvGBP) gainParts.push(`${gainGBP2 >= 0 ? '+' : ''}${GBP(gainGBP2)}`);
   const gainEl = document.getElementById('assets-total-gain');
   if (gainEl) {
     gainEl.textContent = gainParts.join('  +  ') || '—';
@@ -202,7 +202,7 @@ function renderForeignStocks(rows) {
     : null;
   const gainINR = (totalInvINR != null && totalCurINR != null) ? totalCurINR - totalInvINR : null;
   const gainINRPct = (gainINR != null && totalInvINR) ? ` (${((gainINR / totalInvINR) * 100).toFixed(1)}%)` : '';
-  const INRfmt = v => '₹' + v.toFixed(2);
+  const INRfmt = v => INR(v);
   setEl('foreign-total-inv-inr', totalInvINR != null ? INRfmt(totalInvINR) : '—');
   setEl('foreign-total-val-inr', totalCurINR != null ? INRfmt(totalCurINR) : '—');
   const gainINREl = document.getElementById('foreign-total-gain-inr');
@@ -217,12 +217,12 @@ function renderForeignStocks(rows) {
   // ── GBP summary row (second row — all amounts converted to £) ──
   const gainGBPAll = totalCurGBPAll - totalInvGBPAll;
   const gainGBPAllPct = totalInvGBPAll > 0 ? ` (${((gainGBPAll / totalInvGBPAll) * 100).toFixed(1)}%)` : '';
-  setEl('foreign-total-inv-gbp', _gbpUsdRate ? `£${totalInvGBPAll.toFixed(2)}` : '—');
-  setEl('foreign-total-val-gbp', _gbpUsdRate ? `£${totalCurGBPAll.toFixed(2)}` : '—');
+  setEl('foreign-total-inv-gbp', _gbpUsdRate ? GBP(totalInvGBPAll) : '—');
+  setEl('foreign-total-val-gbp', _gbpUsdRate ? GBP(totalCurGBPAll) : '—');
   const gainGBPAllEl = document.getElementById('foreign-total-gain-gbp');
   if (gainGBPAllEl) {
     gainGBPAllEl.textContent = _gbpUsdRate
-      ? `${gainGBPAll >= 0 ? '+' : ''}£${gainGBPAll.toFixed(2)}${gainGBPAllPct}`
+      ? `${gainGBPAll >= 0 ? '+' : ''}${GBP(gainGBPAll)}${gainGBPAllPct}`
       : '—';
     gainGBPAllEl.style.color = !_gbpUsdRate ? 'var(--muted2)'
       : gainGBPAll > 0 ? 'var(--green)' : gainGBPAll < 0 ? 'var(--danger)' : 'var(--muted)';
@@ -352,9 +352,9 @@ document.addEventListener('fragments-loaded', () => {
           const isGBX3 = r.currency === 'GBX';
           const factor2 = isGBX3 ? 100 : 1;
           const ccy2 = isGBX3 ? 'GBP' : 'USD';
-          const avgD = (r.avg_price / factor2).toFixed(2);
-          const unitD = r._unitPrice != null ? (r._unitPrice / factor2).toFixed(2) : '—';
-          const curD = r._currentValue != null ? (r._currentValue / factor2).toFixed(2) : '—';
+          const avgD = (+r.avg_price / factor2).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+          const unitD = r._unitPrice != null ? (+r._unitPrice / factor2).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+          const curD = r._currentValue != null ? (+r._currentValue / factor2).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
           const tdS = 'padding:7px 14px;border-bottom:1px solid var(--border)';
           return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
             <td style="${tdS};font-weight:700">${r.symbol}</td>
@@ -603,7 +603,7 @@ function _refreshForeignActualGainTiles() {
     const pct2 = ` (${((gainGBP3 / actGBP) * 100).toFixed(1)}%)`;
     const el4 = document.getElementById('foreign-actual-gain-gbp');
     if (el4) {
-      el4.textContent = (gainGBP3 >= 0 ? '+' : '') + '\u00a3' + Math.abs(gainGBP3).toFixed(2) + pct2;
+      el4.textContent = (gainGBP3 >= 0 ? '+' : '') + GBP(Math.abs(gainGBP3)) + pct2;
       el4.style.color = gainGBP3 > 0 ? 'var(--green)' : gainGBP3 < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   }
@@ -639,7 +639,7 @@ function renderForeignActualInvested(rows) {
 
   const totalGBP = rows.reduce((s, r) => s + (+r.gbp_amount || 0), 0);
   const totalINR = rows.reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0);
-  if (totalEl) totalEl.textContent = '£' + totalGBP.toFixed(2) + '  ·  ' + INR(totalINR);
+  if (totalEl) totalEl.textContent = GBP(totalGBP) + '  ·  ' + INR(totalINR);
 
   // ── Populate Actual Invested tiles in INR and GBP rows ──
   const setEl2 = (id, v) => { const el5 = document.getElementById(id); if (el5) el5.textContent = v; };
@@ -661,7 +661,7 @@ function renderForeignActualInvested(rows) {
   }
 
   // GBP row
-  setEl2('foreign-actual-inv-gbp', totalGBP > 0 ? '£' + totalGBP.toFixed(2) : '—');
+  setEl2('foreign-actual-inv-gbp', totalGBP > 0 ? GBP(totalGBP) : '—');
   const curValGBPEl = document.getElementById('foreign-total-val-gbp');
   const curValGBP = curValGBPEl ? parseFloat(curValGBPEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   if (totalGBP > 0 && curValGBP > 0) {
@@ -669,7 +669,7 @@ function renderForeignActualInvested(rows) {
     const gainGBPPct2 = totalGBP > 0 ? ` (${((gainGBP4 / totalGBP) * 100).toFixed(1)}%)` : '';
     const gainGBPEl = document.getElementById('foreign-actual-gain-gbp');
     if (gainGBPEl) {
-      gainGBPEl.textContent = (gainGBP4 >= 0 ? '+' : '') + '£' + Math.abs(gainGBP4).toFixed(2) + gainGBPPct2;
+      gainGBPEl.textContent = (gainGBP4 >= 0 ? '+' : '') + GBP(Math.abs(gainGBP4)) + gainGBPPct2;
       gainGBPEl.style.color = gainGBP4 > 0 ? 'var(--green)' : gainGBP4 < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   } else {
@@ -689,7 +689,7 @@ function renderForeignActualInvested(rows) {
     return '<tr style="background:' + (i % 2 === 0 ? '#fff' : 'var(--surface2)') + '">' +
       '<td class="fai-cb-wrap" data-id="' + r.id + '" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="fai-cb" data-id="' + r.id + '" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>' +
       '<td style="' + thS2 + ';color:var(--accent);font-weight:500">' + dateStr + '</td>' +
-      '<td style="' + thS2 + ';text-align:right;font-weight:600">£' + (+r.gbp_amount).toFixed(2) + '</td>' +
+      '<td style="' + thS2 + ';text-align:right;font-weight:600">' + GBP(+r.gbp_amount) + '</td>' +
       '<td style="' + thS2 + ';text-align:right;color:var(--muted2)">' + INR(inrAmt) + '</td>' +
       '<td style="' + thS2 + ';white-space:nowrap">' +
         '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" ' +
@@ -700,7 +700,7 @@ function renderForeignActualInvested(rows) {
   }).join('') +
     '<tr style="background:var(--surface2)">' +
     '<td style="padding:9px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2)">Total</td>' +
-    '<td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">£' + totalGBP.toFixed(2) + '</td>' +
+    '<td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">' + GBP(totalGBP) + '</td>' +
     '<td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">' + INR(totalINR) + '</td>' +
     '<td></td></tr>';
 
