@@ -337,32 +337,25 @@ async function loadGroupOverview(userId, group) {
         curVal += qty * (livePrice || +r.avg_cost || 0);
       });
     } else if (sc.type === 'foreign') {
-      // Convert native price → INR: GBX (pence) → GBP (÷100) → INR; USD → INR
+      // Convert avg_price → INR using live FX rates; no live stock prices in overview
       holdings.forEach(r => {
         const qty = +r.qty || 0;
         const isGBX = r.currency === 'GBX';
         const nativeAmt = qty * (+r.avg_price || 0);
         let inrAmt = 0;
-        if (isGBX && _ovGbpInrRate) {
-          inrAmt = (nativeAmt / 100) * _ovGbpInrRate;  // GBX → GBP → INR
-        } else if (!isGBX && _ovUsdInrRate) {
-          inrAmt = nativeAmt * _ovUsdInrRate;           // USD → INR
-        } else {
-          // FX rates unavailable — use actual invested INR total as fallback
-          inrAmt = 0;
-        }
+        if (isGBX && _ovGbpInrRate) inrAmt = (nativeAmt / 100) * _ovGbpInrRate;
+        else if (!isGBX && _ovUsdInrRate) inrAmt = nativeAmt * _ovUsdInrRate;
         invested += inrAmt;
-        curVal += inrAmt;  // no live prices in overview; same as invested
       });
+      curVal = null;  // no live stock prices — don't show Gain/Loss
     } else if (sc.type === 'crypto') {
-      // avg_price_gbp is in GBP → convert to INR
+      // avg_price_gbp is in GBP → convert to INR; no live prices fetched here
       holdings.forEach(r => {
         const qty = +r.qty || 0;
         const gbpAmt = qty * (+r.avg_price_gbp || 0);
-        const inrAmt = _ovGbpInrRate ? gbpAmt * _ovGbpInrRate : 0;
-        invested += inrAmt;
-        curVal += inrAmt;
+        if (_ovGbpInrRate) invested += gbpAmt * _ovGbpInrRate;
       });
+      curVal = null;  // no live stock prices — don't show Gain/Loss
     } else {
       holdings.forEach(r => {
         const qty = +r.qty || 0;
@@ -374,23 +367,26 @@ async function loadGroupOverview(userId, group) {
     rows.push({ ...sc, invested, curVal, actual });
   }
 
-  // Totals
+  // Totals — only sum curVal where live prices are available
   const totalInvested = rows.reduce((s, r) => s + r.invested, 0);
-  const totalCurVal = rows.reduce((s, r) => s + r.curVal, 0);
-  const totalActual = rows.reduce((s, r) => s + r.actual, 0);
-  const totalGain = totalCurVal - totalInvested;
-  const totalActualGain = totalCurVal - totalActual;
+  const totalCurVal   = rows.reduce((s, r) => s + (r.curVal ?? r.invested), 0);
+  const totalActual   = rows.reduce((s, r) => s + r.actual, 0);
+  const totalGain     = rows.reduce((s, r) => s + (r.curVal != null ? r.curVal - r.invested : 0), 0);
+  const hasAllLive    = rows.every(r => r.curVal != null);
 
   // Update top stat cards
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   set('assets-total-invested', INR(totalInvested));
-  set('assets-total-value', INR(totalCurVal));
+  set('assets-total-value', hasAllLive ? INR(totalCurVal) : '—');
   const cEl = document.getElementById('assets-count-inline'); if (cEl) cEl.textContent = rows.length + ' holding' + (rows.length !== 1 ? 's' : '');
   const gainEl = document.getElementById('assets-total-gain');
   if (gainEl) {
-    const pct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
-    gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain) + pct;
-    gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
+    if (!hasAllLive) { gainEl.textContent = '—'; gainEl.style.color = 'var(--muted)'; }
+    else {
+      const pct = totalInvested > 0 ? ` (${((totalGain / totalInvested) * 100).toFixed(1)}%)` : '';
+      gainEl.textContent = (totalGain >= 0 ? '+' : '') + INR(totalGain) + pct;
+      gainEl.style.color = totalGain > 0 ? 'var(--green)' : totalGain < 0 ? 'var(--danger)' : 'var(--muted)';
+    }
   }
 
   // Summary tile row
@@ -400,13 +396,15 @@ async function loadGroupOverview(userId, group) {
     const pct = base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
     return `<b style="color:${gainColor(v)}">${v >= 0 ? '+' : ''}${INR(v)}${pct}</b>`;
   };
+  const dash = `<span style="color:var(--muted2)">—</span>`;
+  const totalActualGain = hasAllLive ? totalCurVal - totalActual : null;
 
   totalsEl.innerHTML = [
     { label: 'Total Invested', val: `<b style="color:var(--accent)">${INR(totalInvested)}</b>` },
-    { label: 'Current Value', val: `<b style="color:var(--teal)">${INR(totalCurVal)}</b>` },
-    { label: 'Gain / Loss', val: fmtGain(totalGain, totalInvested) },
-    { label: 'Actual Invested', val: totalActual > 0 ? `<b style="color:var(--green)">${INR(totalActual)}</b>` : `<span style="color:var(--muted2)">—</span>` },
-    { label: 'Actual Gain / Loss', val: totalActual > 0 ? fmtGain(totalActualGain, totalActual) : `<span style="color:var(--muted2)">—</span>` },
+    { label: 'Current Value', val: hasAllLive ? `<b style="color:var(--teal)">${INR(totalCurVal)}</b>` : dash },
+    { label: 'Gain / Loss', val: hasAllLive ? fmtGain(totalGain, totalInvested) : dash },
+    { label: 'Actual Invested', val: totalActual > 0 ? `<b style="color:var(--green)">${INR(totalActual)}</b>` : dash },
+    { label: 'Actual Gain / Loss', val: (totalActual > 0 && totalActualGain != null) ? fmtGain(totalActualGain, totalActual) : dash },
   ].map(t => `<div style="${tileStyle()}">
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);margin-bottom:6px">${t.label}</div>
     <div style="font-size:18px">${t.val}</div>
@@ -415,10 +413,11 @@ async function loadGroupOverview(userId, group) {
   // Per-row breakdown
   const tdS = 'padding:12px 16px;border-bottom:1px solid var(--border)';
   bodyEl.innerHTML = rows.map((r, i) => {
-    const gain = r.curVal - r.invested;
-    const gainPct = r.invested > 0 ? ` (${((gain / r.invested) * 100).toFixed(1)}%)` : '';
-    const actualGain = r.curVal - r.actual;
-    const actualGainPct = r.actual > 0 ? ` (${((actualGain / r.actual) * 100).toFixed(1)}%)` : '';
+    const hasLive = r.curVal != null;
+    const gain = hasLive ? r.curVal - r.invested : null;
+    const gainPct = gain != null && r.invested > 0 ? ` (${((gain / r.invested) * 100).toFixed(1)}%)` : '';
+    const actualGain = hasLive && r.actual > 0 ? r.curVal - r.actual : null;
+    const actualGainPct = actualGain != null && r.actual > 0 ? ` (${((actualGain / r.actual) * 100).toFixed(1)}%)` : '';
     const rowBg = i % 2 === 0 ? '#fff' : 'var(--surface2)';
     const filter = group === 'Zerodha'
       ? (r.label === 'Stocks' ? 'Zerodha Stocks' : r.label === 'Mutual Funds' ? 'Mutual Funds' : 'Gold')
@@ -432,13 +431,13 @@ async function loadGroupOverview(userId, group) {
         <b>${r.label}</b>
       </td>
       <td style="${tdS};text-align:right">${INR(r.invested)}</td>
-      <td style="${tdS};text-align:right;font-weight:600">${INR(r.curVal)}</td>
-      <td style="${tdS};text-align:right;color:${gainColor(gain)};font-weight:600">
-        ${gain >= 0 ? '+' : ''}${INR(gain)}<span style="font-size:11px;color:${gainColor(gain)}">${gainPct}</span>
+      <td style="${tdS};text-align:right;font-weight:600">${hasLive ? INR(r.curVal) : '<span style="color:var(--muted2)">—</span>'}</td>
+      <td style="${tdS};text-align:right;font-weight:600;color:${gain != null ? gainColor(gain) : 'var(--muted2)'}">
+        ${gain != null ? (gain >= 0 ? '+' : '') + INR(gain) + `<span style="font-size:11px">${gainPct}</span>` : '—'}
       </td>
       <td style="${tdS};text-align:right">${r.actual > 0 ? INR(r.actual) : '<span style="color:var(--muted2)">—</span>'}</td>
-      <td style="${tdS};text-align:right;font-weight:600;color:${r.actual > 0 ? gainColor(actualGain) : 'var(--muted2)'}">
-        ${r.actual > 0 ? (actualGain >= 0 ? '+' : '') + INR(actualGain) + `<span style="font-size:11px">${actualGainPct}</span>` : '—'}
+      <td style="${tdS};text-align:right;font-weight:600;color:${actualGain != null ? gainColor(actualGain) : 'var(--muted2)'}">
+        ${actualGain != null ? (actualGain >= 0 ? '+' : '') + INR(actualGain) + `<span style="font-size:11px">${actualGainPct}</span>` : '—'}
       </td>
     </tr>`;
   }).join('');
