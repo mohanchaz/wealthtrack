@@ -339,7 +339,7 @@ async function loadGroupOverview(userId, group) {
       ? actualData.reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0)
       : actualData.reduce((s, r) => s + (+r.amount || 0), 0);
 
-    let invested = 0, curVal = 0;
+    let invested = 0, curVal = 0, investedGBP = 0, curValGBP = 0;
 
     if (sc.type === 'stock' || sc.type === 'astock') {
       const instruments = holdings.map(r => r.instrument);
@@ -392,8 +392,6 @@ async function loadGroupOverview(userId, group) {
         curVal += qty * (livePrice || +r.avg_cost || 0);
       });
     } else if (sc.type === 'foreign') {
-      // Use _foreignLiveData[symbol] populated by assets-foreign.js (live unit prices in native currency)
-      // Falls back to avg_price if live not available
       holdings.forEach(r => {
         const qty    = +r.qty || 0;
         const sym    = (r.symbol || '').toUpperCase();
@@ -405,12 +403,14 @@ async function loadGroupOverview(userId, group) {
         const factor     = isGBX ? 100 : 1;
         const rate       = isGBX ? _ovGbpInrRate : _ovUsdInrRate;
         if (!rate) return;
-        invested += (qty * avgNative / factor) * rate;
-        curVal   += (qty * curNative / factor) * rate;
+        invested    += (qty * avgNative / factor) * rate;
+        curVal      += (qty * curNative / factor) * rate;
+        // GBP: isGBX already in GBP (÷100); USD: divide by GBP/USD rate
+        const gbpRate = isGBX ? 1 : (_ovGbpUsdRate || 1);
+        investedGBP += (qty * avgNative / factor) / gbpRate;
+        curValGBP   += (qty * curNative / factor) / gbpRate;
       });
     } else if (sc.type === 'crypto') {
-      // Use _cryptoLive[ticker] populated by assets-crypto.js (live prices in GBP)
-      // Falls back to avg_price_gbp if live not available
       holdings.forEach(r => {
         const qty    = +r.qty || 0;
         const ticker = (typeof cryptoTicker === 'function') ? cryptoTicker(r.yahoo_symbol) : (r.yahoo_symbol || '').toUpperCase().replace(/-GBP$/i, '');
@@ -419,8 +419,10 @@ async function loadGroupOverview(userId, group) {
         const livePriceGBP = liveEntry ? (typeof liveEntry === 'object' ? liveEntry.price : liveEntry) : null;
         const curGBP = (livePriceGBP != null && livePriceGBP > 0) ? livePriceGBP : avgGBP;
         if (!_ovGbpInrRate) return;
-        invested += qty * avgGBP  * _ovGbpInrRate;
-        curVal   += qty * curGBP  * _ovGbpInrRate;
+        invested    += qty * avgGBP * _ovGbpInrRate;
+        curVal      += qty * curGBP * _ovGbpInrRate;
+        investedGBP += qty * avgGBP;
+        curValGBP   += qty * curGBP;
       });
     } else {
       holdings.forEach(r => {
@@ -430,15 +432,21 @@ async function loadGroupOverview(userId, group) {
       });
     }
 
-    rows.push({ ...sc, invested, curVal, actual });
+    rows.push({ ...sc, invested, curVal, actual, investedGBP, curValGBP });
   }
 
   // Totals
-  const totalInvested = rows.reduce((s, r) => s + r.invested, 0);
-  const totalCurVal   = rows.reduce((s, r) => s + r.curVal, 0);
-  const totalActual   = rows.reduce((s, r) => s + r.actual, 0);
-  const totalGain     = totalCurVal - totalInvested;
-  const totalActualGain = totalCurVal - totalActual;
+  const totalInvested    = rows.reduce((s, r) => s + r.invested, 0);
+  const totalCurVal      = rows.reduce((s, r) => s + r.curVal, 0);
+  const totalActual      = rows.reduce((s, r) => s + r.actual, 0);
+  const totalGain        = totalCurVal - totalInvested;
+  const totalActualGain  = totalCurVal - totalActual;
+  const totalInvestedGBP = rows.reduce((s, r) => s + (r.investedGBP || 0), 0);
+  const totalCurValGBP   = rows.reduce((s, r) => s + (r.curValGBP   || 0), 0);
+  const totalGainGBP     = totalCurValGBP - totalInvestedGBP;
+  const totalActualGBP   = totalActual > 0 && _ovGbpInrRate ? totalActual / _ovGbpInrRate : 0;
+  const totalActualGainGBP = totalActualGBP > 0 ? totalCurValGBP - totalActualGBP : 0;
+  const isForeignGroup   = group === 'Foreign Investments';
 
   // Update top stat cards
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -460,16 +468,40 @@ async function loadGroupOverview(userId, group) {
     return `<b style="color:${gainColor(v)}">${v >= 0 ? '+' : ''}${INR(v)}${pct}</b>`;
   };
 
-  totalsEl.innerHTML = [
-    { label: 'Total Invested', val: `<b style="color:var(--accent)">${INR(totalInvested)}</b>` },
-    { label: 'Current Value', val: `<b style="color:var(--teal)">${INR(totalCurVal)}</b>` },
-    { label: 'Gain / Loss', val: fmtGain(totalGain, totalInvested) },
-    { label: 'Actual Invested', val: totalActual > 0 ? `<b style="color:var(--green)">${INR(totalActual)}</b>` : `<span style="color:var(--muted2)">—</span>` },
-    { label: 'Actual Gain / Loss', val: totalActual > 0 ? fmtGain(totalActualGain, totalActual) : `<span style="color:var(--muted2)">—</span>` },
-  ].map(t => `<div style="${tileStyle()}">
+  const GBP = (v) => `£${Math.abs(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtGainGBP = (v, base) => {
+    const pct = base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
+    return `<b style="color:${gainColor(v)}">${v >= 0 ? '+' : '-'}${GBP(v)}${pct}</b>`;
+  };
+
+  const inrRow = [
+    { label: 'Total Invested (₹)', val: `<b style="color:var(--accent)">${INR(totalInvested)}</b>` },
+    { label: 'Current Value (₹)', val: `<b style="color:var(--teal)">${INR(totalCurVal)}</b>` },
+    { label: 'Gain / Loss (₹)', val: fmtGain(totalGain, totalInvested) },
+    { label: 'Actual Invested (₹)', val: totalActual > 0 ? `<b style="color:var(--green)">${INR(totalActual)}</b>` : `<span style="color:var(--muted2)">—</span>` },
+    { label: 'Actual Gain / Loss (₹)', val: totalActual > 0 ? fmtGain(totalActualGain, totalActual) : `<span style="color:var(--muted2)">—</span>` },
+  ];
+
+  const gbpRow = isForeignGroup ? [
+    { label: 'Total Invested (£)', val: `<b style="color:var(--accent)">${GBP(totalInvestedGBP)}</b>` },
+    { label: 'Current Value (£)', val: `<b style="color:var(--teal)">${GBP(totalCurValGBP)}</b>` },
+    { label: 'Gain / Loss (£)', val: fmtGainGBP(totalGainGBP, totalInvestedGBP) },
+    { label: 'Actual Invested (£)', val: totalActualGBP > 0 ? `<b style="color:var(--green)">${GBP(totalActualGBP)}</b>` : `<span style="color:var(--muted2)">—</span>` },
+    { label: 'Actual Gain / Loss (£)', val: totalActualGBP > 0 ? fmtGainGBP(totalActualGainGBP, totalActualGBP) : `<span style="color:var(--muted2)">—</span>` },
+  ] : null;
+
+  const renderTileRow = (tiles) => tiles.map(t => `<div style="${tileStyle()}">
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);margin-bottom:6px">${t.label}</div>
     <div style="font-size:18px">${t.val}</div>
   </div>`).join('');
+
+  totalsEl.style.display = 'flex';
+  totalsEl.style.flexDirection = 'column';
+  totalsEl.style.gap = '12px';
+  totalsEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">${renderTileRow(inrRow)}</div>
+    ${gbpRow ? `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">${renderTileRow(gbpRow)}</div>` : ''}
+  `;
 
   // Per-row breakdown
   const tdS = 'padding:12px 16px;border-bottom:1px solid var(--border)';
@@ -485,15 +517,25 @@ async function loadGroupOverview(userId, group) {
       ? (r.label === 'Stocks' ? 'Aionion Stocks' : 'Aionion Gold')
       : r.label; // Foreign Stocks, Crypto — label matches filter name directly
 
+    const gainGBP = (r.curValGBP || 0) - (r.investedGBP || 0);
+    const gainGBPPct = (r.investedGBP || 0) > 0 ? ` (${((gainGBP / r.investedGBP) * 100).toFixed(1)}%)` : '';
+    const showGBP = isForeignGroup && (r.investedGBP > 0 || r.curValGBP > 0);
     return `<tr style="background:${rowBg};cursor:pointer" class="group-overview-row" data-filter="${filter}">
       <td style="${tdS}">
         <span style="font-size:15px;margin-right:8px">${r.icon}</span>
         <b>${r.label}</b>
       </td>
-      <td style="${tdS};text-align:right">${INR(r.invested)}</td>
-      <td style="${tdS};text-align:right;font-weight:600">${INR(r.curVal)}</td>
+      <td style="${tdS};text-align:right">
+        ${INR(r.invested)}
+        ${showGBP ? `<div style="font-size:11px;color:var(--muted2)">${GBP(r.investedGBP)}</div>` : ''}
+      </td>
+      <td style="${tdS};text-align:right;font-weight:600">
+        ${INR(r.curVal)}
+        ${showGBP ? `<div style="font-size:11px;color:var(--muted2)">${GBP(r.curValGBP)}</div>` : ''}
+      </td>
       <td style="${tdS};text-align:right;font-weight:600;color:${gainColor(gain)}">
         ${gain >= 0 ? '+' : ''}${INR(gain)}<span style="font-size:11px">${gainPct}</span>
+        ${showGBP ? `<div style="font-size:11px;color:${gainColor(gainGBP)}">${gainGBP >= 0 ? '+' : ''}${GBP(gainGBP)}${gainGBPPct}</div>` : ''}
       </td>
       <td style="${tdS};text-align:right">${r.actual > 0 ? INR(r.actual) : '<span style="color:var(--muted2)">—</span>'}</td>
       <td style="${tdS};text-align:right;font-weight:600;color:${r.actual > 0 ? gainColor(actualGain) : 'var(--muted2)'}">
