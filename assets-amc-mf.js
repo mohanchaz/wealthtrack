@@ -339,6 +339,7 @@ document.addEventListener('fragments-loaded', () => {
     document.getElementById('amcmf-bulk-confirm').style.display = 'none';
     document.querySelectorAll('.amcmfai-cb-wrap').forEach(function(c) { c.style.display = 'none'; });
     document.querySelectorAll('.amcmfai-cb').forEach(function(c) { c.checked = false; });
+    var saExitEl = document.getElementById('amcmf-select-all'); if (saExitEl) { saExitEl.checked = false; saExitEl.indeterminate = false; }
     _upd();
   }
 
@@ -348,7 +349,12 @@ document.addEventListener('fragments-loaded', () => {
     var delBtn = document.getElementById('amcmf-bulk-delete');
     if (countEl) countEl.textContent = n + ' selected';
     if (delBtn) delBtn.disabled = n === 0;
+    var saEl = document.getElementById('amcmf-select-all');
+    if (saEl) { var tot = document.querySelectorAll('.amcmfai-cb').length; saEl.checked = tot > 0 && n === tot; saEl.indeterminate = n > 0 && n < tot; }
   }
+    var allSaEl = document.getElementById('amcmf-select-all');
+    var total = document.querySelectorAll('.amcmfai-cb').length;
+    if (allSaEl) allSaEl.indeterminate = n > 0 && n < total, allSaEl.checked = total > 0 && n === total;
 
 
     function _wireListeners() {
@@ -356,6 +362,15 @@ document.addEventListener('fragments-loaded', () => {
         if (_sel) _exit(); else _enter();
       });
       document.getElementById('amcmf-bulk-cancel')?.addEventListener('click', _exit);
+    document.getElementById('amcmf-select-all')?.addEventListener('change', function() {
+      document.querySelectorAll('.amcmfai-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
+      _upd();
+    });
+    document.getElementById('amcmf-select-all')?.addEventListener('change', function() {
+      var checked = this.checked;
+      document.querySelectorAll('.amcmfai-cb').forEach(function(cb) { cb.checked = checked; });
+      _upd();
+    });
 
     document.getElementById('amcmf-bulk-delete')?.addEventListener('click', function() {
       var n = document.querySelectorAll('.amcmfai-cb:checked').length;

@@ -169,6 +169,7 @@ document.addEventListener('fragments-loaded', () => {
     document.getElementById('fd-bulk-confirm').style.display = 'none';
     document.querySelectorAll('.fdi-cb-wrap').forEach(function(c) { c.style.display = 'none'; });
     document.querySelectorAll('.fdi-cb').forEach(function(c) { c.checked = false; });
+    var saExitEl = document.getElementById('fd-select-all'); if (saExitEl) { saExitEl.checked = false; saExitEl.indeterminate = false; }
     _upd();
   }
 
@@ -178,6 +179,8 @@ document.addEventListener('fragments-loaded', () => {
     var delBtn = document.getElementById('fd-bulk-delete');
     if (countEl) countEl.textContent = n + ' selected';
     if (delBtn) delBtn.disabled = n === 0;
+    var saEl = document.getElementById('fd-select-all');
+    if (saEl) { var tot = document.querySelectorAll('.fdi-cb').length; saEl.checked = tot > 0 && n === tot; saEl.indeterminate = n > 0 && n < tot; }
   }
 
   document.addEventListener('fragments-loaded', function () {
@@ -185,6 +188,10 @@ document.addEventListener('fragments-loaded', () => {
       if (_sel) _exit(); else _enter();
     });
     document.getElementById('fd-bulk-cancel')?.addEventListener('click', _exit);
+    document.getElementById('fd-select-all')?.addEventListener('change', function() {
+      document.querySelectorAll('.fdi-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
+      _upd();
+    });
 
     document.getElementById('fd-bulk-delete')?.addEventListener('click', function() {
       var n = document.querySelectorAll('.fdi-cb:checked').length;

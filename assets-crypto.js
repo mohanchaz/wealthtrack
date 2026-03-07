@@ -642,6 +642,9 @@ document.addEventListener('fragments-loaded', () => {
       if (_sel) _exit(); else _enter();
     });
     document.getElementById('crypto-bulk-cancel')?.addEventListener('click', _exit);
+    document.getElementById('crypto-select-all')?.addEventListener('change', function() {
+      document.querySelectorAll('.cai-cb').forEach(function(cb) { cb.checked = this.checked; }, this); _upd();
+    });
 
     document.getElementById('crypto-select-all')?.addEventListener('change', function () {
       var toCheck = this.checked;

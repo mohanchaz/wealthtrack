@@ -569,10 +569,19 @@ document.addEventListener('fragments-loaded', () => {
       var delBtn  = document.getElementById('mf-bulk-delete');
       if (countEl) countEl.textContent = n + ' selected';
       if (delBtn)  delBtn.disabled = n === 0;
+      var saEl = document.getElementById('mf-select-all'); if (saEl) { var tot=document.querySelectorAll('.mfai-cb').length; saEl.checked=tot>0&&n===tot; saEl.indeterminate=n>0&&n<tot; }
     }
 
     document.getElementById('mf-select-btn')?.addEventListener('click', () => { if (_sel) _exit(); else _enter(); });
     document.getElementById('mf-bulk-cancel')?.addEventListener('click', _exit);
+    document.getElementById('mf-select-all')?.addEventListener('change', function() {
+      document.querySelectorAll('.mfai-cb').forEach(function(cb) { cb.checked = this.checked; }, this); _upd();
+    });
+    document.getElementById('mf-select-all')?.addEventListener('change', function() {
+      var checked = this.checked;
+      document.querySelectorAll('.mfai-cb').forEach(function(cb) { cb.checked = checked; });
+      _upd();
+    });
 
     document.getElementById('mf-bulk-delete')?.addEventListener('click', () => {
       var n = document.querySelectorAll('.mfai-cb:checked').length;

@@ -170,6 +170,7 @@ document.addEventListener('fragments-loaded', () => {
     document.getElementById('ef-bulk-confirm').style.display = 'none';
     document.querySelectorAll('.efi-cb-wrap').forEach(function(c) { c.style.display = 'none'; });
     document.querySelectorAll('.efi-cb').forEach(function(c) { c.checked = false; });
+    var saExitEl = document.getElementById('ef-select-all'); if (saExitEl) { saExitEl.checked = false; saExitEl.indeterminate = false; }
     _upd();
   }
 
@@ -179,6 +180,8 @@ document.addEventListener('fragments-loaded', () => {
     var delBtn = document.getElementById('ef-bulk-delete');
     if (countEl) countEl.textContent = n + ' selected';
     if (delBtn) delBtn.disabled = n === 0;
+    var saEl = document.getElementById('ef-select-all');
+    if (saEl) { var tot = document.querySelectorAll('.efi-cb').length; saEl.checked = tot > 0 && n === tot; saEl.indeterminate = n > 0 && n < tot; }
   }
 
   document.addEventListener('fragments-loaded', function () {
@@ -186,6 +189,10 @@ document.addEventListener('fragments-loaded', () => {
       if (_sel) _exit(); else _enter();
     });
     document.getElementById('ef-bulk-cancel')?.addEventListener('click', _exit);
+    document.getElementById('ef-select-all')?.addEventListener('change', function() {
+      document.querySelectorAll('.efi-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
+      _upd();
+    });
 
     document.getElementById('ef-bulk-delete')?.addEventListener('click', function() {
       var n = document.querySelectorAll('.efi-cb:checked').length;
