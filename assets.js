@@ -405,27 +405,6 @@ async function loadAssets(userId, filter = null) {
 
   tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
 
-  // Always reset special rows/panels/buttons before branching — prevents bleed-through
-  document.getElementById('foreign-inr-row')?.classList.add('hidden');
-  document.getElementById('foreign-gbp-row')?.classList.add('hidden');
-  document.getElementById('crypto-inr-row')?.classList.add('hidden');
-  document.getElementById('crypto-gbp-row')?.classList.add('hidden');
-  ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
-   'aionion-gold-monthly-summary', 'ef-monthly-summary', 'mf-monthly-summary',
-   'gold-monthly-summary', 'amc-mf-monthly-summary', 'foreign-monthly-summary',
-   'crypto-monthly-summary'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
-  ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf', 'foreign'].forEach(p => {
-    document.getElementById(p + '-import-btn')?.classList.add('hidden');
-    document.getElementById(p + '-refresh-btn')?.classList.add('hidden');
-    document.getElementById(p + '-last-updated')?.classList.add('hidden');
-  });
-  document.getElementById('crypto-import-btn')?.classList.add('hidden');
-  document.getElementById('crypto-refresh-btn')?.classList.add('hidden');
-  document.getElementById('crypto-last-updated')?.classList.add('hidden');
-  document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
-  document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
-  document.getElementById('generic-summary-row')?.classList.add('hidden');
-
   // Update subtitle
   const subtitle = document.querySelector('#page-assets .page-subtitle');
 
@@ -752,6 +731,27 @@ async function loadAssets(userId, filter = null) {
     return;
   }
 
+  // Reset ALL UI chrome before branching — prevents bleed-through when switching between pages
+  document.getElementById('foreign-inr-row')?.classList.add('hidden');
+  document.getElementById('foreign-gbp-row')?.classList.add('hidden');
+  document.getElementById('crypto-inr-row')?.classList.add('hidden');
+  document.getElementById('crypto-gbp-row')?.classList.add('hidden');
+  document.getElementById('generic-summary-row')?.classList.add('hidden');
+  document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
+  document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
+  ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
+   'aionion-gold-monthly-summary', 'ef-monthly-summary', 'mf-monthly-summary',
+   'gold-monthly-summary', 'amc-mf-monthly-summary', 'foreign-monthly-summary',
+   'crypto-monthly-summary'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf', 'foreign'].forEach(p => {
+    document.getElementById(p + '-import-btn')?.classList.add('hidden');
+    document.getElementById(p + '-refresh-btn')?.classList.add('hidden');
+    document.getElementById(p + '-last-updated')?.classList.add('hidden');
+  });
+  document.getElementById('crypto-import-btn')?.classList.add('hidden');
+  document.getElementById('crypto-refresh-btn')?.classList.add('hidden');
+  document.getElementById('crypto-last-updated')?.classList.add('hidden');
+
   _currentAssetTable = tableName;
   _currentAssetFilter = filter;
   if (subtitle) subtitle.textContent = `💵 ${filter}`;
@@ -762,10 +762,6 @@ async function loadAssets(userId, filter = null) {
   if (tableName === 'crypto_holdings') {
     document.getElementById('assets-layout-row')?.classList.remove('hidden');
     document.getElementById('group-overview-panel')?.classList.add('hidden');
-    // Hide generic summary row and foreign rows — crypto uses its own rows only
-    document.getElementById('generic-summary-row')?.classList.add('hidden');
-    document.getElementById('foreign-inr-row')?.classList.add('hidden');
-    document.getElementById('foreign-gbp-row')?.classList.add('hidden');
     document.getElementById('crypto-inr-row')?.classList.remove('hidden');
     document.getElementById('crypto-gbp-row')?.classList.remove('hidden');
     document.getElementById('select-btn-row')?.classList.add('hidden');
@@ -773,11 +769,6 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('crypto-refresh-btn')?.classList.remove('hidden');
     document.getElementById('crypto-last-updated')?.classList.remove('hidden');
     if (addBtn) addBtn.classList.add('hidden');
-    ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
-      'aionion-gold-monthly-summary', 'mf-monthly-summary', 'gold-monthly-summary',
-      'amc-mf-monthly-summary', 'ef-monthly-summary', 'foreign-monthly-summary'].forEach(id =>
-        document.getElementById(id)?.classList.add('hidden')
-    );
     loadCryptoHoldings(userId);
     loadCryptoActualInvested(userId);
     return;
@@ -787,22 +778,13 @@ async function loadAssets(userId, filter = null) {
   if (tableName === 'foreign_stock_holdings') {
     document.getElementById('assets-layout-row')?.classList.remove('hidden');
     document.getElementById('group-overview-panel')?.classList.add('hidden');
+    document.getElementById('foreign-inr-row')?.classList.remove('hidden');
+    document.getElementById('foreign-gbp-row')?.classList.remove('hidden');
     document.getElementById('select-btn-row')?.classList.add('hidden');
     document.getElementById('foreign-import-btn')?.classList.remove('hidden');
     document.getElementById('foreign-refresh-btn')?.classList.remove('hidden');
     document.getElementById('foreign-last-updated')?.classList.remove('hidden');
-    document.getElementById('foreign-inr-row')?.classList.remove('hidden');
-    document.getElementById('foreign-gbp-row')?.classList.remove('hidden');
     if (addBtn) addBtn.classList.add('hidden');
-    // Hide Actual Invested stat cards + all right-panel monthly summaries
-    // (they may be left visible from a previously visited category such as AMC MF)
-    document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
-    document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
-    ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
-      'aionion-gold-monthly-summary', 'mf-monthly-summary', 'gold-monthly-summary',
-      'amc-mf-monthly-summary', 'ef-monthly-summary', 'foreign-monthly-summary'].forEach(id =>
-        document.getElementById(id)?.classList.add('hidden')
-      );
     document.querySelector('.assets-table')?.classList.add('foreign-compact');
     loadForeignStocks(userId);
     loadForeignActualInvested(userId);
