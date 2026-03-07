@@ -1203,9 +1203,32 @@ function renderAssetsTable(assets, tableName) {
 
   // Update thead dynamically
   if (thead) {
+    // Column width hints for fixed-layout stock tables (prevents horizontal scroll)
+    const stockColWidths = {
+      instrument: '72px', _name: '0', _name_width: 'auto',
+      qty: '40px', _qty_diff: '52px', avg_cost: '70px',
+      _ltp: '70px', _live_nav: '70px', invested: '80px',
+      current_value: '80px', _alloc_pct: '62px',
+      fund_name: '0', fund_name_width: 'auto',
+      holding_name: '0', holding_name_width: 'auto',
+      holding_type: '50px', yahoo_symbol: '60px',
+      platform: '70px', folio_number: '80px',
+    };
+    const isStockTbl = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' ||
+      tableName === 'aionion_gold' || tableName === 'mf_holdings' ||
+      tableName === 'gold_holdings' || tableName === 'amc_mf_holdings';
+
+    // Add bulk-check-cell th (hidden) + col ths + Gain + edit
     thead.innerHTML =
-      cols.map(c => `<th${c.align ? ` style="text-align:${c.align}"` : ''}>${c.label}</th>`).join('') +
-      `<th style="text-align:right">Gain / Loss</th><th></th>`;
+      `<th class="bulk-check-cell" style="width:32px;padding:0 8px;display:none"></th>` +
+      cols.map(c => {
+        const w = isStockTbl && stockColWidths[c.key] ? `width:${stockColWidths[c.key]};` : '';
+        const nameCol = c.key === '_name' || c.key === 'fund_name' || c.key === 'holding_name' || c.key === '_name';
+        const align = c.align ? `text-align:${c.align};` : '';
+        const wrap = nameCol ? 'overflow:hidden;text-overflow:ellipsis;max-width:120px;' : '';
+        return `<th style="${w}${align}${wrap}">${c.label}</th>`;
+      }).join('') +
+      `<th style="text-align:right;width:130px">Gain / Loss</th><th style="width:32px"></th>`;
   }
 
   // Summary stats
@@ -1344,9 +1367,12 @@ function renderAssetsTable(assets, tableName) {
       if (c.fw) style += `font-weight:${c.fw};`;
       if (c.mono) style += 'font-family:monospace;font-size:12px;';
       // For MF fund_name: show ticker symbol below the name
+      const isNameCol = c.key === '_name' || c.key === 'fund_name' || c.key === 'holding_name';
       let inner;
       if (tableName === 'mf_holdings' && c.key === 'fund_name' && row._ticker) {
-        inner = `<span style="display:flex;flex-direction:column;gap:1px"><b>${val}</b><span style="font-size:10.5px;color:var(--muted2);font-weight:400">${row._ticker}</span></span>`;
+        inner = `<span style="display:flex;flex-direction:column;gap:1px"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px" title="${val}">${val}</b><span style="font-size:10.5px;color:var(--muted2);font-weight:400">${row._ticker}</span></span>`;
+      } else if (isNameCol) {
+        inner = `<span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;color:var(--muted2);font-size:11px" title="${val}">${val}</span>`;
       } else {
         inner = c.bold ? `<b>${val}</b>` : val;
       }
