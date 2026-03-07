@@ -426,7 +426,7 @@ async function loadGroupOverview(userId, group) {
         <b>${r.label}</b>
       </td>
       <td style="${tdS};text-align:right">${INR(r.invested)}</td>
-      <td style="${tdS};text-align:right;font-weight:600">${hasLive ? INR(r.curVal) : '<span style="color:var(--muted2)">—</span>'}</td>
+      <td style="${tdS};text-align:right;font-weight:600">${INR(r.curVal)}</td>
       <td style="${tdS};text-align:right;font-weight:600;color:${gainColor(gain)}">
         ${gain >= 0 ? '+' : ''}${INR(gain)}<span style="font-size:11px">${gainPct}</span>
       </td>
