@@ -44,6 +44,25 @@ document.addEventListener('fragments-loaded', () => {
     }
   });
 
+  // ── Email / Password Login ────────────────────────────────────
+  document.getElementById('email-login-btn')?.addEventListener('click', async () => {
+    const email    = document.getElementById('login-email')?.value.trim();
+    const password = document.getElementById('login-password')?.value;
+    const errEl    = document.getElementById('email-login-error');
+    const btn      = document.getElementById('email-login-btn');
+    if (!email || !password) {
+      errEl.textContent = 'Please enter email and password.';
+      errEl.style.display = 'block'; return;
+    }
+    btn.textContent = 'Signing in…'; btn.disabled = true; errEl.style.display = 'none';
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    btn.textContent = 'Sign in with Email'; btn.disabled = false;
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; }
+  });
+  document.getElementById('login-password')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('email-login-btn')?.click();
+  });
+
   // ── Logout ───────────────────────────────────────────────────
   getLogoutBtn().addEventListener('click', async () => {
     await sb.auth.signOut();

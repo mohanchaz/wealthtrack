@@ -42,6 +42,24 @@
 
         <div class="signin-divider">
           <div class="signin-divider-line"></div>
+          <span>OR</span>
+          <div class="signin-divider-line"></div>
+        </div>
+
+        <div id="email-login-form" style="display:flex;flex-direction:column;gap:10px;width:100%">
+          <input id="login-email" type="email" placeholder="Email address"
+            style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text);outline:none;box-sizing:border-box" />
+          <input id="login-password" type="password" placeholder="Password"
+            style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text);outline:none;box-sizing:border-box" />
+          <button id="email-login-btn"
+            style="width:100%;padding:11px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:0.3px">
+            Sign in with Email
+          </button>
+          <p id="email-login-error" style="display:none;font-size:12px;color:#ef4444;text-align:center;margin:0"></p>
+        </div>
+
+        <div class="signin-divider">
+          <div class="signin-divider-line"></div>
           <span>SECURE</span>
           <div class="signin-divider-line"></div>
         </div>
