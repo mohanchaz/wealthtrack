@@ -700,14 +700,12 @@ a {
 }
 
 .sidebar-sub-group {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   margin-left: 12px;
+  display: none;
 }
 
 .sidebar-sub-group.open {
-  max-height: 1200px;
+  display: block;
 }
 
 .sidebar-sub-item {
