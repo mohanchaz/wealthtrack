@@ -351,10 +351,11 @@ document.addEventListener('fragments-loaded', () => {
   }
 
 
-    document.getElementById('amcmf-select-btn')?.addEventListener('click', function() {
-      if (_sel) _exit(); else _enter();
-    });
-    document.getElementById('amcmf-bulk-cancel')?.addEventListener('click', _exit);
+    function _wireListeners() {
+      document.getElementById('amcmf-select-btn')?.addEventListener('click', function() {
+        if (_sel) _exit(); else _enter();
+      });
+      document.getElementById('amcmf-bulk-cancel')?.addEventListener('click', _exit);
 
     document.getElementById('amcmf-bulk-delete')?.addEventListener('click', function() {
       var n = document.querySelectorAll('.amcmfai-cb:checked').length;
@@ -364,10 +365,16 @@ document.addEventListener('fragments-loaded', () => {
       document.getElementById('amcmf-bulk-confirm-count').textContent = n === 1 ? '1 entry' : n + ' entries';
     });
 
-    document.getElementById('amcmf-bulk-no')?.addEventListener('click', function() {
-      document.getElementById('amcmf-bulk-normal').style.display = 'flex';
-      document.getElementById('amcmf-bulk-confirm').style.display = 'none';
-    });
+      document.getElementById('amcmf-bulk-no')?.addEventListener('click', function() {
+        document.getElementById('amcmf-bulk-normal').style.display = 'flex';
+        document.getElementById('amcmf-bulk-confirm').style.display = 'none';
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('fragments-loaded', _wireListeners);
+    } else {
+      document.addEventListener('fragments-loaded', _wireListeners);
+    }
 
     document.getElementById('amcmf-bulk-yes')?.addEventListener('click', async function() {
       var checked = [...document.querySelectorAll('.amcmfai-cb:checked')];
@@ -397,4 +404,4 @@ document.addEventListener('fragments-loaded', () => {
     });
     if (_sel) _upd();
   };
-})();
+  })();
