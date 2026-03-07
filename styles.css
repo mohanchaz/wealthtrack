@@ -634,10 +634,9 @@ a {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  position: sticky;
-  top: 58px;
-  height: calc(100vh - 58px);
+  height: 100%;
   overflow-y: auto;
+  scroll-behavior: auto;
 }
 
 .sidebar-section-label {

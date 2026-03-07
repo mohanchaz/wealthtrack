@@ -399,10 +399,6 @@ function navigateTo(pageId, assetFilter = null) {
     if (el) el.classList.add('hidden');
   });
 
-  // Reset sidebar scroll to top on every navigation
-  const sidebar = document.querySelector('.dash-sidebar');
-  if (sidebar) sidebar.scrollTop = 0;
-
   // Show target page
   const target = document.getElementById(pageId);
   if (target) {
