@@ -1213,16 +1213,16 @@ function renderAssetsTable(assets, tableName) {
 
     const thS = 'padding:6px 8px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap;';
 
-    // Column widths for stock tables
+    // Column max-widths for stock tables (auto layout — browser sizes naturally)
     const colW = {
-      instrument: '130px',   // wider — will hold symbol + company name subtitle
-      fund_name:  '180px',   // MF fund name + ticker
-      holding_name: '140px',
-      qty: '44px', _qty_diff: '58px',
-      avg_cost: '74px', _ltp: '74px', _live_nav: '74px',
-      invested: '86px', current_value: '86px',
-      _alloc_pct: '80px',
-      holding_type: '52px', platform: '72px', folio_number: '82px',
+      instrument: '150px',
+      fund_name:  '200px',
+      holding_name: '150px',
+      qty: '50px', _qty_diff: '65px',
+      avg_cost: '80px', _ltp: '80px', _live_nav: '80px',
+      invested: '95px', current_value: '95px',
+      _alloc_pct: '110px',
+      holding_type: '60px', platform: '80px', folio_number: '90px',
     };
 
     const visibleCols = isStockTbl ? cols.filter(c => !MERGE_INTO_PREV.has(c.key)) : cols;
@@ -1230,11 +1230,11 @@ function renderAssetsTable(assets, tableName) {
     thead.innerHTML =
       `<th class="bulk-check-cell" style="width:32px;padding:0 8px;display:none"></th>` +
       visibleCols.map(c => {
-        const w = isStockTbl && colW[c.key] ? `width:${colW[c.key]};` : '';
+        const w = isStockTbl && colW[c.key] ? `max-width:${colW[c.key]};` : '';
         const align = c.align ? `text-align:${c.align};` : '';
         return `<th style="${thS}${w}${align}">${c.label}</th>`;
       }).join('') +
-      `<th style="${thS}text-align:right;min-width:130px">Gain / Loss</th><th style="width:36px"></th>`;
+      `<th style="${thS}text-align:right;white-space:nowrap">Gain / Loss</th><th style="width:36px"></th>`;
   }
 
   // Summary stats
