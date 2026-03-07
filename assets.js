@@ -243,11 +243,14 @@ async function loadGroupOverview(userId, group) {
     if (sc.type === 'crypto') return sb.from(sc.table).select('qty, avg_price_gbp').eq('user_id', userId);
     return sb.from(sc.table).select('qty, avg_cost, instrument').eq('user_id', userId);
   });
-  const actualQueries = subCats.map(sc =>
-    sc.actualTable
-      ? sb.from(sc.actualTable).select('amount, gbp_amount, inr_rate').eq('user_id', userId)
-      : Promise.resolve({ data: [] })
-  );
+  const actualQueries = subCats.map(sc => {
+    if (!sc.actualTable) return Promise.resolve({ data: [] });
+    // foreign/crypto tables have gbp_amount+inr_rate; all others have amount
+    const cols = (sc.type === 'foreign' || sc.type === 'crypto')
+      ? 'gbp_amount, inr_rate'
+      : 'amount';
+    return sb.from(sc.actualTable).select(cols).eq('user_id', userId);
+  });
 
   const [holdingsResults, actualResults] = await Promise.all([
     Promise.all(holdingsQueries),
