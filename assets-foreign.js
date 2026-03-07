@@ -58,6 +58,7 @@ function renderForeignStocks(rows) {
 
   if (thead) {
     thead.innerHTML = `
+      <th style="width:32px;padding:0 8px" class="bulk-check-cell" style="display:none"></th>
       <th style="${thL}">Symbol</th>
       <th style="${thL}">Name</th>
       <th style="${thS}">Qty</th>
@@ -124,6 +125,10 @@ function renderForeignStocks(rows) {
     const stockName = live?.name || '—';
 
     return `<tr data-id="${r.id}" style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
+      <td class="bulk-check-cell" style="width:32px;padding:0 8px;display:none">
+        <input type="checkbox" class="asset-row-checkbox" data-id="${r.id}" data-table="foreign_stock_holdings"
+          style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">
+      </td>
       <td style="${td};font-weight:700">${r.symbol}</td>
       <td style="${td};color:var(--muted2);font-size:11px;max-width:90px;overflow:hidden;text-overflow:ellipsis" title="${live?.name || ''}">${stockName}</td>
       <td style="${tdr}">${(+r.qty).toFixed(4)}</td>
@@ -150,6 +155,17 @@ function renderForeignStocks(rows) {
       if (row) openForeignEditModal(row);
     });
   });
+
+  // Wire checkboxes for main table select mode
+  tbody.querySelectorAll('.asset-row-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (typeof updateBulkBar === 'function') updateBulkBar();
+    });
+  });
+  // If select mode is active, keep checkboxes visible after re-render
+  if (document.getElementById('bulk-delete-bar') && !document.getElementById('bulk-delete-bar').classList.contains('hidden')) {
+    tbody.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = '');
+  }
 
   // Summary stats — convert USD totals to GBP if rate available
   const totalInvGBPAll = totalInvGBP + (_gbpUsdRate ? totalInvUSD / _gbpUsdRate : 0);

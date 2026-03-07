@@ -30,6 +30,7 @@ function renderCryptoHoldings(rows) {
 
   if (thead) {
     thead.innerHTML = `
+      <th style="${thL}" class="bulk-check-cell" style="width:32px;padding:0 8px;display:none"></th>
       <th style="${thL}">Coin</th>
       <th style="${thL}">Platform</th>
       <th style="${thR}">Qty</th>
@@ -94,6 +95,10 @@ function renderCryptoHoldings(rows) {
       : `${gain >= 0 ? '+' : ''}£${gain.toFixed(2)}<span style="font-size:10px">${gainPct}</span>`;
 
     return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
+      <td class="bulk-check-cell" style="width:32px;padding:0 8px;display:none">
+        <input type="checkbox" class="asset-row-checkbox" data-id="${r.id}" data-table="crypto_holdings"
+          style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">
+      </td>
       <td style="${td}">
         <div style="font-weight:700">${ticker}</div>
         <div style="font-size:10px;color:var(--muted2)">${r.yahoo_symbol}</div>
@@ -120,6 +125,17 @@ function renderCryptoHoldings(rows) {
       if (row) openCryptoEditModal(row);
     });
   });
+
+  // Wire checkboxes for main table select mode
+  tbody.querySelectorAll('.asset-row-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (typeof updateBulkBar === 'function') updateBulkBar();
+    });
+  });
+  // If select mode is active, keep checkboxes visible after re-render
+  if (document.getElementById('bulk-delete-bar') && !document.getElementById('bulk-delete-bar').classList.contains('hidden')) {
+    tbody.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = '');
+  }
 
   // Summary cards
   const hasPrices    = Object.keys(_cryptoLive).length > 0;

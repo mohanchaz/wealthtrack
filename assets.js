@@ -1166,15 +1166,8 @@ function renderAssetsTable(assets, tableName) {
   });
 
   // ── Checkbox change listener ──────────────────────────────
-  function updateBulkCount() {
-    const checked = tbody.querySelectorAll('.asset-row-checkbox:checked').length;
-    const countEl = document.getElementById('bulk-delete-count');
-    const confirmBtn = document.getElementById('bulk-delete-confirm-btn');
-    if (countEl) countEl.textContent = checked + ' selected';
-    if (confirmBtn) confirmBtn.disabled = checked === 0;
-  }
   tbody.querySelectorAll('.asset-row-checkbox').forEach(cb => {
-    cb.addEventListener('change', updateBulkCount);
+    cb.addEventListener('change', () => { if (typeof updateBulkBar === 'function') updateBulkBar(); });
   });
 }
 
@@ -1340,19 +1333,34 @@ document.addEventListener('fragments-loaded', () => {
     document.getElementById('bulk-confirm-state').style.display = 'none';
     document.querySelectorAll('.bulk-check-cell').forEach(c => c.style.display = 'none');
     document.querySelectorAll('.asset-row-checkbox').forEach(c => c.checked = false);
+    const sa = document.getElementById('main-select-all');
+    if (sa) { sa.checked = false; sa.indeterminate = false; }
     updateBulkBar();
   }
 
   function updateBulkBar() {
-    const checked = document.querySelectorAll('.asset-row-checkbox:checked').length;
+    const all     = document.querySelectorAll('.asset-row-checkbox');
+    const checked = document.querySelectorAll('.asset-row-checkbox:checked');
+    const n = checked.length;
     const countEl = document.getElementById('bulk-delete-count');
     const confirmBtn = document.getElementById('bulk-delete-confirm-btn');
-    if (countEl) countEl.textContent = checked + ' selected';
-    if (confirmBtn) confirmBtn.disabled = checked === 0;
+    if (countEl) countEl.textContent = n + ' selected';
+    if (confirmBtn) confirmBtn.disabled = n === 0;
+    const sa = document.getElementById('main-select-all');
+    if (sa) {
+      sa.indeterminate = n > 0 && n < all.length;
+      sa.checked = all.length > 0 && n === all.length;
+    }
   }
+  window.updateBulkBar = updateBulkBar;
 
   document.getElementById('select-assets-btn')?.addEventListener('click', () => {
     if (_selectMode) exitSelectMode(); else enterSelectMode();
+  });
+
+  document.getElementById('main-select-all')?.addEventListener('change', function () {
+    document.querySelectorAll('.asset-row-checkbox').forEach(cb => { cb.checked = this.checked; });
+    updateBulkBar();
   });
 
   document.getElementById('bulk-cancel-btn')?.addEventListener('click', exitSelectMode);
