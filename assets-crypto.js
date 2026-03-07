@@ -437,7 +437,7 @@ function renderCryptoActualInvested(rows) {
   // Total Invested (₹) = sum of holdings qty × avg_price_gbp × rate (from _cryptoRows)
   // This is different from totalGBP which is actual_invested entries sum
   const holdingsInvGBP = (_cryptoRows || []).reduce((s, r) => s + ((+r.qty || 0) * (+r.avg_price_gbp || 0)), 0);
-  const totalInvINR = holdingsInvGBP > 0 ? holdingsInvGBP * (weightedInrRate || liveRate) : 0;
+  const totalInvINR = holdingsInvGBP > 0 ? holdingsInvGBP * (liveRate || weightedInrRate) : 0;
 
   if (totalInvINR > 0 || totalINR > 0) {
     setEl('crypto-total-inv-inr', INR(totalInvINR || totalINR));
