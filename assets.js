@@ -745,6 +745,7 @@ async function loadAssets(userId, filter = null) {
     document.querySelectorAll('.assets-summary-row').forEach(el => el.classList.add('hidden'));
     document.getElementById('foreign-inr-row')?.classList.add('hidden');
     document.getElementById('foreign-gbp-row')?.classList.add('hidden');
+    document.getElementById('crypto-inr-row')?.classList.remove('hidden');
     document.getElementById('crypto-gbp-row')?.classList.remove('hidden');
     document.getElementById('select-btn-row')?.classList.add('hidden');
     document.getElementById('crypto-import-btn')?.classList.remove('hidden');
@@ -861,6 +862,7 @@ function renderAssetsTable(assets, tableName) {
   // Hide Foreign Stocks extra rows (only shown when tableName === 'foreign_stock_holdings')
   document.getElementById('foreign-inr-row')?.classList.add('hidden');
   document.getElementById('foreign-gbp-row')?.classList.add('hidden');
+  document.getElementById('crypto-inr-row')?.classList.add('hidden');
   document.getElementById('crypto-gbp-row')?.classList.add('hidden');
 
   // Reset select mode on every new table load
