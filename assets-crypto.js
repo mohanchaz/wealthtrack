@@ -413,8 +413,12 @@ function renderCryptoActualInvested(rows) {
 
   // ── GBP tiles ──
   setEl('crypto-actual-inv-gbp', totalGBP > 0 ? '£' + totalGBP.toFixed(2) : '—');
-  const curValEl = document.getElementById('crypto-total-val-gbp');
-  const curGBP = curValEl ? parseFloat(curValEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
+  // Compute current GBP value directly from holdings × live prices (don't read from DOM)
+  const curGBP = (_cryptoRows || []).reduce((s, r) => {
+    const ticker = cryptoTicker(r.yahoo_symbol);
+    const live = _cryptoLive[ticker];
+    return live ? s + ((+r.qty || 0) * live.price) : s;
+  }, 0);
   if (totalGBP > 0 && curGBP > 0) {
     const gain = curGBP - totalGBP;
     const pct = ` (${((gain / totalGBP) * 100).toFixed(1)}%)`;
@@ -430,9 +434,10 @@ function renderCryptoActualInvested(rows) {
   // _liveGbpInrRate is set by fetchAndRefreshCryptoPrices via GBPUSD=X × USDINR=X
   const liveRate = _liveGbpInrRate || weightedInrRate;  // fallback to historical if live unavailable
 
-  // Total Invested (₹) = totalInvGBP (all holdings) × historical weighted rate (cost basis)
-  // Actual Invested (₹) = actual cash put in = sum of gbp_amount × inr_rate per entry
-  const totalInvINR = totalGBP > 0 ? totalGBP * weightedInrRate : 0;
+  // Total Invested (₹) = sum of holdings qty × avg_price_gbp × rate (from _cryptoRows)
+  // This is different from totalGBP which is actual_invested entries sum
+  const holdingsInvGBP = (_cryptoRows || []).reduce((s, r) => s + ((+r.qty || 0) * (+r.avg_price_gbp || 0)), 0);
+  const totalInvINR = holdingsInvGBP > 0 ? holdingsInvGBP * (weightedInrRate || liveRate) : 0;
 
   if (totalInvINR > 0 || totalINR > 0) {
     setEl('crypto-total-inv-inr', INR(totalInvINR || totalINR));
