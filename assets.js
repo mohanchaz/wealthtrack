@@ -405,11 +405,15 @@ async function loadAssets(userId, filter = null) {
 
   tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
 
-  // Always reset all special summary rows before showing the right ones
+  // Always reset all special summary rows and monthly panels before showing the right ones
   document.getElementById('foreign-inr-row')?.classList.add('hidden');
   document.getElementById('foreign-gbp-row')?.classList.add('hidden');
   document.getElementById('crypto-inr-row')?.classList.add('hidden');
   document.getElementById('crypto-gbp-row')?.classList.add('hidden');
+  ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
+   'aionion-gold-monthly-summary', 'ef-monthly-summary', 'mf-monthly-summary',
+   'gold-monthly-summary', 'amc-mf-monthly-summary', 'foreign-monthly-summary',
+   'crypto-monthly-summary'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
 
   // Update subtitle
   const subtitle = document.querySelector('#page-assets .page-subtitle');
