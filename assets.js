@@ -201,7 +201,7 @@ async function loadGroupOverview(userId, group) {
   document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
   document.getElementById('select-btn-row')?.classList.add('hidden');
   document.getElementById('bulk-delete-bar')?.classList.add('hidden');
-  document.querySelector('.assets-summary-row')?.classList.add('hidden');
+  document.getElementById('generic-summary-row')?.classList.add('hidden');
   ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf', 'foreign'].forEach(p => {
     document.getElementById(`${p}-import-btn`)?.classList.add('hidden');
     document.getElementById(`${p}-refresh-btn`)?.classList.add('hidden');
@@ -418,7 +418,7 @@ async function loadAssets(userId, filter = null) {
     // Show group overview panel, hide table layout
     document.getElementById('assets-layout-row')?.classList.add('hidden');
     document.getElementById('group-overview-panel')?.classList.remove('hidden');
-    document.querySelector('.assets-summary-row')?.classList.add('hidden');
+    document.getElementById('generic-summary-row')?.classList.add('hidden');
     document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
     document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
     ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'mf-monthly-summary',
@@ -742,7 +742,7 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('assets-layout-row')?.classList.remove('hidden');
     document.getElementById('group-overview-panel')?.classList.add('hidden');
     // Hide generic summary row and foreign rows — crypto uses its own rows only
-    document.querySelector('.assets-summary-row')?.classList.add('hidden');
+    document.getElementById('generic-summary-row')?.classList.add('hidden');
     document.getElementById('foreign-inr-row')?.classList.add('hidden');
     document.getElementById('foreign-gbp-row')?.classList.add('hidden');
     document.getElementById('crypto-inr-row')?.classList.remove('hidden');
@@ -766,7 +766,7 @@ async function loadAssets(userId, filter = null) {
   if (tableName === 'foreign_stock_holdings') {
     document.getElementById('assets-layout-row')?.classList.remove('hidden');
     document.getElementById('group-overview-panel')?.classList.add('hidden');
-    document.querySelector('.assets-summary-row')?.classList.remove('hidden');
+    document.getElementById('generic-summary-row')?.classList.remove('hidden');
     document.getElementById('select-btn-row')?.classList.add('hidden');
     document.getElementById('foreign-import-btn')?.classList.remove('hidden');
     document.getElementById('foreign-refresh-btn')?.classList.remove('hidden');
@@ -795,7 +795,7 @@ async function loadAssets(userId, filter = null) {
   const activeLayoutRow = document.getElementById('assets-layout-row');
   if (activeLayoutRow) activeLayoutRow.classList.remove('hidden');
   document.getElementById('group-overview-panel')?.classList.add('hidden');
-  document.querySelector('.assets-summary-row')?.classList.remove('hidden');
+  document.getElementById('generic-summary-row')?.classList.remove('hidden');
 
   // Pre-emptively hide all actual invested panels — renderAssetsTable will re-show the right one
   document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
