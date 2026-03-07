@@ -597,15 +597,24 @@ document.addEventListener('fragments-loaded', () => {
     document.getElementById('crypto-bulk-confirm').style.display = 'none';
     document.querySelectorAll('.cai-cb-wrap').forEach(c => { c.style.display = 'none'; });
     document.querySelectorAll('.cai-cb').forEach(c => { c.checked = false; });
+    var sa = document.getElementById('crypto-select-all');
+    if (sa) { sa.checked = false; sa.indeterminate = false; }
     _upd();
   }
 
   function _upd() {
-    var n = document.querySelectorAll('.cai-cb:checked').length;
+    var all     = document.querySelectorAll('.cai-cb');
+    var checked = document.querySelectorAll('.cai-cb:checked');
+    var n = checked.length;
     var countEl = document.getElementById('crypto-bulk-count');
     var delBtn  = document.getElementById('crypto-bulk-delete');
     if (countEl) countEl.textContent = n + ' selected';
     if (delBtn)  delBtn.disabled = n === 0;
+    var sa = document.getElementById('crypto-select-all');
+    if (sa) {
+      sa.indeterminate = n > 0 && n < all.length;
+      sa.checked = all.length > 0 && n === all.length;
+    }
   }
 
   document.addEventListener('fragments-loaded', function () {
@@ -613,6 +622,12 @@ document.addEventListener('fragments-loaded', () => {
       if (_sel) _exit(); else _enter();
     });
     document.getElementById('crypto-bulk-cancel')?.addEventListener('click', _exit);
+
+    document.getElementById('crypto-select-all')?.addEventListener('change', function () {
+      var toCheck = this.checked;
+      document.querySelectorAll('.cai-cb').forEach(cb => { cb.checked = toCheck; });
+      _upd();
+    });
 
     document.getElementById('crypto-bulk-delete')?.addEventListener('click', function () {
       var n = document.querySelectorAll('.cai-cb:checked').length;

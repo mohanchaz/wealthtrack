@@ -777,6 +777,7 @@ document.addEventListener('fragments-loaded', () => {
   });
 });
 
+
 // ══════════════════════════════════════════════════════════════
 //  Bulk select / delete wiring
 // ══════════════════════════════════════════════════════════════
@@ -802,22 +803,37 @@ document.addEventListener('fragments-loaded', () => {
     document.getElementById('foreign-bulk-confirm').style.display = 'none';
     document.querySelectorAll('.fai-cb-wrap').forEach(c => { c.style.display = 'none'; });
     document.querySelectorAll('.fai-cb').forEach(c => { c.checked = false; });
+    var sa = document.getElementById('foreign-select-all');
+    if (sa) { sa.checked = false; sa.indeterminate = false; }
     _upd();
   }
 
   function _upd() {
-    var n = document.querySelectorAll('.fai-cb:checked').length;
+    var all     = document.querySelectorAll('.fai-cb');
+    var checked = document.querySelectorAll('.fai-cb:checked');
+    var n = checked.length;
     var countEl = document.getElementById('foreign-bulk-count');
     var delBtn  = document.getElementById('foreign-bulk-delete');
     if (countEl) countEl.textContent = n + ' selected';
     if (delBtn)  delBtn.disabled = n === 0;
+    var sa = document.getElementById('foreign-select-all');
+    if (sa) {
+      sa.indeterminate = n > 0 && n < all.length;
+      sa.checked = all.length > 0 && n === all.length;
+    }
   }
 
-
+  document.addEventListener('fragments-loaded', function () {
     document.getElementById('foreign-select-btn')?.addEventListener('click', function () {
       if (_sel) _exit(); else _enter();
     });
     document.getElementById('foreign-bulk-cancel')?.addEventListener('click', _exit);
+
+    document.getElementById('foreign-select-all')?.addEventListener('change', function () {
+      var toCheck = this.checked;
+      document.querySelectorAll('.fai-cb').forEach(cb => { cb.checked = toCheck; });
+      _upd();
+    });
 
     document.getElementById('foreign-bulk-delete')?.addEventListener('click', function () {
       var n = document.querySelectorAll('.fai-cb:checked').length;
@@ -847,7 +863,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadForeignActualInvested(_currentUserId);
     });
-
+  });
 
   window['_foreign_bindCheckboxes'] = function () {
     document.querySelectorAll('.fai-cb').forEach(cb => {
