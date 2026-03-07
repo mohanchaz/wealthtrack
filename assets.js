@@ -262,19 +262,33 @@ async function loadGroupOverview(userId, group) {
     Promise.all(actualQueries),
   ]);
 
-  // Fetch FX rates for Foreign Investments group (needed for INR conversion)
+  // Fetch FX rates + live prices for Foreign Investments group
   let _ovGbpUsdRate = null, _ovUsdInrRate = null;
+  let _ovForeignPrices = {}, _ovCryptoPrices = {};
   if (group === 'Foreign Investments') {
     try {
-      const fxRes = await fetch('/api/prices?symbols=GBPUSD%3DX%2CUSDINR%3DX');
+      // Collect all symbols: FX + foreign stock yahoo_symbols + crypto yahoo_symbols
+      const foreignHoldings = holdingsResults[subCats.findIndex(s => s.type === 'foreign')]?.data || [];
+      const cryptoHoldings  = holdingsResults[subCats.findIndex(s => s.type === 'crypto')]?.data || [];
+      const foreignSymbols  = foreignHoldings.map(r => r.yahoo_symbol).filter(Boolean).map(s => s.toUpperCase());
+      const cryptoSymbols   = cryptoHoldings.map(r => r.yahoo_symbol).filter(Boolean).map(s => s.toUpperCase());
+      const allSymbols = [...new Set([...foreignSymbols, ...cryptoSymbols, 'GBPUSD=X', 'USDINR=X'])];
+
+      const fxRes = await fetch('/api/prices?symbols=' + encodeURIComponent(allSymbols.join(',')));
       if (fxRes.ok) {
         const fxMap = await fxRes.json();
         const gbpEntry = fxMap['GBPUSD=X'] || fxMap['GBPUSDX'] || fxMap['GBPUSD'];
         const inrEntry = fxMap['USDINR=X'] || fxMap['USDINRX'] || fxMap['USDINR'];
         if (gbpEntry) _ovGbpUsdRate = typeof gbpEntry === 'object' ? gbpEntry.price : gbpEntry;
         if (inrEntry) _ovUsdInrRate = typeof inrEntry === 'object' ? inrEntry.price : inrEntry;
+        // Build per-symbol price maps
+        Object.entries(fxMap).forEach(([key, val]) => {
+          const price = typeof val === 'object' ? val.price : val;
+          _ovForeignPrices[key.toUpperCase()] = price;
+          _ovCryptoPrices[key.toUpperCase()] = price;
+        });
       }
-    } catch (e) { /* FX fetch failed — will show — in tiles */ }
+    } catch (e) { /* fetch failed */ }
   }
   const _ovGbpInrRate = (_ovGbpUsdRate && _ovUsdInrRate) ? _ovGbpUsdRate * _ovUsdInrRate : null;
 
@@ -342,25 +356,31 @@ async function loadGroupOverview(userId, group) {
         curVal += qty * (livePrice || +r.avg_cost || 0);
       });
     } else if (sc.type === 'foreign') {
-      // Convert avg_price → INR using live FX rates; curVal = invested (no live stock prices)
+      // Convert using live FX rates; use live stock price if available, else avg_price
       holdings.forEach(r => {
         const qty = +r.qty || 0;
         const isGBX = r.currency === 'GBX';
-        const nativeAmt = qty * (+r.avg_price || 0);
-        let inrAmt = 0;
-        if (isGBX && _ovGbpInrRate) inrAmt = (nativeAmt / 100) * _ovGbpInrRate;
-        else if (!isGBX && _ovUsdInrRate) inrAmt = nativeAmt * _ovUsdInrRate;
-        invested += inrAmt;
-        curVal += inrAmt;
+        const sym = (r.yahoo_symbol || '').toUpperCase().replace(/-USD$|-GBP$|-GBX$/i, '');
+        const liveNative = sym ? (_ovForeignPrices[sym + (isGBX ? '-GBP' : '-USD')] || _ovForeignPrices[sym] || null) : null;
+        const avgNative  = +r.avg_price || 0;
+        const curNative  = liveNative != null ? liveNative : avgNative;
+        const factor     = isGBX ? 100 : 1;
+        const rate       = isGBX ? _ovGbpInrRate : _ovUsdInrRate;
+        if (!rate) return;
+        invested += (qty * avgNative / factor) * rate;
+        curVal   += (qty * curNative / factor) * rate;
       });
     } else if (sc.type === 'crypto') {
-      // avg_price_gbp is in GBP → convert to INR; curVal = invested (no live prices in overview)
+      // Use live crypto price if available (yahoo_symbol like BTC-GBP), else avg_price_gbp
       holdings.forEach(r => {
         const qty = +r.qty || 0;
-        const gbpAmt = qty * (+r.avg_price_gbp || 0);
-        const inrAmt = _ovGbpInrRate ? gbpAmt * _ovGbpInrRate : 0;
-        invested += inrAmt;
-        curVal += inrAmt;
+        const sym = (r.yahoo_symbol || '').toUpperCase();
+        const livePriceGBP = sym ? (_ovCryptoPrices[sym] || _ovCryptoPrices[sym.replace(/-GBP$/i, '')] || null) : null;
+        const avgGBP = +r.avg_price_gbp || 0;
+        const curGBP = livePriceGBP != null ? livePriceGBP : avgGBP;
+        if (!_ovGbpInrRate) return;
+        invested += qty * avgGBP * _ovGbpInrRate;
+        curVal   += qty * curGBP * _ovGbpInrRate;
       });
     } else {
       holdings.forEach(r => {
