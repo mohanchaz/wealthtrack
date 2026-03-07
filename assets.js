@@ -764,7 +764,10 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('group-overview-panel')?.classList.add('hidden');
     document.getElementById('crypto-inr-row')?.classList.remove('hidden');
     document.getElementById('crypto-gbp-row')?.classList.remove('hidden');
-    document.getElementById('select-btn-row')?.classList.add('hidden');
+    document.getElementById('select-btn-row')?.classList.remove('hidden');
+    document.getElementById('bulk-delete-bar')?.classList.add('hidden');
+    const _sb = document.getElementById('select-assets-btn');
+    if (_sb) { _sb.innerHTML = `<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Select`; _sb.style.color='#0d9488'; _sb.style.background='rgba(20,184,166,0.1)'; _sb.style.borderColor='rgba(20,184,166,0.3)'; }
     document.getElementById('crypto-import-btn')?.classList.remove('hidden');
     document.getElementById('crypto-refresh-btn')?.classList.remove('hidden');
     document.getElementById('crypto-last-updated')?.classList.remove('hidden');
@@ -780,7 +783,10 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('group-overview-panel')?.classList.add('hidden');
     document.getElementById('foreign-inr-row')?.classList.remove('hidden');
     document.getElementById('foreign-gbp-row')?.classList.remove('hidden');
-    document.getElementById('select-btn-row')?.classList.add('hidden');
+    document.getElementById('select-btn-row')?.classList.remove('hidden');
+    document.getElementById('bulk-delete-bar')?.classList.add('hidden');
+    const _sb2 = document.getElementById('select-assets-btn');
+    if (_sb2) { _sb2.innerHTML = `<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5L10 12L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Select`; _sb2.style.color='#0d9488'; _sb2.style.background='rgba(20,184,166,0.1)'; _sb2.style.borderColor='rgba(20,184,166,0.3)'; }
     document.getElementById('foreign-import-btn')?.classList.remove('hidden');
     document.getElementById('foreign-refresh-btn')?.classList.remove('hidden');
     document.getElementById('foreign-last-updated')?.classList.remove('hidden');
