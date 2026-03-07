@@ -785,7 +785,7 @@ a {
 }
 
 .sidebar-nested-group.open {
-  max-height: 200px;
+  max-height: 400px;
 }
 
 .sidebar-nested-item {
