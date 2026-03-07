@@ -24,7 +24,7 @@ export async function onRequestGet(context) {
             const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
             const name  = data?.chart?.result?.[0]?.meta?.longName || data?.chart?.result?.[0]?.meta?.shortName || null;
             if (!price) throw new Error(`${sym}: no price`);
-            return { sym: sym.replace(/\.(NS|BO|L)$/, ''), price, name };
+            return { sym: sym.replace(/\.(NS|BO|L)$/, '').replace(/-(GBP|USD|EUR|USDT)$/i, ''), price, name };
         })
     );
 

@@ -620,6 +620,8 @@ a {
 .dash-body {
   display: flex;
   flex: 1;
+  height: calc(100vh - 58px);
+  overflow: hidden;
 }
 
 /* Sidebar */
