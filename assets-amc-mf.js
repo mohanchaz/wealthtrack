@@ -357,63 +357,49 @@ document.addEventListener('fragments-loaded', () => {
     if (allSaEl) allSaEl.indeterminate = n > 0 && n < total, allSaEl.checked = total > 0 && n === total;
 
 
-    function _wireListeners() {
+    document.addEventListener('fragments-loaded', function() {
       document.getElementById('amcmf-select-btn')?.addEventListener('click', function() {
         if (_sel) _exit(); else _enter();
       });
       document.getElementById('amcmf-bulk-cancel')?.addEventListener('click', _exit);
-    document.getElementById('amcmf-select-all')?.addEventListener('change', function() {
-      document.querySelectorAll('.amcmfai-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
-      _upd();
-    });
-    document.getElementById('amcmf-select-all')?.addEventListener('change', function() {
-      var checked = this.checked;
-      document.querySelectorAll('.amcmfai-cb').forEach(function(cb) { cb.checked = checked; });
-      _upd();
-    });
-
-    document.getElementById('amcmf-bulk-delete')?.addEventListener('click', function() {
-      var n = document.querySelectorAll('.amcmfai-cb:checked').length;
-      if (!n) return;
-      document.getElementById('amcmf-bulk-normal').style.display = 'none';
-      document.getElementById('amcmf-bulk-confirm').style.display = 'flex';
-      document.getElementById('amcmf-bulk-confirm-count').textContent = n === 1 ? '1 entry' : n + ' entries';
-    });
-
+      document.getElementById('amcmf-select-all')?.addEventListener('change', function() {
+        var chk = this.checked;
+        document.querySelectorAll('.amcmfai-cb').forEach(function(cb) { cb.checked = chk; });
+        _upd();
+      });
+      document.getElementById('amcmf-bulk-delete')?.addEventListener('click', function() {
+        var n = document.querySelectorAll('.amcmfai-cb:checked').length;
+        if (!n) return;
+        document.getElementById('amcmf-bulk-normal').style.display = 'none';
+        document.getElementById('amcmf-bulk-confirm').style.display = 'flex';
+        document.getElementById('amcmf-bulk-confirm-count').textContent = n === 1 ? '1 entry' : n + ' entries';
+      });
       document.getElementById('amcmf-bulk-no')?.addEventListener('click', function() {
         document.getElementById('amcmf-bulk-normal').style.display = 'flex';
         document.getElementById('amcmf-bulk-confirm').style.display = 'none';
       });
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('fragments-loaded', _wireListeners);
-    } else {
-      document.addEventListener('fragments-loaded', _wireListeners);
-    }
-
-    document.getElementById('amcmf-bulk-yes')?.addEventListener('click', async function() {
-      var checked = [...document.querySelectorAll('.amcmfai-cb:checked')];
-      if (!checked.length) return;
-      var yesBtn = document.getElementById('amcmf-bulk-yes');
-      yesBtn.textContent = 'Deleting\u2026'; yesBtn.disabled = true;
-      var anyErr = false;
-      for (var cb of checked) {
-        var r = await sb.from('amc_mf_actual_invested').delete().eq('id', cb.dataset.id).then(r=>r);
-        if (r.error) { showToast('Delete failed: ' + r.error.message, 'error'); anyErr = true; }
-      }
-      yesBtn.textContent = 'Yes, delete'; yesBtn.disabled = false;
-      if (!anyErr) showToast(checked.length + ' ' + (checked.length === 1 ? 'entry' : 'entries') + ' deleted', 'success');
-      _exit();
-      loadAmcMfActualInvested(_currentUserId);
+      document.getElementById('amcmf-bulk-yes')?.addEventListener('click', async function() {
+        var checked = [...document.querySelectorAll('.amcmfai-cb:checked')];
+        if (!checked.length) return;
+        var yesBtn = document.getElementById('amcmf-bulk-yes');
+        yesBtn.textContent = 'Deleting\u2026'; yesBtn.disabled = true;
+        var anyErr = false;
+        for (var cb of checked) {
+          var r = await sb.from('amc_mf_actual_invested').delete().eq('id', cb.dataset.id).then(r=>r);
+          if (r.error) { showToast('Delete failed: ' + r.error.message, 'error'); anyErr = true; }
+        }
+        yesBtn.textContent = 'Yes, delete'; yesBtn.disabled = false;
+        if (!anyErr) showToast(checked.length + ' ' + (checked.length === 1 ? 'entry' : 'entries') + ' deleted', 'success');
+        _exit();
+        loadAmcMfActualInvested(_currentUserId);
+      });
     });
-
 
   // Called after each render to re-wire checkboxes
   window['_amcmf_bindCheckboxes'] = function() {
     document.querySelectorAll('.amcmfai-cb').forEach(function(cb) {
       cb.addEventListener('change', _upd);
     });
-    // Hide all checkbox cells by default unless in select mode
     document.querySelectorAll('.amcmfai-cb-wrap').forEach(function(c) {
       c.style.display = _sel ? '' : 'none';
     });
