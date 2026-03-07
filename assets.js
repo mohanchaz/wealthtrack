@@ -787,7 +787,6 @@ async function loadAssets(userId, filter = null) {
   if (tableName === 'foreign_stock_holdings') {
     document.getElementById('assets-layout-row')?.classList.remove('hidden');
     document.getElementById('group-overview-panel')?.classList.add('hidden');
-    document.getElementById('generic-summary-row')?.classList.remove('hidden');
     document.getElementById('select-btn-row')?.classList.add('hidden');
     document.getElementById('foreign-import-btn')?.classList.remove('hidden');
     document.getElementById('foreign-refresh-btn')?.classList.remove('hidden');
