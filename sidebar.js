@@ -34,6 +34,18 @@ document.addEventListener('fragments-loaded', () => {
     navigateTo('page-assets', 'Aionion');
   });
 
+  // ── Foreign Investments nested group — always open, no collapse
+  const foreignInvGroup   = document.getElementById('foreign-inv-nav-group');
+  const foreignInvChevron = document.getElementById('foreign-inv-nav-chevron');
+  const foreignInvHeader  = document.getElementById('foreign-inv-nav-header');
+  if (foreignInvGroup)   foreignInvGroup.classList.add('open');
+  if (foreignInvChevron) foreignInvChevron.classList.add('open');
+
+  foreignInvHeader?.addEventListener('click', () => {
+    setActiveSidebarItem(foreignInvHeader);
+    navigateTo('page-assets', 'Foreign Investments');
+  });
+
   // ── Set active sidebar item ───────────────────────────────────
   function setActiveSidebarItem(el) {
     document.querySelectorAll('.sidebar-item, .sidebar-sub-item, .sidebar-nested-item, .sidebar-nested-header').forEach(i => i.classList.remove('active'));
@@ -45,6 +57,8 @@ document.addEventListener('fragments-loaded', () => {
         zerodhaHeader?.classList.add('active');
       } else if (['Aionion Stocks', 'Aionion Gold'].includes(filter)) {
         aionionHeader?.classList.add('active');
+      } else if (['Foreign Stocks', 'Crypto'].includes(filter)) {
+        foreignInvHeader?.classList.add('active');
       }
     }
   }
@@ -85,6 +99,9 @@ document.addEventListener('fragments-loaded', () => {
       } else if (['Aionion Stocks', 'Aionion Gold'].includes(filter)) {
         aionionGroup?.classList.add('open');
         aionionChevron?.classList.add('open');
+      } else if (['Foreign Stocks', 'Crypto'].includes(filter)) {
+        foreignInvGroup?.classList.add('open');
+        foreignInvChevron?.classList.add('open');
       }
       navigateTo('page-assets', filter);
     });

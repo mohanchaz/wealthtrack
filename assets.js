@@ -191,7 +191,7 @@ async function loadDashboardStats(userId) {
   }
 }
 
-// ── Group Overview (Zerodha / Aionion) ───────────────────────
+// ── Group Overview (Zerodha / Aionion / Foreign Investments) ──
 
 async function loadGroupOverview(userId, group) {
   // Show/hide panels
@@ -225,20 +225,27 @@ async function loadGroupOverview(userId, group) {
       { label: 'Mutual Funds', table: 'mf_holdings', type: 'mf', actualTable: 'mf_actual_invested', icon: '💹' },
       { label: 'Gold', table: 'gold_holdings', type: 'gold', actualTable: null, icon: '🥇' },
     ]
-    : [
+    : group === 'Aionion'
+    ? [
       { label: 'Stocks', table: 'aionion_stocks', type: 'stock', actualTable: 'aionion_actual_invested', icon: '📈' },
       { label: 'Gold', table: 'aionion_gold', type: 'astock', actualTable: null, icon: '🥇' },
+    ]
+    : [
+      { label: 'Foreign Stocks', table: 'foreign_stock_holdings', type: 'foreign', actualTable: 'foreign_actual_invested', icon: '🌍' },
+      { label: 'Crypto', table: 'crypto_holdings', type: 'crypto', actualTable: 'crypto_actual_invested', icon: '₿' },
     ];
 
   // Fetch all holdings + actual invested in parallel
   const holdingsQueries = subCats.map(sc => {
     if (sc.type === 'mf') return sb.from(sc.table).select('qty, avg_cost, nav_symbol').eq('user_id', userId);
     if (sc.type === 'gold') return sb.from(sc.table).select('qty, avg_cost, yahoo_symbol').eq('user_id', userId);
+    if (sc.type === 'foreign') return sb.from(sc.table).select('qty, avg_price, currency').eq('user_id', userId);
+    if (sc.type === 'crypto') return sb.from(sc.table).select('qty, avg_price_gbp').eq('user_id', userId);
     return sb.from(sc.table).select('qty, avg_cost, instrument').eq('user_id', userId);
   });
   const actualQueries = subCats.map(sc =>
     sc.actualTable
-      ? sb.from(sc.actualTable).select('amount').eq('user_id', userId)
+      ? sb.from(sc.actualTable).select('amount, gbp_amount, inr_rate').eq('user_id', userId)
       : Promise.resolve({ data: [] })
   );
 
@@ -252,7 +259,11 @@ async function loadGroupOverview(userId, group) {
   for (let i = 0; i < subCats.length; i++) {
     const sc = subCats[i];
     const holdings = holdingsResults[i].data || [];
-    const actual = (actualResults[i].data || []).reduce((s, r) => s + (+r.amount || 0), 0);
+    const actualData = actualResults[i].data || [];
+    // foreign/crypto actual invested uses gbp_amount×inr_rate for INR; others use amount
+    const actual = sc.type === 'foreign' || sc.type === 'crypto'
+      ? actualData.reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0)
+      : actualData.reduce((s, r) => s + (+r.amount || 0), 0);
 
     let invested = 0, curVal = 0;
 
@@ -305,6 +316,21 @@ async function loadGroupOverview(userId, group) {
         const livePrice = key ? getLTP(prices, key) : null;
         invested += qty * (+r.avg_cost || 0);
         curVal += qty * (livePrice || +r.avg_cost || 0);
+      });
+    } else if (sc.type === 'foreign') {
+      // Use avg_price as invested (native units); no live price fetch in overview
+      holdings.forEach(r => {
+        const qty = +r.qty || 0;
+        const nativeInv = qty * (+r.avg_price || 0);
+        invested += nativeInv;
+        curVal += nativeInv;
+      });
+    } else if (sc.type === 'crypto') {
+      holdings.forEach(r => {
+        const qty = +r.qty || 0;
+        const inv = qty * (+r.avg_price_gbp || 0);
+        invested += inv;
+        curVal += inv;
       });
     } else {
       holdings.forEach(r => {
@@ -365,7 +391,9 @@ async function loadGroupOverview(userId, group) {
     const rowBg = i % 2 === 0 ? '#fff' : 'var(--surface2)';
     const filter = group === 'Zerodha'
       ? (r.label === 'Stocks' ? 'Zerodha Stocks' : r.label === 'Mutual Funds' ? 'Mutual Funds' : 'Gold')
-      : (r.label === 'Stocks' ? 'Aionion Stocks' : 'Aionion Gold');
+      : group === 'Aionion'
+      ? (r.label === 'Stocks' ? 'Aionion Stocks' : 'Aionion Gold')
+      : r.label; // Foreign Stocks, Crypto — label matches filter name directly
 
     return `<tr style="background:${rowBg};cursor:pointer" class="group-overview-row" data-filter="${filter}">
       <td style="${tdS}">
@@ -396,7 +424,7 @@ async function loadAssets(userId, filter = null) {
   const toolbarLabel = document.getElementById('assets-toolbar-label');
 
   // Group overview mode — intercept before normal table rendering
-  if (filter === 'Zerodha' || filter === 'Aionion') {
+  if (filter === 'Zerodha' || filter === 'Aionion' || filter === 'Foreign Investments') {
     _currentAssetFilter = filter;
     _currentAssetTable = null;
     await loadGroupOverview(userId, filter);
