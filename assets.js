@@ -338,6 +338,10 @@ async function loadGroupOverview(userId, group) {
     const actual = sc.type === 'foreign' || sc.type === 'crypto'
       ? actualData.reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0)
       : actualData.reduce((s, r) => s + (+r.amount || 0), 0);
+    // Sum raw GBP amounts directly from DB (foreign/crypto only)
+    const actualGBP = (sc.type === 'foreign' || sc.type === 'crypto')
+      ? actualData.reduce((s, r) => s + (+r.gbp_amount || 0), 0)
+      : 0;
 
     let invested = 0, curVal = 0, investedGBP = 0, curValGBP = 0;
 
@@ -432,7 +436,7 @@ async function loadGroupOverview(userId, group) {
       });
     }
 
-    rows.push({ ...sc, invested, curVal, actual, investedGBP, curValGBP });
+    rows.push({ ...sc, invested, curVal, actual, actualGBP, investedGBP, curValGBP });
   }
 
   // Totals
@@ -444,7 +448,7 @@ async function loadGroupOverview(userId, group) {
   const totalInvestedGBP = rows.reduce((s, r) => s + (r.investedGBP || 0), 0);
   const totalCurValGBP   = rows.reduce((s, r) => s + (r.curValGBP   || 0), 0);
   const totalGainGBP     = totalCurValGBP - totalInvestedGBP;
-  const totalActualGBP   = totalActual > 0 && _ovGbpInrRate ? totalActual / _ovGbpInrRate : 0;
+  const totalActualGBP    = rows.reduce((s, r) => s + (r.actualGBP || 0), 0);
   const totalActualGainGBP = totalActualGBP > 0 ? totalCurValGBP - totalActualGBP : 0;
   const isForeignGroup   = group === 'Foreign Investments';
 
