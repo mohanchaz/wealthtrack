@@ -244,8 +244,8 @@ async function loadGroupOverview(userId, group) {
   const holdingsQueries = subCats.map(sc => {
     if (sc.type === 'mf') return sb.from(sc.table).select('qty, avg_cost, nav_symbol').eq('user_id', userId);
     if (sc.type === 'gold') return sb.from(sc.table).select('qty, avg_cost, yahoo_symbol').eq('user_id', userId);
-    if (sc.type === 'foreign') return sb.from(sc.table).select('qty, avg_price, currency').eq('user_id', userId);
-    if (sc.type === 'crypto') return sb.from(sc.table).select('qty, avg_price_gbp').eq('user_id', userId);
+    if (sc.type === 'foreign') return sb.from(sc.table).select('symbol, qty, avg_price, currency').eq('user_id', userId);
+    if (sc.type === 'crypto') return sb.from(sc.table).select('yahoo_symbol, qty, avg_price_gbp').eq('user_id', userId);
     return sb.from(sc.table).select('qty, avg_cost, instrument').eq('user_id', userId);
   });
   const actualQueries = subCats.map(sc => {
@@ -262,35 +262,30 @@ async function loadGroupOverview(userId, group) {
     Promise.all(actualQueries),
   ]);
 
-  // Fetch FX rates + live prices for Foreign Investments group
-  let _ovGbpUsdRate = null, _ovUsdInrRate = null;
-  let _ovForeignPrices = {}, _ovCryptoPrices = {};
-  if (group === 'Foreign Investments') {
-    try {
-      // Collect all symbols: FX + foreign stock yahoo_symbols + crypto yahoo_symbols
-      const foreignHoldings = holdingsResults[subCats.findIndex(s => s.type === 'foreign')]?.data || [];
-      const cryptoHoldings  = holdingsResults[subCats.findIndex(s => s.type === 'crypto')]?.data || [];
-      const foreignSymbols  = foreignHoldings.map(r => r.yahoo_symbol).filter(Boolean).map(s => s.toUpperCase());
-      const cryptoSymbols   = cryptoHoldings.map(r => r.yahoo_symbol).filter(Boolean).map(s => s.toUpperCase());
-      const allSymbols = [...new Set([...foreignSymbols, ...cryptoSymbols, 'GBPUSD=X', 'USDINR=X'])];
+  // For Foreign Investments: read FX rates from already-fetched global vars
+  // _gbpUsdRate/_usdInrRate are set by assets-foreign.js fetchAndRefreshForeignPrices
+  // _liveGbpInrRate is set by assets-crypto.js fetchAndRefreshCryptoPrices
+  // If those pages haven't been visited yet, fall back to a fresh FX fetch
+  let _ovGbpUsdRate = (typeof _gbpUsdRate !== 'undefined' && _gbpUsdRate) ? _gbpUsdRate : null;
+  let _ovUsdInrRate = (typeof _usdInrRate !== 'undefined' && _usdInrRate) ? _usdInrRate : null;
+  let _ovGbpInrRate = (typeof _liveGbpInrRate !== 'undefined' && _liveGbpInrRate) ? _liveGbpInrRate : null;
 
-      const fxRes = await fetch('/api/prices?symbols=' + encodeURIComponent(allSymbols.join(',')));
+  if (group === 'Foreign Investments' && (!_ovGbpUsdRate || !_ovUsdInrRate)) {
+    try {
+      const fxRes = await fetch('/api/prices?symbols=GBPUSD%3DX%2CUSDINR%3DX');
       if (fxRes.ok) {
         const fxMap = await fxRes.json();
-        const gbpEntry = fxMap['GBPUSD=X'] || fxMap['GBPUSDX'] || fxMap['GBPUSD'];
-        const inrEntry = fxMap['USDINR=X'] || fxMap['USDINRX'] || fxMap['USDINR'];
-        if (gbpEntry) _ovGbpUsdRate = typeof gbpEntry === 'object' ? gbpEntry.price : gbpEntry;
-        if (inrEntry) _ovUsdInrRate = typeof inrEntry === 'object' ? inrEntry.price : inrEntry;
-        // Build per-symbol price maps
-        Object.entries(fxMap).forEach(([key, val]) => {
-          const price = typeof val === 'object' ? val.price : val;
-          _ovForeignPrices[key.toUpperCase()] = price;
-          _ovCryptoPrices[key.toUpperCase()] = price;
-        });
+        const gbpE = fxMap['GBPUSD=X'] || fxMap['GBPUSDX'] || fxMap['GBPUSD'];
+        const inrE = fxMap['USDINR=X'] || fxMap['USDINRX'] || fxMap['USDINR'];
+        if (gbpE) _ovGbpUsdRate = typeof gbpE === 'object' ? gbpE.price : gbpE;
+        if (inrE) _ovUsdInrRate = typeof inrE === 'object' ? inrE.price : inrE;
+        _ovGbpInrRate = (_ovGbpUsdRate && _ovUsdInrRate) ? _ovGbpUsdRate * _ovUsdInrRate : null;
       }
-    } catch (e) { /* fetch failed */ }
+    } catch (e) { /* fallback FX fetch failed */ }
   }
-  const _ovGbpInrRate = (_ovGbpUsdRate && _ovUsdInrRate) ? _ovGbpUsdRate * _ovUsdInrRate : null;
+  if (!_ovGbpInrRate && _ovGbpUsdRate && _ovUsdInrRate) {
+    _ovGbpInrRate = _ovGbpUsdRate * _ovUsdInrRate;
+  }
 
   // For stock tables, fetch live prices
   const rows = [];
@@ -356,14 +351,16 @@ async function loadGroupOverview(userId, group) {
         curVal += qty * (livePrice || +r.avg_cost || 0);
       });
     } else if (sc.type === 'foreign') {
-      // Convert using live FX rates; use live stock price if available, else avg_price
+      // Use _foreignLiveData[symbol] populated by assets-foreign.js (live unit prices in native currency)
+      // Falls back to avg_price if live not available
       holdings.forEach(r => {
-        const qty = +r.qty || 0;
-        const isGBX = r.currency === 'GBX';
-        const sym = (r.yahoo_symbol || '').toUpperCase().replace(/-USD$|-GBP$|-GBX$/i, '');
-        const liveNative = sym ? (_ovForeignPrices[sym + (isGBX ? '-GBP' : '-USD')] || _ovForeignPrices[sym] || null) : null;
+        const qty    = +r.qty || 0;
+        const sym    = (r.symbol || '').toUpperCase();
+        const isGBX  = (r.currency === 'GBX') || (typeof isLondonSymbol === 'function' && isLondonSymbol(sym));
         const avgNative  = +r.avg_price || 0;
-        const curNative  = liveNative != null ? liveNative : avgNative;
+        const liveEntry  = (typeof _foreignLiveData !== 'undefined') ? _foreignLiveData[sym] : null;
+        const liveNative = liveEntry ? liveEntry.unitPrice : null;
+        const curNative  = (liveNative != null && liveNative > 0) ? liveNative : avgNative;
         const factor     = isGBX ? 100 : 1;
         const rate       = isGBX ? _ovGbpInrRate : _ovUsdInrRate;
         if (!rate) return;
@@ -371,16 +368,18 @@ async function loadGroupOverview(userId, group) {
         curVal   += (qty * curNative / factor) * rate;
       });
     } else if (sc.type === 'crypto') {
-      // Use live crypto price if available (yahoo_symbol like BTC-GBP), else avg_price_gbp
+      // Use _cryptoLive[ticker] populated by assets-crypto.js (live prices in GBP)
+      // Falls back to avg_price_gbp if live not available
       holdings.forEach(r => {
-        const qty = +r.qty || 0;
-        const sym = (r.yahoo_symbol || '').toUpperCase();
-        const livePriceGBP = sym ? (_ovCryptoPrices[sym] || _ovCryptoPrices[sym.replace(/-GBP$/i, '')] || null) : null;
+        const qty    = +r.qty || 0;
+        const ticker = (typeof cryptoTicker === 'function') ? cryptoTicker(r.yahoo_symbol) : (r.yahoo_symbol || '').toUpperCase().replace(/-GBP$/i, '');
         const avgGBP = +r.avg_price_gbp || 0;
-        const curGBP = livePriceGBP != null ? livePriceGBP : avgGBP;
+        const liveEntry  = (typeof _cryptoLive !== 'undefined') ? _cryptoLive[ticker] : null;
+        const livePriceGBP = liveEntry ? (typeof liveEntry === 'object' ? liveEntry.price : liveEntry) : null;
+        const curGBP = (livePriceGBP != null && livePriceGBP > 0) ? livePriceGBP : avgGBP;
         if (!_ovGbpInrRate) return;
-        invested += qty * avgGBP * _ovGbpInrRate;
-        curVal   += qty * curGBP * _ovGbpInrRate;
+        invested += qty * avgGBP  * _ovGbpInrRate;
+        curVal   += qty * curGBP  * _ovGbpInrRate;
       });
     } else {
       holdings.forEach(r => {
@@ -466,6 +465,64 @@ async function loadGroupOverview(userId, group) {
   bodyEl.querySelectorAll('.group-overview-row').forEach(row => {
     row.addEventListener('click', () => loadAssets(_currentUserId, row.dataset.filter));
   });
+
+  // If this is Foreign Investments and live data might be stale/empty, trigger fresh price fetch
+  // then re-run loadGroupOverview to show live values
+  if (group === 'Foreign Investments') {
+    const needForeignRefresh = !_ovGbpUsdRate || !_ovUsdInrRate ||
+      Object.keys(typeof _foreignLiveData !== 'undefined' ? _foreignLiveData : {}).length === 0;
+    const needCryptoRefresh = Object.keys(typeof _cryptoLive !== 'undefined' ? _cryptoLive : {}).length === 0;
+
+    if (needForeignRefresh || needCryptoRefresh) {
+      // Fetch all prices: FX + foreign stocks + crypto in one call
+      try {
+        const fHoldings = (holdingsResults[subCats.findIndex(s => s.type === 'foreign')]?.data || []);
+        const cHoldings = (holdingsResults[subCats.findIndex(s => s.type === 'crypto')]?.data  || []);
+        const foreignYahoo = fHoldings.map(r => {
+          const sym = (r.symbol || '').toUpperCase();
+          return (typeof YAHOO_SYMBOL_MAP !== 'undefined' && YAHOO_SYMBOL_MAP[sym]) || sym;
+        }).filter(Boolean);
+        const cryptoYahoo = cHoldings.map(r => (r.yahoo_symbol || '').toUpperCase()).filter(Boolean);
+        const allSym = [...new Set([...foreignYahoo, ...cryptoYahoo, 'GBPUSD=X', 'USDINR=X'])];
+
+        const res = await fetch('/api/prices?symbols=' + encodeURIComponent(allSym.join(',')));
+        if (res.ok) {
+          const pm = await res.json();
+          // Update FX rates
+          const gbpE = pm['GBPUSD=X'] || pm['GBPUSDX'] || pm['GBPUSD'];
+          const inrE = pm['USDINR=X'] || pm['USDINRX'] || pm['USDINR'];
+          if (gbpE && typeof _gbpUsdRate !== 'undefined') _gbpUsdRate = typeof gbpE === 'object' ? gbpE.price : gbpE;
+          if (inrE && typeof _usdInrRate !== 'undefined') _usdInrRate = typeof inrE === 'object' ? inrE.price : inrE;
+          // Update _foreignLiveData for each foreign holding
+          if (typeof _foreignLiveData !== 'undefined' && typeof YAHOO_SYMBOL_MAP !== 'undefined') {
+            fHoldings.forEach(r => {
+              const dbSym = (r.symbol || '').toUpperCase();
+              const yahooSym = YAHOO_SYMBOL_MAP[dbSym] || dbSym;
+              const apiKey = yahooSym.replace(/\.L$/i, ''); // API strips .L
+              const entry = pm[apiKey] || pm[yahooSym] || pm[dbSym];
+              if (entry) {
+                const price = typeof entry === 'object' ? entry.price : entry;
+                _foreignLiveData[dbSym] = { unitPrice: price, currentValue: price * (+r.qty || 0) };
+              }
+            });
+          }
+          // Update _cryptoLive for each crypto holding
+          if (typeof _cryptoLive !== 'undefined' && typeof cryptoTicker === 'function') {
+            cHoldings.forEach(r => {
+              const sym = (r.yahoo_symbol || '').toUpperCase();
+              const entry = pm[sym];
+              if (entry) {
+                const price = typeof entry === 'object' ? entry.price : entry;
+                _cryptoLive[cryptoTicker(r.yahoo_symbol)] = { price, name: typeof entry === 'object' ? entry.name : null };
+              }
+            });
+          }
+          // Re-render with live prices
+          await loadGroupOverview(userId, group);
+        }
+      } catch (e) { /* live refresh failed, keep avg-price values */ }
+    }
+  }
 }
 
 async function loadAssets(userId, filter = null) {
