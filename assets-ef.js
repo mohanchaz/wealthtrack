@@ -26,7 +26,7 @@ async function loadEfActualInvested(userId) {
 }
 
 function renderEfActualInvested(rows) {
-  const body2 = document.getElementById('ef-monthly-body2');
+  const body2 = document.getElementById('ef-monthly-body');
   const totalEl = document.getElementById('ef-monthly-total');
   if (!body2) return;
 
@@ -181,7 +181,7 @@ document.addEventListener('fragments-loaded', () => {
     if (delBtn) delBtn.disabled = n === 0;
   }
 
-
+  document.addEventListener('fragments-loaded', function () {
     document.getElementById('ef-select-btn')?.addEventListener('click', function() {
       if (_sel) _exit(); else _enter();
     });
@@ -215,7 +215,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadEfActualInvested(_currentUserId);
     });
-
+  });
 
   // Called after each render to re-wire checkboxes
   window['_ef_bindCheckboxes'] = function() {

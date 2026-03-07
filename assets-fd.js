@@ -26,7 +26,7 @@ async function loadFdActualInvested(userId) {
 }
 
 function renderFdActualInvested(rows) {
-  const body2 = document.getElementById('assets-monthly-body2');
+  const body2 = document.getElementById('assets-monthly-body');
   const totalEl = document.getElementById('assets-monthly-total');
   if (!body2) return;
 
@@ -180,7 +180,7 @@ document.addEventListener('fragments-loaded', () => {
     if (delBtn) delBtn.disabled = n === 0;
   }
 
-
+  document.addEventListener('fragments-loaded', function () {
     document.getElementById('fd-select-btn')?.addEventListener('click', function() {
       if (_sel) _exit(); else _enter();
     });
@@ -214,7 +214,7 @@ document.addEventListener('fragments-loaded', () => {
       _exit();
       loadFdActualInvested(_currentUserId);
     });
-
+  });
 
   // Called after each render to re-wire checkboxes
   window['_fd_bindCheckboxes'] = function() {
