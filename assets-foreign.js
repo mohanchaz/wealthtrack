@@ -423,9 +423,10 @@ document.addEventListener('fragments-loaded', () => {
 
   document.getElementById('foreign-edit-save-btn')?.addEventListener('click', async () => {
     const symbol = document.getElementById('foreign-edit-symbol').value.trim().toUpperCase();
-    const qty2 = parseFloat(document.getElementById('foreign-edit-qty2').value);
+    const qty2 = parseFloat(document.getElementById('foreign-edit-qty').value);
     const avgPrice = parseFloat(document.getElementById('foreign-edit-price').value);
-    const currency = symbol.endsWith('.L') ? 'GBX' : 'USD';
+    // Read currency from the dropdown (user may have changed it)
+    const currency = (document.getElementById('foreign-edit-currency')?.value || (symbol.endsWith('.L') ? 'GBX' : 'USD'));
 
     if (!symbol) { showToast('Symbol is required', 'error'); return; }
     if (isNaN(qty2) || qty2 <= 0) { showToast('Quantity must be > 0', 'error'); return; }
@@ -435,17 +436,22 @@ document.addEventListener('fragments-loaded', () => {
     saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
 
     const payload = { symbol, qty: qty2, avg_price: avgPrice, currency };
-    let error;
-    if (_editingForeignId) {
-      ({ error } = await sb.from('foreign_stock_holdings').update(payload).eq('id', _editingForeignId));
-    } else {
-      ({ error } = await sb.from('foreign_stock_holdings').insert({ ...payload, user_id: _currentUserId }));
+    try {
+      let result;
+      if (_editingForeignId) {
+        result = await sb.from('foreign_stock_holdings').update(payload).eq('id', _editingForeignId).then(r => r);
+      } else {
+        result = await sb.from('foreign_stock_holdings').insert({ ...payload, user_id: _currentUserId }).then(r => r);
+      }
+      saveBtn.textContent = '💾 Save'; saveBtn.disabled = false;
+      if (result.error) { showToast('Save failed: ' + result.error.message, 'error'); return; }
+      showToast(_editingForeignId ? 'Updated ✅' : 'Added 🎉', 'success');
+      closeForeignEditModal();
+      loadForeignStocks(_currentUserId);
+    } catch (err) {
+      saveBtn.textContent = '💾 Save'; saveBtn.disabled = false;
+      showToast('Save failed: ' + err.message, 'error');
     }
-    saveBtn.textContent = '💾 Save'; saveBtn.disabled = false;
-    if (error) { showToast('Save failed: ' + error.message, 'error'); return; }
-    showToast(_editingForeignId ? 'Updated ✅' : 'Added 🎉', 'success');
-    closeForeignEditModal();
-    loadForeignStocks(_currentUserId);
   });
 
   document.getElementById('foreign-import-btn')?.addEventListener('click', openForeignImportModal);
