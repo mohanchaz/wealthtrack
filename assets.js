@@ -1221,7 +1221,7 @@ function renderAssetsTable(assets, tableName) {
       qty: '44px', _qty_diff: '58px',
       avg_cost: '74px', _ltp: '74px', _live_nav: '74px',
       invested: '86px', current_value: '86px',
-      _alloc_pct: '70px',
+      _alloc_pct: '80px',
       holding_type: '52px', platform: '72px', folio_number: '82px',
     };
 
@@ -1234,7 +1234,7 @@ function renderAssetsTable(assets, tableName) {
         const align = c.align ? `text-align:${c.align};` : '';
         return `<th style="${thS}${w}${align}">${c.label}</th>`;
       }).join('') +
-      `<th style="${thS}text-align:right;width:140px">Gain / Loss</th><th style="width:32px"></th>`;
+      `<th style="${thS}text-align:right;min-width:130px">Gain / Loss</th><th style="width:36px"></th>`;
   }
 
   // Summary stats
@@ -1424,9 +1424,9 @@ function renderAssetsTable(assets, tableName) {
             style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">
         </td>
         ${cells}
-        <td style="text-align:right"${gainAttr}><span class="gain-badge ${badgeCls}">${gainLabel}</span></td>
-        <td style="white-space:nowrap">
-          <button class="asset-edit-btn" data-id="${a.id}" data-table="${tableName}" title="Edit" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 5px;opacity:0.7;" data-row='${JSON.stringify(a).replace(/'/g, "&apos;")}'>✏️</button>
+        <td style="text-align:right;overflow:visible;white-space:nowrap"${gainAttr}><span class="gain-badge ${badgeCls}">${gainLabel}</span></td>
+        <td style="width:32px;overflow:visible;white-space:nowrap;padding:2px 4px">
+          <button class="asset-edit-btn" data-id="${a.id}" data-table="${tableName}" title="Edit" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7;" data-row='${JSON.stringify(a).replace(/'/g, "&apos;")}'>🖊️</button>
         </td>
       </tr>`;
   });

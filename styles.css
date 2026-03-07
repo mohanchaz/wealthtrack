@@ -1490,6 +1490,13 @@ a {
   border-bottom: none;
 }
 
+/* Gain/loss and edit columns must never clip */
+.assets-table td:nth-last-child(1),
+.assets-table td:nth-last-child(2) {
+  overflow: visible;
+  white-space: nowrap;
+}
+
 .assets-table tr:hover td {
   background: var(--surface2);
 }
