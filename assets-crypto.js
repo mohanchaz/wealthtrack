@@ -19,7 +19,7 @@ function cryptoTicker(yahooSymbol) {
 
 // ── Render ────────────────────────────────────────────────────
 
-function renderCryptoHoldings(rows, gbpInrRate) {
+function renderCryptoHoldings(rows) {
   const tbody = document.getElementById('assets-table-body');
   const thead = document.getElementById('assets-thead-row');
   if (!tbody) return;
@@ -30,7 +30,7 @@ function renderCryptoHoldings(rows, gbpInrRate) {
 
   if (thead) {
     thead.innerHTML = `
-      <th style="${thL}" class="bulk-check-cell" style="width:32px;padding:0 8px;display:none"></th>
+      <th class="bulk-check-cell" style="width:32px;padding:0 8px;display:none"></th>
       <th style="${thL}">Coin</th>
       <th style="${thL}">Platform</th>
       <th style="${thR}">Qty</th>
@@ -163,23 +163,6 @@ function renderCryptoHoldings(rows, gbpInrRate) {
       gainEl2.style.color = totalGainGBP > 0 ? 'var(--green)' : totalGainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   }
-  // ── INR total tiles (populated only when live GBP/INR rate is available) ──
-  const _setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const _setElC = (id, v, c) => { const el = document.getElementById(id); if (el) { el.textContent = v; el.style.color = c; } };
-  if (gbpInrRate) {
-    const totalInvINR = totalInvGBP * gbpInrRate;
-    const totalCurINR = totalCurGBP * gbpInrRate;
-    const gainINR     = totalCurINR - totalInvINR;
-    const gainINRPct  = totalInvINR > 0 ? ` (${((gainINR / totalInvINR) * 100).toFixed(1)}%)` : '';
-    _setEl('crypto-total-inv-inr', INR(totalInvINR));
-    _setEl('crypto-total-val-inr', hasPrices ? INR(totalCurINR) : '—');
-    if (hasPrices) {
-      _setElC('crypto-total-gain-inr',
-        (gainINR >= 0 ? '+' : '') + INR(gainINR) + gainINRPct,
-        gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)');
-    }
-  }
-
   const countEl = document.getElementById('assets-count-inline');
   if (countEl) countEl.textContent = rows.length + ' holding' + (rows.length !== 1 ? 's' : '');
 }
@@ -201,12 +184,9 @@ async function fetchAndRefreshCryptoPrices(rows) {
     return;
   }
 
-  // Include FX symbols for GBP→INR conversion
-  const fetchSymbols = [...symbols, 'GBPUSD=X', 'USDINR=X'];
-
   let priceMap = null;
   try {
-    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(fetchSymbols.join(','))}`);
+    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols.join(','))}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     priceMap = await res.json();
     if (priceMap.error) throw new Error(priceMap.error);
@@ -220,13 +200,6 @@ async function fetchAndRefreshCryptoPrices(rows) {
 
   if (refreshBtn) refreshBtn.disabled = false;
 
-  // Extract GBP→INR rate
-  const _fxGbpUsd = priceMap['GBPUSD=X'] || priceMap['GBPUSDX'] || priceMap['GBPUSD'];
-  const _fxUsdInr = priceMap['USDINR=X'] || priceMap['USDINRX'] || priceMap['USDINR'];
-  const _gbpUsdRate = _fxGbpUsd ? (typeof _fxGbpUsd === 'object' ? _fxGbpUsd.price : _fxGbpUsd) : null;
-  const _usdInrRate = _fxUsdInr ? (typeof _fxUsdInr === 'object' ? _fxUsdInr.price : _fxUsdInr) : null;
-  const _liveGbpInrRate = (_gbpUsdRate && _usdInrRate) ? _gbpUsdRate * _usdInrRate : null;
-
   // API strips '-GBP' → key is 'BTC', 'ETH' etc.
   _cryptoLive = {};
   Object.entries(priceMap).forEach(([key, val]) => {
@@ -236,7 +209,7 @@ async function fetchAndRefreshCryptoPrices(rows) {
     };
   });
 
-  renderCryptoHoldings(rows, _liveGbpInrRate);
+  renderCryptoHoldings(rows);
   _refreshCryptoActualGainTile();
 
   const now = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -382,13 +355,12 @@ let _editingCaiId = null;
 // ── Refresh actual gain tile ──────────────────────────────────
 function _refreshCryptoActualGainTile() {
   const setC = (id, v, c) => { const el = document.getElementById(id); if (el) { el.textContent = v; el.style.color = c; } };
-  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
 
-  // GBP actual gain: cur - actualInvested (£)
+  // GBP gain
   const actInvEl = document.getElementById('crypto-actual-inv-gbp');
-  const actGBP = actInvEl ? parseFloat(actInvEl.textContent.replace(/[^\\d.-]/g, '')) || 0 : 0;
+  const actGBP = actInvEl ? parseFloat(actInvEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   const curValEl = document.getElementById('crypto-total-val-gbp');
-  const curGBP = curValEl ? parseFloat(curValEl.textContent.replace(/[^\\d.-]/g, '')) || 0 : 0;
+  const curGBP = curValEl ? parseFloat(curValEl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   if (actGBP > 0 && curGBP > 0) {
     const gain = curGBP - actGBP;
     const pct = ` (${((gain / actGBP) * 100).toFixed(1)}%)`;
@@ -397,32 +369,22 @@ function _refreshCryptoActualGainTile() {
       gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)');
   }
 
-  // INR tiles — use weighted GBP/INR rate from actual invested entries
+  // INR — refresh current value and gains using weighted rate
   const actInvINREl = document.getElementById('crypto-actual-inv-inr');
-  const actINR = actInvINREl ? parseFloat(actInvINREl.textContent.replace(/[^\\d.-]/g, '')) || 0 : 0;
+  const actINR = actInvINREl ? parseFloat(actInvINREl.textContent.replace(/[^\d.-]/g, '')) || 0 : 0;
   if (actINR > 0 && actGBP > 0 && curGBP > 0) {
     const weightedRate = actINR / actGBP;
     const curINR = curGBP * weightedRate;
+    const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     setEl('crypto-total-val-inr', INR(curINR));
-
-    // Total Gain INR: use invGBP (from GBP summary tile) × weightedRate
-    const invGBPTile2 = document.getElementById('assets-total-invested');
-    const invGBPText2 = invGBPTile2 ? invGBPTile2.textContent.trim() : '';
-    const invGBPVal2 = /[£\u00a3]/.test(invGBPText2) ? parseFloat(invGBPText2.replace(/[^\d.-]/g, '')) || 0 : 0;
-    const weightedRate2 = actINR / actGBP;
-    const invINR2 = invGBPVal2 > 0 ? invGBPVal2 * weightedRate2 : actINR;
-    const totalGainINR = curINR - invINR2;
-    const totalPct = invINR2 > 0 ? ` (${((totalGainINR / invINR2) * 100).toFixed(1)}%)` : '';
+    const gainINR = curINR - actINR;
+    const pctINR = ` (${((gainINR / actINR) * 100).toFixed(1)}%)`;
     setC('crypto-total-gain-inr',
-      (totalGainINR >= 0 ? '+' : '') + INR(totalGainINR) + totalPct,
-      totalGainINR > 0 ? 'var(--green)' : totalGainINR < 0 ? 'var(--danger)' : 'var(--muted)');
-
-    // Actual Gain = current value vs actual cash invested
-    const actualGainINR = curINR - actINR;
-    const actualPct = actINR > 0 ? ` (${((actualGainINR / actINR) * 100).toFixed(1)}%)` : '';
+      (gainINR >= 0 ? '+' : '') + INR(gainINR) + pctINR,
+      gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)');
     setC('crypto-actual-gain-inr',
-      (actualGainINR >= 0 ? '+' : '') + INR(actualGainINR) + actualPct,
-      actualGainINR > 0 ? 'var(--green)' : actualGainINR < 0 ? 'var(--danger)' : 'var(--muted)');
+      (gainINR >= 0 ? '+' : '') + INR(gainINR) + pctINR,
+      gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)');
   }
 }
 
@@ -480,39 +442,32 @@ function renderCryptoActualInvested(rows) {
 
   // ── INR row tiles (using weighted avg rate) ──
   if (totalINR > 0) {
-    // Actual Invested INR = sum of gbp_amount × inr_rate per entry
+    // Total Invested INR = sum of gbp_amount × inr_rate per entry
+    setEl('crypto-total-inv-inr', INR(totalINR));
     setEl('crypto-actual-inv-inr', INR(totalINR));
-    // NOTE: crypto-total-inv-inr is set by renderCryptoHoldings via live FX rate — don't overwrite it here
 
     // Current Value INR = current GBP value × weighted rate
     const curINR = curGBP > 0 ? curGBP * weightedInrRate : 0;
     setEl('crypto-total-val-inr', curINR > 0 ? INR(curINR) : '—');
 
+    // Total Gain INR
     if (curINR > 0) {
-      // Total Gain INR: cost basis = invGBP(from GBP tile) × weightedRate
-      const invGBPTile = document.getElementById('assets-total-invested');
-      const invGBPText = invGBPTile ? invGBPTile.textContent.trim() : '';
-      const invGBPVal = /[£\u00a3]/.test(invGBPText) ? parseFloat(invGBPText.replace(/[^\d.-]/g, '')) || 0 : 0;
-      const invINR = invGBPVal > 0 ? invGBPVal * weightedInrRate : totalINR;
-      const totalGainINR = curINR - invINR;
-      const totalPct = invINR > 0 ? ` (${((totalGainINR / invINR) * 100).toFixed(1)}%)` : '';
+      const gainINR = curINR - totalINR;
+      const invINR0 = totalINR;
+      const pctINR = invINR0 > 0 ? ` (${((gainINR / invINR0) * 100).toFixed(1)}%)` : '';
       setElColor('crypto-total-gain-inr',
-        (totalGainINR >= 0 ? '+' : '') + INR(totalGainINR) + totalPct,
-        totalGainINR > 0 ? 'var(--green)' : totalGainINR < 0 ? 'var(--danger)' : 'var(--muted)');
-
-      // Actual Gain INR = curINR vs actual cash invested
-      const actualGainINR = curINR - totalINR;
-      const actualPct = totalINR > 0 ? ` (${((actualGainINR / totalINR) * 100).toFixed(1)}%)` : '';
+        (gainINR >= 0 ? '+' : '') + INR(gainINR) + pctINR,
+        gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)');
+      // Actual Gain INR
       setElColor('crypto-actual-gain-inr',
-        (actualGainINR >= 0 ? '+' : '') + INR(actualGainINR) + actualPct,
-        actualGainINR > 0 ? 'var(--green)' : actualGainINR < 0 ? 'var(--danger)' : 'var(--muted)');
+        (gainINR >= 0 ? '+' : '') + INR(gainINR) + pctINR,
+        gainINR > 0 ? 'var(--green)' : gainINR < 0 ? 'var(--danger)' : 'var(--muted)');
     } else {
       setEl('crypto-total-gain-inr', '—');
       setEl('crypto-actual-gain-inr', '—');
     }
   } else {
-    // Don't reset crypto-total-inv-inr here — it's owned by renderCryptoHoldings
-    ['crypto-total-val-inr','crypto-total-gain-inr',
+    ['crypto-total-inv-inr','crypto-total-val-inr','crypto-total-gain-inr',
      'crypto-actual-inv-inr','crypto-actual-gain-inr'].forEach(id => setEl(id, '—'));
   }
 

@@ -58,7 +58,7 @@ function renderForeignStocks(rows) {
 
   if (thead) {
     thead.innerHTML = `
-      <th style="width:32px;padding:0 8px" class="bulk-check-cell" style="display:none"></th>
+      <th class="bulk-check-cell" style="width:32px;padding:0 8px;display:none"></th>
       <th style="${thL}">Symbol</th>
       <th style="${thL}">Name</th>
       <th style="${thS}">Qty</th>
