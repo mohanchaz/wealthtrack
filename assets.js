@@ -499,13 +499,15 @@ async function loadGroupOverview(userId, group) {
     <div style="font-size:18px">${t.val}</div>
   </div>`).join('');
 
+  // Reset inline styles set by previous renders, then write content
+  totalsEl.removeAttribute('style');
+  totalsEl.style.marginBottom = '20px';
   totalsEl.style.display = 'flex';
   totalsEl.style.flexDirection = 'column';
   totalsEl.style.gap = '12px';
-  totalsEl.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">${renderTileRow(inrRow)}</div>
-    ${gbpRow ? `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">${renderTileRow(gbpRow)}</div>` : ''}
-  `;
+  totalsEl.innerHTML =
+    `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">${renderTileRow(inrRow)}</div>` +
+    (gbpRow ? `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">${renderTileRow(gbpRow)}</div>` : '');
 
   // Per-row breakdown
   const tdS = 'padding:12px 16px;border-bottom:1px solid var(--border)';
@@ -812,39 +814,96 @@ async function loadAssets(userId, filter = null) {
         cryptoHoldingsRes, cryptoActualRes,
         fxRes,
       ] = await Promise.all([
-        sb.from('foreign_stock_holdings').select('qty, avg_price, currency').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('foreign_stock_holdings').select('symbol, qty, avg_price, currency').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
         sb.from('foreign_actual_invested').select('gbp_amount, inr_rate').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
-        sb.from('crypto_holdings').select('qty, avg_price_gbp').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('crypto_holdings').select('yahoo_symbol, qty, avg_price_gbp').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
         sb.from('crypto_actual_invested').select('gbp_amount, inr_rate').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
         fetch('/api/prices?symbols=GBPUSD%3DX%2CUSDINR%3DX').then(r => r.ok ? r.json() : {}).catch(() => ({})),
       ]);
 
-      // Extract FX rates
+      // Extract FX rates from fxRes (FX-only fetch), then supplement with live prices
       const fxMap = fxRes || {};
       const fxGbpUsd = fxMap['GBPUSD=X'] || fxMap['GBPUSDX'] || fxMap['GBPUSD'];
       const fxUsdInr = fxMap['USDINR=X'] || fxMap['USDINRX'] || fxMap['USDINR'];
-      const ovGbpUsdRate = fxGbpUsd ? (typeof fxGbpUsd === 'object' ? fxGbpUsd.price : fxGbpUsd) : null;
-      const ovUsdInrRate = fxUsdInr ? (typeof fxUsdInr === 'object' ? fxUsdInr.price : fxUsdInr) : null;
+      let ovGbpUsdRate = fxGbpUsd ? (typeof fxGbpUsd === 'object' ? fxGbpUsd.price : fxGbpUsd) : null;
+      let ovUsdInrRate = fxUsdInr ? (typeof fxUsdInr === 'object' ? fxUsdInr.price : fxUsdInr) : null;
+      // Use cached rates if FX fetch was empty
+      if (!ovGbpUsdRate && typeof _gbpUsdRate !== 'undefined' && _gbpUsdRate) ovGbpUsdRate = _gbpUsdRate;
+      if (!ovUsdInrRate && typeof _usdInrRate !== 'undefined' && _usdInrRate) ovUsdInrRate = _usdInrRate;
       const ovGbpInrRate = (ovGbpUsdRate && ovUsdInrRate) ? ovGbpUsdRate * ovUsdInrRate : null;
 
-      // Foreign stocks → INR
-      let foreignInv = 0;
-      (foreignHoldingsRes.data || []).forEach(r => {
+      // Fetch live stock/crypto prices if not already cached
+      const fRows = foreignHoldingsRes.data || [];
+      const cRows = cryptoHoldingsRes.data || [];
+      const hasCachedForeign = typeof _foreignLiveData !== 'undefined' && Object.keys(_foreignLiveData).length > 0;
+      const hasCachedCrypto  = typeof _cryptoLive !== 'undefined' && Object.keys(_cryptoLive).length > 0;
+      const hasCachedFX2     = ovGbpUsdRate && ovUsdInrRate;
+      if (!hasCachedForeign || !hasCachedCrypto || !hasCachedFX2) {
+        try {
+          const fYahoo = fRows.map(r => {
+            const sym = (r.symbol || '').toUpperCase();
+            return (typeof YAHOO_SYMBOL_MAP !== 'undefined' && YAHOO_SYMBOL_MAP[sym]) || sym;
+          }).filter(Boolean);
+          const cYahoo = cRows.map(r => (r.yahoo_symbol || '').toUpperCase()).filter(Boolean);
+          const allSym = [...new Set([...fYahoo, ...cYahoo, 'GBPUSD=X', 'USDINR=X'])];
+          const pRes = await fetch('/api/prices?symbols=' + encodeURIComponent(allSym.join(',')));
+          if (pRes.ok) {
+            const pm = await pRes.json();
+            const gE = pm['GBPUSD=X'] || pm['GBPUSDX']; const iE = pm['USDINR=X'] || pm['USDINRX'];
+            if (gE) ovGbpUsdRate = typeof gE === 'object' ? gE.price : gE;
+            if (iE) ovUsdInrRate = typeof iE === 'object' ? iE.price : iE;
+            if (typeof _foreignLiveData !== 'undefined') {
+              fRows.forEach(r => {
+                const dbSym = (r.symbol || '').toUpperCase();
+                const ySym = (typeof YAHOO_SYMBOL_MAP !== 'undefined' && YAHOO_SYMBOL_MAP[dbSym]) || dbSym;
+                const entry = pm[ySym.replace(/\.L$/i, '')] || pm[ySym] || pm[dbSym];
+                if (entry) _foreignLiveData[dbSym] = { unitPrice: typeof entry === 'object' ? entry.price : entry, currentValue: 0 };
+              });
+            }
+            if (typeof _cryptoLive !== 'undefined' && typeof cryptoTicker === 'function') {
+              cRows.forEach(r => {
+                const entry = pm[(r.yahoo_symbol || '').toUpperCase()];
+                if (entry) _cryptoLive[cryptoTicker(r.yahoo_symbol)] = { price: typeof entry === 'object' ? entry.price : entry };
+              });
+            }
+          }
+        } catch(e) { /* keep avg prices */ }
+      }
+      const ovGbpInrRateFinal = (ovGbpUsdRate && ovUsdInrRate) ? ovGbpUsdRate * ovUsdInrRate : ovGbpInrRate;
+
+      // Foreign stocks → INR (inv = avg, cur = live if available)
+      let foreignInv = 0, foreignCur = 0;
+      fRows.forEach(r => {
         const qty = +r.qty || 0;
-        const isGBX = r.currency === 'GBX';
-        const nativeAmt = qty * (+r.avg_price || 0);
-        if (isGBX && ovGbpInrRate) foreignInv += (nativeAmt / 100) * ovGbpInrRate;
-        else if (!isGBX && ovUsdInrRate) foreignInv += nativeAmt * ovUsdInrRate;
+        const sym = (r.symbol || '').toUpperCase();
+        const isGBX = r.currency === 'GBX' || (typeof isLondonSymbol === 'function' && isLondonSymbol(sym));
+        const avgN = +r.avg_price || 0;
+        const liveEntry = typeof _foreignLiveData !== 'undefined' ? _foreignLiveData[sym] : null;
+        const liveN = liveEntry ? liveEntry.unitPrice : null;
+        const curN = (liveN != null && liveN > 0) ? liveN : avgN;
+        const factor = isGBX ? 100 : 1;
+        const rate = isGBX ? ovGbpInrRateFinal : ovUsdInrRate;
+        if (!rate) return;
+        foreignInv += (qty * avgN / factor) * rate;
+        foreignCur += (qty * curN / factor) * rate;
       });
 
-      // Crypto → INR
-      let cryptoInv = 0;
-      (cryptoHoldingsRes.data || []).forEach(r => {
-        const gbpAmt = (+r.qty || 0) * (+r.avg_price_gbp || 0);
-        if (ovGbpInrRate) cryptoInv += gbpAmt * ovGbpInrRate;
+      // Crypto → INR (inv = avg_price_gbp, cur = live if available)
+      let cryptoInv = 0, cryptoCur = 0;
+      cRows.forEach(r => {
+        const qty = +r.qty || 0;
+        const avgGBP = +r.avg_price_gbp || 0;
+        const ticker = typeof cryptoTicker === 'function' ? cryptoTicker(r.yahoo_symbol) : (r.yahoo_symbol || '').toUpperCase().replace(/-GBP$/i, '');
+        const liveEntry = typeof _cryptoLive !== 'undefined' ? _cryptoLive[ticker] : null;
+        const liveGBP = liveEntry ? (typeof liveEntry === 'object' ? liveEntry.price : liveEntry) : null;
+        const curGBP = (liveGBP != null && liveGBP > 0) ? liveGBP : avgGBP;
+        if (!ovGbpInrRateFinal) return;
+        cryptoInv += qty * avgGBP * ovGbpInrRateFinal;
+        cryptoCur += qty * curGBP * ovGbpInrRateFinal;
       });
 
       const foreignInvTotal = foreignInv + cryptoInv;
+      const foreignCurTotal = foreignCur + cryptoCur;
 
       // Actual invested (gbp_amount × inr_rate for both tables)
       const foreignActualTotal = (foreignActualRes.data || []).reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0);
@@ -860,7 +919,7 @@ async function loadAssets(userId, filter = null) {
         { label: 'Zerodha', icon: '📈', filter: 'Zerodha', inv: zInv + mfInv + goldInv, cur: zCur + mfCur + goldCur, actual: zerodhaActualTotal + mfActualTotal },
         { label: 'Aionion', icon: '📊', filter: 'Aionion', inv: aInv + agInv, cur: aCur + agCur, actual: aionionActualTotal },
         { label: 'AMC Mutual Funds', icon: '💼', filter: 'AMC Mutual Funds', inv: amcInv, cur: amcCur, actual: amcMfActualTotal },
-        { label: 'Foreign Investments', icon: '🌍', filter: 'Foreign Investments', inv: foreignInvTotal, cur: foreignInvTotal, actual: foreignActualGrand },
+        { label: 'Foreign Investments', icon: '🌍', filter: 'Foreign Investments', inv: foreignInvTotal, cur: foreignCurTotal, actual: foreignActualGrand },
       ].filter(r => r.inv > 0 || r.cur > 0);
 
       // ── Grand totals ───────────────────────────────────────────
@@ -889,6 +948,12 @@ async function loadAssets(userId, filter = null) {
         const pct = base > 0 ? ' (' + ((v / base) * 100).toFixed(1) + '%)' : '';
         return '<b style="color:' + gainColor(v) + '">' + (v >= 0 ? '+' : '') + INR(v) + pct + '</b>';
       };
+      // Full style reset before applying grid layout
+      totalsEl.removeAttribute('style');
+      totalsEl.style.display = 'grid';
+      totalsEl.style.gridTemplateColumns = 'repeat(5,1fr)';
+      totalsEl.style.gap = '12px';
+      totalsEl.style.marginBottom = '20px';
       totalsEl.innerHTML = [
         { label: 'Total Invested', val: '<b style="color:var(--accent)">' + INR(grandInv) + '</b>' },
         { label: 'Current Value', val: '<b style="color:var(--teal)">' + INR(grandCur) + '</b>' },
