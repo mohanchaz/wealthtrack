@@ -405,6 +405,12 @@ async function loadAssets(userId, filter = null) {
 
   tbody.innerHTML = `<tr><td colspan="8"><div class="assets-empty"><div class="empty-icon">⏳</div>Loading…</div></td></tr>`;
 
+  // Always reset all special summary rows before showing the right ones
+  document.getElementById('foreign-inr-row')?.classList.add('hidden');
+  document.getElementById('foreign-gbp-row')?.classList.add('hidden');
+  document.getElementById('crypto-inr-row')?.classList.add('hidden');
+  document.getElementById('crypto-gbp-row')?.classList.add('hidden');
+
   // Update subtitle
   const subtitle = document.querySelector('#page-assets .page-subtitle');
 
