@@ -741,8 +741,8 @@ async function loadAssets(userId, filter = null) {
   if (tableName === 'crypto_holdings') {
     document.getElementById('assets-layout-row')?.classList.remove('hidden');
     document.getElementById('group-overview-panel')?.classList.add('hidden');
-    // Hide generic summary rows and foreign rows — crypto uses its own GBP row only
-    document.querySelectorAll('.assets-summary-row').forEach(el => el.classList.add('hidden'));
+    // Hide generic summary row and foreign rows — crypto uses its own rows only
+    document.querySelector('.assets-summary-row')?.classList.add('hidden');
     document.getElementById('foreign-inr-row')?.classList.add('hidden');
     document.getElementById('foreign-gbp-row')?.classList.add('hidden');
     document.getElementById('crypto-inr-row')?.classList.remove('hidden');
