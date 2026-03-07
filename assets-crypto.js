@@ -201,9 +201,12 @@ async function fetchAndRefreshCryptoPrices(rows) {
     return;
   }
 
+  // Include FX symbols for GBP→INR conversion
+  const fetchSymbols = [...symbols, 'GBPUSD=X', 'USDINR=X'];
+
   let priceMap = null;
   try {
-    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols.join(','))}`);
+    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(fetchSymbols.join(','))}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     priceMap = await res.json();
     if (priceMap.error) throw new Error(priceMap.error);
@@ -216,6 +219,13 @@ async function fetchAndRefreshCryptoPrices(rows) {
   }
 
   if (refreshBtn) refreshBtn.disabled = false;
+
+  // Extract GBP→INR rate
+  const _fxGbpUsd = priceMap['GBPUSD=X'] || priceMap['GBPUSDX'] || priceMap['GBPUSD'];
+  const _fxUsdInr = priceMap['USDINR=X'] || priceMap['USDINRX'] || priceMap['USDINR'];
+  const _gbpUsdRate = _fxGbpUsd ? (typeof _fxGbpUsd === 'object' ? _fxGbpUsd.price : _fxGbpUsd) : null;
+  const _usdInrRate = _fxUsdInr ? (typeof _fxUsdInr === 'object' ? _fxUsdInr.price : _fxUsdInr) : null;
+  const _liveGbpInrRate = (_gbpUsdRate && _usdInrRate) ? _gbpUsdRate * _usdInrRate : null;
 
   // API strips '-GBP' → key is 'BTC', 'ETH' etc.
   _cryptoLive = {};
