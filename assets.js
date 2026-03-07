@@ -1203,32 +1203,38 @@ function renderAssetsTable(assets, tableName) {
 
   // Update thead dynamically
   if (thead) {
-    // Column width hints for fixed-layout stock tables (prevents horizontal scroll)
-    const stockColWidths = {
-      instrument: '72px', _name: '0', _name_width: 'auto',
-      qty: '40px', _qty_diff: '52px', avg_cost: '70px',
-      _ltp: '70px', _live_nav: '70px', invested: '80px',
-      current_value: '80px', _alloc_pct: '62px',
-      fund_name: '0', fund_name_width: 'auto',
-      holding_name: '0', holding_name_width: 'auto',
-      holding_type: '50px', yahoo_symbol: '60px',
-      platform: '70px', folio_number: '80px',
-    };
     const isStockTbl = tableName === 'zerodha_stocks' || tableName === 'aionion_stocks' ||
       tableName === 'aionion_gold' || tableName === 'mf_holdings' ||
       tableName === 'gold_holdings' || tableName === 'amc_mf_holdings';
 
-    // Add bulk-check-cell th (hidden) + col ths + Gain + edit
+    // For stock tables: merge instrument+_name / fund_name / holding_name into one column
+    // Skip _name as standalone column — it's shown as subtitle under instrument
+    const MERGE_INTO_PREV = new Set(['_name']);  // these keys get merged into prev column
+
+    const thS = 'padding:6px 8px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap;';
+
+    // Column widths for stock tables
+    const colW = {
+      instrument: '130px',   // wider — will hold symbol + company name subtitle
+      fund_name:  '180px',   // MF fund name + ticker
+      holding_name: '140px',
+      qty: '44px', _qty_diff: '58px',
+      avg_cost: '74px', _ltp: '74px', _live_nav: '74px',
+      invested: '86px', current_value: '86px',
+      _alloc_pct: '70px',
+      holding_type: '52px', platform: '72px', folio_number: '82px',
+    };
+
+    const visibleCols = isStockTbl ? cols.filter(c => !MERGE_INTO_PREV.has(c.key)) : cols;
+
     thead.innerHTML =
       `<th class="bulk-check-cell" style="width:32px;padding:0 8px;display:none"></th>` +
-      cols.map(c => {
-        const w = isStockTbl && stockColWidths[c.key] ? `width:${stockColWidths[c.key]};` : '';
-        const nameCol = c.key === '_name' || c.key === 'fund_name' || c.key === 'holding_name' || c.key === '_name';
+      visibleCols.map(c => {
+        const w = isStockTbl && colW[c.key] ? `width:${colW[c.key]};` : '';
         const align = c.align ? `text-align:${c.align};` : '';
-        const wrap = nameCol ? 'overflow:hidden;text-overflow:ellipsis;max-width:120px;' : '';
-        return `<th style="${w}${align}${wrap}">${c.label}</th>`;
+        return `<th style="${thS}${w}${align}">${c.label}</th>`;
       }).join('') +
-      `<th style="text-align:right;width:130px">Gain / Loss</th><th style="width:32px"></th>`;
+      `<th style="${thS}text-align:right;width:140px">Gain / Loss</th><th style="width:32px"></th>`;
   }
 
   // Summary stats
@@ -1367,12 +1373,27 @@ function renderAssetsTable(assets, tableName) {
       if (c.fw) style += `font-weight:${c.fw};`;
       if (c.mono) style += 'font-family:monospace;font-size:12px;';
       // For MF fund_name: show ticker symbol below the name
-      const isNameCol = c.key === '_name' || c.key === 'fund_name' || c.key === 'holding_name';
       let inner;
-      if (tableName === 'mf_holdings' && c.key === 'fund_name' && row._ticker) {
-        inner = `<span style="display:flex;flex-direction:column;gap:1px"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px" title="${val}">${val}</b><span style="font-size:10.5px;color:var(--muted2);font-weight:400">${row._ticker}</span></span>`;
-      } else if (isNameCol) {
-        inner = `<span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;color:var(--muted2);font-size:11px" title="${val}">${val}</span>`;
+      // Instrument col: show name as subtitle underneath
+      if ((tableName === 'zerodha_stocks' || tableName === 'aionion_stocks') && c.key === 'instrument') {
+        const companyName = row._name || '';
+        inner = `<span style="display:flex;flex-direction:column;gap:1px">
+          <b>${val}</b>
+          ${companyName ? `<span style="font-size:10px;color:var(--muted2);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px" title="${companyName}">${companyName}</span>` : ''}
+        </span>`;
+      } else if (c.key === '_name') {
+        // Skip — rendered as subtitle of instrument above
+        inner = '';
+      } else if (tableName === 'mf_holdings' && c.key === 'fund_name') {
+        const ticker = row._ticker || '';
+        inner = `<span style="display:flex;flex-direction:column;gap:1px">
+          <b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:170px" title="${val}">${val}</b>
+          ${ticker ? `<span style="font-size:10px;color:var(--muted2);font-weight:400">${ticker}</span>` : ''}
+        </span>`;
+      } else if (tableName === 'gold_holdings' && c.key === 'holding_name') {
+        inner = `<b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:130px" title="${val}">${val}</b>`;
+      } else if (tableName === 'amc_mf_holdings' && c.key === '_name') {
+        inner = `<b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:170px" title="${val}">${val}</b>`;
       } else {
         inner = c.bold ? `<b>${val}</b>` : val;
       }
@@ -1389,6 +1410,8 @@ function renderAssetsTable(assets, tableName) {
         (tableName === 'amc_mf_holdings' && ['current_value', '_alloc_pct', '_live_nav', '_name'].includes(c.key)))
         ? ` data-live-${c.key}="${liveKey2}"`
         : '';
+      // Skip _name column for stock tables — merged into instrument cell above
+      if (c.key === '_name' && (tableName === 'zerodha_stocks' || tableName === 'aionion_stocks')) return '';
       return `<td${style ? ` style="${style}"` : ''}${liveAttr}>${inner}</td>`;
     }).join('');
 

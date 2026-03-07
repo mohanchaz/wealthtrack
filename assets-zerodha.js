@@ -138,8 +138,19 @@ async function fetchAndRefreshZerodhaPrices(assets) {
     const gainPct     = investedAmt > 0 ? ((gain / investedAmt) * 100).toFixed(1) : null;
     const allocPct    = totalValue > 0 ? ((curVal / totalValue) * 100) : 0;
 
-    const nameCell = document.querySelector(`[data-live-_name="${a.instrument}"]`);
-    if (nameCell && name) nameCell.innerHTML = `<span style="color:var(--muted);font-size:12px">${name}</span>`;
+    // Name now shown as subtitle span inside the instrument cell
+    const instrCell = document.querySelector(`[data-live-_ltp="${a.instrument}"]`)?.closest('tr')?.querySelector('td:nth-child(2)');
+    if (instrCell && name) {
+      let sub = instrCell.querySelector('span[data-name-sub]');
+      if (!sub) {
+        sub = document.createElement('span');
+        sub.setAttribute('data-name-sub', '1');
+        sub.style.cssText = 'font-size:10px;color:var(--muted2);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:120px';
+        instrCell.querySelector('span')?.appendChild(sub) || instrCell.appendChild(sub);
+      }
+      sub.textContent = name;
+      sub.title = name;
+    }
 
     const ltpCell = document.querySelector(`[data-live-_ltp="${a.instrument}"]`);
     if (ltpCell) ltpCell.textContent = INR(ltp);
