@@ -475,10 +475,10 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
     document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
     ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'mf-monthly-summary',
-      'foreign-inr-row', 'foreign-gbp-row'].forEach(id =>
+      'foreign-inr-row', 'foreign-gbp-row', 'crypto-inr-row', 'crypto-gbp-row', 'crypto-monthly-summary'].forEach(id =>
         document.getElementById(id)?.classList.add('hidden')
       );
-    ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf', 'foreign'].forEach(p => {
+    ['zerodha', 'aionion', 'aionion-gold', 'mf', 'gold', 'amc-mf', 'foreign', 'crypto'].forEach(p => {
       document.getElementById(p + '-import-btn')?.classList.add('hidden');
       document.getElementById(p + '-refresh-btn')?.classList.add('hidden');
       document.getElementById(p + '-last-updated')?.classList.add('hidden');
