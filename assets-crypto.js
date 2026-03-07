@@ -381,7 +381,7 @@ function _refreshCryptoActualGainTile() {
     // Total Gain INR: use invGBP (from GBP summary tile) × weightedRate
     const invGBPTile2 = document.getElementById('assets-total-invested');
     const invGBPText2 = invGBPTile2 ? invGBPTile2.textContent.trim() : '';
-    const invGBPVal2 = invGBPText2.startsWith('£') ? parseFloat(invGBPText2.replace(/[^\d.-]/g, '')) || 0 : 0;
+    const invGBPVal2 = /[£\u00a3]/.test(invGBPText2) ? parseFloat(invGBPText2.replace(/[^\d.-]/g, '')) || 0 : 0;
     const weightedRate2 = actINR / actGBP;
     const invINR2 = invGBPVal2 > 0 ? invGBPVal2 * weightedRate2 : actINR;
     const totalGainINR = curINR - invINR2;
@@ -465,7 +465,7 @@ function renderCryptoActualInvested(rows) {
       // Total Gain INR: cost basis = invGBP(from GBP tile) × weightedRate
       const invGBPTile = document.getElementById('assets-total-invested');
       const invGBPText = invGBPTile ? invGBPTile.textContent.trim() : '';
-      const invGBPVal = invGBPText.startsWith('£') ? parseFloat(invGBPText.replace(/[^\d.-]/g, '')) || 0 : 0;
+      const invGBPVal = /[£\u00a3]/.test(invGBPText) ? parseFloat(invGBPText.replace(/[^\d.-]/g, '')) || 0 : 0;
       const invINR = invGBPVal > 0 ? invGBPVal * weightedInrRate : totalINR;
       const totalGainINR = curINR - invINR;
       const totalPct = invINR > 0 ? ` (${((totalGainINR / invINR) * 100).toFixed(1)}%)` : '';
@@ -484,7 +484,8 @@ function renderCryptoActualInvested(rows) {
       setEl('crypto-actual-gain-inr', '—');
     }
   } else {
-    ['crypto-total-inv-inr','crypto-total-val-inr','crypto-total-gain-inr',
+    // Don't reset crypto-total-inv-inr here — it's owned by renderCryptoHoldings
+    ['crypto-total-val-inr','crypto-total-gain-inr',
      'crypto-actual-inv-inr','crypto-actual-gain-inr'].forEach(id => setEl(id, '—'));
   }
 
