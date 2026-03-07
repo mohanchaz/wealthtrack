@@ -751,10 +751,12 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
     ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
       'aionion-gold-monthly-summary', 'mf-monthly-summary', 'gold-monthly-summary',
-      'amc-mf-monthly-summary', 'ef-monthly-summary'].forEach(id =>
+      'amc-mf-monthly-summary', 'ef-monthly-summary', 'foreign-monthly-summary'].forEach(id =>
         document.getElementById(id)?.classList.add('hidden')
     );
+    document.getElementById('crypto-gbp-row')?.classList.remove('hidden');
     loadCryptoHoldings(userId);
+    loadCryptoActualInvested(userId);
     return;
   }
 
@@ -776,7 +778,7 @@ async function loadAssets(userId, filter = null) {
     document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
     ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary',
       'aionion-gold-monthly-summary', 'mf-monthly-summary', 'gold-monthly-summary',
-      'amc-mf-monthly-summary', 'ef-monthly-summary'].forEach(id =>
+      'amc-mf-monthly-summary', 'ef-monthly-summary', 'foreign-monthly-summary'].forEach(id =>
         document.getElementById(id)?.classList.add('hidden')
       );
     document.querySelector('.assets-table')?.classList.add('foreign-compact');
@@ -796,7 +798,7 @@ async function loadAssets(userId, filter = null) {
   // Pre-emptively hide all actual invested panels — renderAssetsTable will re-show the right one
   document.getElementById('assets-actual-invested-card')?.classList.add('hidden');
   document.getElementById('assets-actual-gain-card')?.classList.add('hidden');
-  ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'ef-monthly-summary', 'mf-monthly-summary', 'amc-mf-monthly-summary', 'foreign-monthly-summary'].forEach(id => {
+  ['assets-monthly-summary', 'zerodha-monthly-summary', 'aionion-monthly-summary', 'ef-monthly-summary', 'mf-monthly-summary', 'amc-mf-monthly-summary', 'foreign-monthly-summary', 'crypto-monthly-summary'].forEach(id => {
     document.getElementById(id)?.classList.add('hidden');
   });
 
@@ -858,6 +860,7 @@ function renderAssetsTable(assets, tableName) {
   // Hide Foreign Stocks extra rows (only shown when tableName === 'foreign_stock_holdings')
   document.getElementById('foreign-inr-row')?.classList.add('hidden');
   document.getElementById('foreign-gbp-row')?.classList.add('hidden');
+  document.getElementById('crypto-gbp-row')?.classList.add('hidden');
 
   // Reset select mode on every new table load
   document.getElementById('bulk-delete-bar')?.classList.add('hidden');

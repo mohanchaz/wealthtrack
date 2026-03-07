@@ -84,6 +84,7 @@
       loadHTML('modals/foreign-invested.html'),
       loadHTML('modals/crypto-import.html'),
       loadHTML('modals/crypto-edit.html'),
+      loadHTML('modals/crypto-invested.html'),
     ]);
 
     // 1. Inject login / auth view
