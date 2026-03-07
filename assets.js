@@ -706,10 +706,10 @@ async function loadAssets(userId, filter = null) {
         cryptoHoldingsRes, cryptoActualRes,
         fxRes,
       ] = await Promise.all([
-        sb.from('foreign_stock_holdings').select('qty, avg_price, currency').eq('user_id', userId).catch(() => ({ data: [] })),
-        sb.from('foreign_actual_invested').select('gbp_amount, inr_rate').eq('user_id', userId).catch(() => ({ data: [] })),
-        sb.from('crypto_holdings').select('qty, avg_price_gbp').eq('user_id', userId).catch(() => ({ data: [] })),
-        sb.from('crypto_actual_invested').select('gbp_amount, inr_rate').eq('user_id', userId).catch(() => ({ data: [] })),
+        sb.from('foreign_stock_holdings').select('qty, avg_price, currency').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('foreign_actual_invested').select('gbp_amount, inr_rate').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('crypto_holdings').select('qty, avg_price_gbp').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
+        sb.from('crypto_actual_invested').select('gbp_amount, inr_rate').eq('user_id', userId).then(r => r).catch(() => ({ data: [] })),
         fetch('/api/prices?symbols=GBPUSD%3DX%2CUSDINR%3DX').then(r => r.ok ? r.json() : {}).catch(() => ({})),
       ]);
 
