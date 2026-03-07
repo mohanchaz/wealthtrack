@@ -15,6 +15,10 @@ let _cryptoActualRows = [];
 let _liveGbpInrRate = null;
 
 // Strip '-GBP' suffix → display ticker (BTC-GBP → BTC)
+function GBP(n) {
+  return '£' + (+n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function cryptoTicker(yahooSymbol) {
   return (yahooSymbol || '').toUpperCase().replace(/-GBP$/i, '');
 }
@@ -94,7 +98,7 @@ function renderCryptoHoldings(rows) {
       : dash;
 
     const gainStr = gain == null ? dash
-      : `${gain >= 0 ? '+' : ''}£${gain.toFixed(2)}<span style="font-size:10px">${gainPct}</span>`;
+      : `${gain >= 0 ? '+' : ''}${GBP(gain)}<span style="font-size:10px">${gainPct}</span>`;
 
     return `<tr style="background:${i % 2 === 0 ? '#fff' : 'var(--surface2)'}">
       <td class="bulk-check-cell" style="width:32px;padding:0 8px;display:none">
@@ -109,8 +113,8 @@ function renderCryptoHoldings(rows) {
       <td style="${tdr}">${qty.toLocaleString('en-GB', {maximumFractionDigits:8})}</td>
       <td style="${tdr}">£${avg.toLocaleString('en-GB', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>
       <td style="${tdr};font-weight:600">${cur != null ? '£' + cur.toLocaleString('en-GB', {minimumFractionDigits:2,maximumFractionDigits:2}) : dash}</td>
-      <td style="${tdr}">£${inv.toFixed(2)}</td>
-      <td style="${tdr};font-weight:600">${curVal != null ? '£' + curVal.toFixed(2) : dash}</td>
+      <td style="${tdr}">${GBP(inv)}</td>
+      <td style="${tdr};font-weight:600">${curVal != null ? GBP(curVal) : dash}</td>
       <td style="${tdr};font-weight:600;color:${gc}">${gainStr}</td>
       <td style="${tdr}">${allocBar}</td>
       <td style="${td};text-align:right">
@@ -144,24 +148,24 @@ function renderCryptoHoldings(rows) {
   const totalGainGBP = totalCurGBP - totalInvGBP;
   const gainPctStr   = totalInvGBP > 0 ? ` (${((totalGainGBP / totalInvGBP) * 100).toFixed(1)}%)` : '';
   const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  setEl('assets-total-invested', `£${totalInvGBP.toFixed(2)}`);
-  setEl('assets-total-value',    hasPrices ? `£${totalCurGBP.toFixed(2)}` : '—');
+  setEl('assets-total-invested', GBP(totalInvGBP));
+  setEl('assets-total-value',    hasPrices ? GBP(totalCurGBP) : '—');
   // Also populate crypto-gbp-row tiles
-  setEl('crypto-total-inv-gbp', `£${totalInvGBP.toFixed(2)}`);
-  setEl('crypto-total-val-gbp', hasPrices ? `£${totalCurGBP.toFixed(2)}` : '—');
+  setEl('crypto-total-inv-gbp', GBP(totalInvGBP));
+  setEl('crypto-total-val-gbp', hasPrices ? GBP(totalCurGBP) : '—');
   const gainEl = document.getElementById('assets-total-gain');
   const gainEl2 = document.getElementById('crypto-total-gain-gbp');
   if (gainEl) {
     if (!hasPrices) { gainEl.textContent = '—'; gainEl.style.color = 'var(--muted)'; }
     else {
-      gainEl.textContent = `${totalGainGBP >= 0 ? '+' : ''}£${totalGainGBP.toFixed(2)}${gainPctStr}`;
+      gainEl.textContent = `${totalGainGBP >= 0 ? '+' : ''}${GBP(totalGainGBP)}${gainPctStr}`;
       gainEl.style.color = totalGainGBP > 0 ? 'var(--green)' : totalGainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   }
   if (gainEl2) {
     if (!hasPrices) { gainEl2.textContent = '—'; gainEl2.style.color = 'var(--muted)'; }
     else {
-      gainEl2.textContent = `${totalGainGBP >= 0 ? '+' : ''}£${totalGainGBP.toFixed(2)}${gainPctStr}`;
+      gainEl2.textContent = `${totalGainGBP >= 0 ? '+' : ''}${GBP(totalGainGBP)}${gainPctStr}`;
       gainEl2.style.color = totalGainGBP > 0 ? 'var(--green)' : totalGainGBP < 0 ? 'var(--danger)' : 'var(--muted)';
     }
   }
@@ -403,7 +407,7 @@ function renderCryptoActualInvested(rows) {
 
   const totalGBP = rows.reduce((s, r) => s + (+r.gbp_amount || 0), 0);
   const totalINR = rows.reduce((s, r) => s + ((+r.gbp_amount || 0) * (+r.inr_rate || 0)), 0);
-  if (totalEl) totalEl.textContent = '£' + totalGBP.toFixed(2) + (totalINR > 0 ? '  ·  ' + INR(totalINR) : '');
+  if (totalEl) totalEl.textContent = GBP(totalGBP) + (totalINR > 0 ? '  ·  ' + INR(totalINR) : '');
 
   const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   const setElColor = (id, v, c) => { const el = document.getElementById(id); if (el) { el.textContent = v; el.style.color = c; } };
@@ -412,7 +416,7 @@ function renderCryptoActualInvested(rows) {
   const weightedInrRate = totalGBP > 0 ? totalINR / totalGBP : 0;
 
   // ── GBP tiles ──
-  setEl('crypto-actual-inv-gbp', totalGBP > 0 ? '£' + totalGBP.toFixed(2) : '—');
+  setEl('crypto-actual-inv-gbp', totalGBP > 0 ? GBP(totalGBP) : '—');
   // Compute current GBP value directly from holdings × live prices (don't read from DOM)
   const curGBP = (_cryptoRows || []).reduce((s, r) => {
     const ticker = cryptoTicker(r.yahoo_symbol);
@@ -423,7 +427,7 @@ function renderCryptoActualInvested(rows) {
     const gain = curGBP - totalGBP;
     const pct = ` (${((gain / totalGBP) * 100).toFixed(1)}%)`;
     setElColor('crypto-actual-gain-gbp',
-      (gain >= 0 ? '+' : '') + '£' + Math.abs(gain).toFixed(2) + pct,
+      (gain >= 0 ? '+' : '') + GBP(Math.abs(gain)) + pct,
       gain > 0 ? 'var(--green)' : gain < 0 ? 'var(--danger)' : 'var(--muted)');
   } else {
     setEl('crypto-actual-gain-gbp', '—');
@@ -484,7 +488,7 @@ function renderCryptoActualInvested(rows) {
     return '<tr style="background:' + (i % 2 === 0 ? '#fff' : 'var(--surface2)') + '">' +
       '<td class="cai-cb-wrap" data-id="' + r.id + '" style="width:28px;padding:0 8px;display:none;border-bottom:1px solid var(--border)"><input type="checkbox" class="cai-cb" data-id="' + r.id + '" style="width:14px;height:14px;cursor:pointer;accent-color:#0d9488"></td>' +
       '<td style="' + thS + ';color:var(--accent);font-weight:500">' + dateStr + '</td>' +
-      '<td style="' + thS + ';text-align:right;font-weight:600">£' + (+r.gbp_amount).toFixed(2) + '</td>' +
+      '<td style="' + thS + ';text-align:right;font-weight:600">' + GBP(+r.gbp_amount) + '</td>' +
       '<td style="' + thS + ';text-align:right;color:var(--muted2)">' + (inrAmt > 0 ? INR(inrAmt) : '—') + '</td>' +
       '<td style="' + thS + ';white-space:nowrap">' +
         '<button style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:0.7" ' +
@@ -495,7 +499,7 @@ function renderCryptoActualInvested(rows) {
   }).join('') +
     '<tr style="background:var(--surface2)">' +
     '<td style="padding:9px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2)">Total</td>' +
-    '<td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">£' + totalGBP.toFixed(2) + '</td>' +
+    '<td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">' + GBP(totalGBP) + '</td>' +
     '<td style="padding:9px 14px;text-align:right;font-weight:700;color:var(--accent)">' + (totalINR > 0 ? INR(totalINR) : '—') + '</td>' +
     '<td></td></tr>';
 
