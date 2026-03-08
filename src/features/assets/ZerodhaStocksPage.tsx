@@ -240,12 +240,6 @@ export default function ZerodhaStocksPage() {
         )
       },
     },
-            className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-teal transition-colors">✏</button>
-          <button onClick={() => handleDelete(r.id)}
-            className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-red/10 hover:text-red transition-colors">✕</button>
-        </div>
-      ),
-    },
   ]
 
   return (
