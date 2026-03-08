@@ -12,13 +12,11 @@ export async function loadAllocations(userId: string): Promise<IdealAllocation[]
 }
 
 export async function saveAllocations(
-  userId:  string,
-  items:   { name: string; pct: number }[],
+  userId: string,
+  items:  { name: string; pct: number }[],
 ): Promise<void> {
   const { error: delErr } = await supabase
-    .from('ideal_allocations')
-    .delete()
-    .eq('user_id', userId)
+    .from('ideal_allocations').delete().eq('user_id', userId)
   if (delErr) throw new Error(delErr.message)
 
   const rows = items.map(r => ({
@@ -28,8 +26,8 @@ export async function saveAllocations(
     category:   'Custom',
     percentage: +(r.pct / 100).toFixed(4),
   }))
-  const { error: insErr } = await supabase.from('ideal_allocations').insert(rows)
-  if (insErr) throw new Error(insErr.message)
+  const { error } = await supabase.from('ideal_allocations').insert(rows)
+  if (error) throw new Error(error.message)
 }
 
 const DEFAULT_ALLOCATIONS = [
@@ -45,10 +43,7 @@ const DEFAULT_ALLOCATIONS = [
 
 export async function seedDefaultAllocations(userId: string): Promise<void> {
   const rows = DEFAULT_ALLOCATIONS.map(a => ({
-    user_id:  userId,
-    ...a,
-    type:     'Asset',
-    category: 'Default',
+    user_id: userId, ...a, type: 'Asset', category: 'Default',
   }))
   const { error } = await supabase.from('ideal_allocations').insert(rows)
   if (error) throw new Error(error.message)

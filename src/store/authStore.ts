@@ -34,7 +34,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }))
 
-// Bootstrap — sync Supabase auth events into the store
+// Bootstrap: sync Supabase auth events into the store
 supabase.auth.onAuthStateChange((_event, session) => {
   useAuthStore.setState({
     user:    session?.user ?? null,

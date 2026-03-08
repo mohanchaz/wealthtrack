@@ -1,14 +1,14 @@
 import type { User, Session } from '@supabase/supabase-js'
 export type { User, Session }
 
-// ── Allocation ─────────────────────────────────────────────────
+// ── Ideal Allocation ───────────────────────────────────────────
 export interface IdealAllocation {
-  id:         string
-  user_id:    string
-  item:       string
-  type:       string
-  category:   string
-  percentage: number   // decimal, e.g. 0.36 = 36%
+  id:          string
+  user_id:     string
+  item:        string
+  type:        string
+  category:    string
+  percentage:  number     // decimal e.g. 0.36 = 36%
   created_at?: string
 }
 
@@ -21,8 +21,9 @@ export interface DashboardStats {
   entryLabel:     string
 }
 
-// ── Toast ──────────────────────────────────────────────────────
+// ── Toasts ─────────────────────────────────────────────────────
 export type ToastType = 'info' | 'success' | 'error'
+
 export interface Toast {
   id:      string
   message: string

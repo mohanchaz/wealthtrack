@@ -4,68 +4,80 @@
 
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
-
   html { scroll-behavior: smooth; }
 
   body {
     @apply bg-bg text-textprim font-sans;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
   }
 
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-border2 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-textmut; }
+  /* ── Scrollbars ───────────────────────────────────────── */
+  ::-webkit-scrollbar            { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track      { background: transparent; }
+  ::-webkit-scrollbar-thumb      { @apply bg-border rounded-full; }
+  ::-webkit-scrollbar-thumb:hover{ @apply bg-border2; }
+
+  /* ── Focus ring ───────────────────────────────────────── */
+  :focus-visible { outline: 2px solid #0d9488; outline-offset: 2px; }
 }
 
 @layer components {
-  /* ── Delay utilities for staggered animations ──────── */
-  .delay-1 { animation-delay: 0.05s; }
-  .delay-2 { animation-delay: 0.10s; }
-  .delay-3 { animation-delay: 0.15s; }
-  .delay-4 { animation-delay: 0.20s; }
-  .delay-5 { animation-delay: 0.25s; }
-  .delay-6 { animation-delay: 0.30s; }
+  /* Animation delays */
+  .delay-1 { animation-delay: 0.06s; }
+  .delay-2 { animation-delay: 0.12s; }
+  .delay-3 { animation-delay: 0.18s; }
+  .delay-4 { animation-delay: 0.24s; }
+  .delay-5 { animation-delay: 0.30s; }
+  .delay-6 { animation-delay: 0.36s; }
 
-  /* ── Glassmorphism card ─────────────────────────────── */
-  .glass-card {
-    background: rgba(17, 24, 39, 0.8);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(30, 42, 58, 0.8);
-  }
-
-  /* ── Skeleton loader ────────────────────────────────── */
+  /* Skeleton shimmer */
   .skeleton {
-    background: linear-gradient(90deg, #1a2235 25%, #243044 50%, #1a2235 75%);
+    background: linear-gradient(90deg, #e6faf6 25%, #b2f0e8 50%, #e6faf6 75%);
     background-size: 200% 100%;
-    @apply animate-shimmer rounded;
+    @apply animate-shimmer rounded-lg;
   }
 
-  /* ── Number ticker mono style ───────────────────────── */
-  .mono-value {
-    @apply font-mono font-medium tabular-nums;
+  /* Card base */
+  .card {
+    @apply bg-surface border border-border rounded-2xl shadow-card;
+  }
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-cardHov hover:border-border2;
+  }
+
+  /* Teal pill badge */
+  .badge-teal {
+    @apply inline-flex items-center gap-1.5 text-xs font-medium
+           px-2.5 py-1 rounded-full
+           bg-teal/10 text-teal border border-teal/20;
+  }
+
+  /* Mono financial number */
+  .fin-num {
+    @apply font-mono font-semibold tabular-nums tracking-tight;
   }
 }
 
 @layer utilities {
-  .text-gradient-amber {
-    background: linear-gradient(135deg, #f59e0b, #fbbf24);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .text-gradient-blue {
-    background: linear-gradient(135deg, #3b82f6, #818cf8);
+  .text-gradient-teal {
+    background: linear-gradient(135deg, #0d9488, #0891b2);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   .text-gradient-green {
-    background: linear-gradient(135deg, #22c55e, #14b8a6);
+    background: linear-gradient(135deg, #059669, #0d9488);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+  .bg-teal-mesh {
+    background:
+      radial-gradient(ellipse 70% 60% at 10% 0%, rgba(13,148,136,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 90% 100%, rgba(8,145,178,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 35% at 50% 50%, rgba(5,150,105,0.04) 0%, transparent 60%),
+      #f0fdf9;
   }
 }

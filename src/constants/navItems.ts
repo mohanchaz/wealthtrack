@@ -1,42 +1,42 @@
 export interface NavItem {
-  id:       string
-  label:    string
-  icon:     string
-  path:     string
+  id:        string
+  label:     string
+  icon:      string
+  path:      string
   children?: NavItem[]
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard',  label: 'Dashboard',  icon: '◈', path: '/dashboard' },
-  { id: 'allocation', label: 'Allocation', icon: '◎', path: '/allocation' },
+  { id: 'dashboard',  label: 'Dashboard',       icon: '◈', path: '/dashboard' },
+  { id: 'allocation', label: 'Ideal Allocation', icon: '◎', path: '/allocation' },
   {
     id: 'assets', label: 'Assets', icon: '⬡', path: '/assets',
     children: [
       {
         id: 'zerodha', label: 'Zerodha', icon: '📈', path: '/assets/zerodha',
         children: [
-          { id: 'zerodha-stocks', label: 'Stocks',       icon: '◆', path: '/assets/zerodha-stocks' },
-          { id: 'mutual-funds',   label: 'Mutual Funds', icon: '◆', path: '/assets/mutual-funds' },
-          { id: 'gold',           label: 'Gold',         icon: '◆', path: '/assets/gold' },
+          { id: 'zerodha-stocks', label: 'Stocks',        icon: '◆', path: '/assets/zerodha-stocks' },
+          { id: 'mutual-funds',   label: 'Mutual Funds',  icon: '◆', path: '/assets/mutual-funds'   },
+          { id: 'gold',           label: 'Gold',          icon: '◆', path: '/assets/gold'            },
         ],
       },
       {
         id: 'aionion', label: 'Aionion', icon: '📊', path: '/assets/aionion',
         children: [
           { id: 'aionion-stocks', label: 'Stocks', icon: '◆', path: '/assets/aionion-stocks' },
-          { id: 'aionion-gold',   label: 'Gold',   icon: '◆', path: '/assets/aionion-gold' },
+          { id: 'aionion-gold',   label: 'Gold',   icon: '◆', path: '/assets/aionion-gold'   },
         ],
       },
-      { id: 'cash',       label: 'Cash',          icon: '◆', path: '/assets/cash' },
-      { id: 'fd',         label: 'Fixed Deposits', icon: '◆', path: '/assets/fd' },
-      { id: 'ef',         label: 'Emergency Fund', icon: '◆', path: '/assets/ef' },
-      { id: 'bonds',      label: 'Bonds',          icon: '◆', path: '/assets/bonds' },
-      { id: 'amc-mf',     label: 'AMC Mutual Funds',icon: '◆',path: '/assets/amc-mf' },
+      { id: 'cash',    label: 'Cash',            icon: '◆', path: '/assets/cash'    },
+      { id: 'fd',      label: 'Fixed Deposits',  icon: '◆', path: '/assets/fd'      },
+      { id: 'ef',      label: 'Emergency Fund',  icon: '◆', path: '/assets/ef'      },
+      { id: 'bonds',   label: 'Bonds',           icon: '◆', path: '/assets/bonds'   },
+      { id: 'amc-mf',  label: 'AMC Mutual Funds',icon: '◆', path: '/assets/amc-mf'  },
       {
-        id: 'foreign-inv', label: 'Foreign Investments', icon: '🌐', path: '/assets/foreign',
+        id: 'foreign', label: 'Foreign Investments', icon: '🌐', path: '/assets/foreign',
         children: [
           { id: 'foreign-stocks', label: 'Foreign Stocks', icon: '◆', path: '/assets/foreign-stocks' },
-          { id: 'crypto',         label: 'Crypto',         icon: '◆', path: '/assets/crypto' },
+          { id: 'crypto',         label: 'Crypto',         icon: '◆', path: '/assets/crypto'         },
         ],
       },
     ],

@@ -1,25 +1,8 @@
 import { supabase } from '../lib/supabase'
+import { fetchLivePrices, getLTP } from './priceService'
 import type { DashboardStats } from '../types'
 
-interface PriceEntry { price: number; name: string | null }
-type PriceMap = Record<string, PriceEntry>
-
-async function fetchLivePrices(instruments: string[]): Promise<PriceMap> {
-  if (!instruments.length) return {}
-  const symbols = instruments.map(i => `${i}.NS`).join(',')
-  try {
-    const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols)}`)
-    if (!res.ok) return {}
-    return await res.json()
-  } catch { return {} }
-}
-
-const getLTP = (map: PriceMap, instrument: string): number | null =>
-  map[instrument]?.price ?? null
-
 export async function loadDashboardStats(userId: string): Promise<DashboardStats> {
-  const FD_LIKE = ['bank_fd_assets', 'emergency_funds']
-
   const [
     cashRes, fdRes, efRes, bondsRes, amcMfRes,
     zerodhaRes, aionionRes, aionionGoldRes, mfRes, goldRes,
@@ -44,7 +27,9 @@ export async function loadDashboardStats(userId: string): Promise<DashboardStats
     supabase.from('gold_actual_invested').select('amount').eq('user_id', userId),
   ])
 
-  let totalInvested = 0, totalValue = 0, assetCount = 0
+  let totalInvested = 0
+  let totalValue    = 0
+  let assetCount    = 0
 
   // Cash
   ;(cashRes.data ?? []).forEach(r => {
@@ -53,35 +38,21 @@ export async function loadDashboardStats(userId: string): Promise<DashboardStats
     assetCount++
   })
 
-  // FD-like (no live value — current = invested)
+  // FD-like (current = invested)
   ;[...(fdRes.data ?? []), ...(efRes.data ?? [])].forEach(r => {
     const inv = +r.invested || 0
-    totalInvested += inv
-    totalValue    += inv
-    assetCount++
+    totalInvested += inv; totalValue += inv; assetCount++
   })
 
-  // Bonds: current value = face_value
+  // Bonds (current = face_value)
   ;(bondsRes.data ?? []).forEach(r => {
     totalInvested += +r.invested || 0
     totalValue    += +r.face_value || +r.invested || 0
     assetCount++
   })
 
-  // AMC MF — no live nav yet, use avg_cost
-  ;(amcMfRes.data ?? []).forEach(r => {
-    const val = (+r.qty || 0) * (+r.avg_cost || 0)
-    totalInvested += val; totalValue += val; assetCount++
-  })
-
-  // MF — no live nav yet
-  ;(mfRes.data ?? []).forEach(r => {
-    const val = (+r.qty || 0) * (+r.avg_cost || 0)
-    totalInvested += val; totalValue += val; assetCount++
-  })
-
-  // Gold — no live nav yet
-  ;(goldRes.data ?? []).forEach(r => {
+  // AMC MF / MF / Gold — no live NAV yet, use avg_cost
+  ;[...(amcMfRes.data ?? []), ...(mfRes.data ?? []), ...(goldRes.data ?? [])].forEach(r => {
     const val = (+r.qty || 0) * (+r.avg_cost || 0)
     totalInvested += val; totalValue += val; assetCount++
   })
@@ -123,21 +94,16 @@ export async function loadDashboardStats(userId: string): Promise<DashboardStats
   const sum = (data: { amount: string | number }[] | null) =>
     (data ?? []).reduce((s, r) => s + (+r.amount || 0), 0)
 
-  const fdCount  = (fdActualRes.data  ?? []).length
-  const zaiCount = (zaiRes.data  ?? []).length
-  const aaiCount = (aaiRes.data  ?? []).length
-  const agaiCount= (agaiRes.data ?? []).length
-  const mfaiCount= (mfaiRes.data ?? []).length
-  const gaiCount = (gaiRes.data  ?? []).length
-
   const actualInvested =
-    sum(fdActualRes.data)  + sum(efActualRes.data) +
-    sum(zaiRes.data)       + sum(aaiRes.data)       +
-    sum(agaiRes.data)      + sum(mfaiRes.data)      +
-    sum(gaiRes.data)
+    sum(fdActualRes.data) + sum(efActualRes.data) + sum(zaiRes.data) +
+    sum(aaiRes.data) + sum(agaiRes.data) + sum(mfaiRes.data) + sum(gaiRes.data)
 
-  const total = fdCount + zaiCount + aaiCount + agaiCount + mfaiCount + gaiCount
-  const entryLabel = `${fdCount} FD · ${zaiCount} Zerodha · ${aaiCount} Aionion · ${mfaiCount} MF · ${gaiCount} Gold entr${total !== 1 ? 'ies' : 'y'}`
+  const fdCnt = (fdActualRes.data ?? []).length
+  const zCnt  = (zaiRes.data ?? []).length
+  const aCnt  = (aaiRes.data ?? []).length
+  const mCnt  = (mfaiRes.data ?? []).length
+  const gCnt  = (gaiRes.data ?? []).length
+  const entryLabel = `${fdCnt} FD · ${zCnt} Zerodha · ${aCnt} Aionion · ${mCnt} MF · ${gCnt} Gold entries`
 
   return { totalValue, totalInvested, actualInvested, assetCount, entryLabel }
 }

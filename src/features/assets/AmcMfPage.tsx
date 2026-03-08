@@ -1,0 +1,78 @@
+import { useState, useMemo } from 'react'
+import { useAuthStore }      from '../../store/authStore'
+import { useAssets }         from '../../hooks/useAssets'
+import { useToastStore }     from '../../store/toastStore'
+import { PageShell }         from '../../components/common/PageShell'
+import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
+import { AssetTable }        from '../../components/common/AssetTable'
+import { Modal }             from '../../components/ui/Modal'
+import { Button }            from '../../components/ui/Button'
+import { Input }             from '../../components/ui/Input'
+import { INR, calcGain }     from '../../lib/utils'
+import type { AmcMfHolding } from '../../types/assets'
+
+function EditModal({ row, onClose, onSave }: { row: Partial<AmcMfHolding>; onClose: () => void; onSave: (d: Partial<AmcMfHolding>) => Promise<void> }) {
+  const [name,   setName]   = useState(row.fund_name ?? '')
+  const [qty,    setQty]    = useState(String(row.qty ?? ''))
+  const [avg,    setAvg]    = useState(String(row.avg_cost ?? ''))
+  const [saving, setSaving] = useState(false)
+  const handleSave = async () => {
+    if (!name || !qty || !avg) return
+    setSaving(true); const q=parseFloat(qty), a=parseFloat(avg)
+    await onSave({ ...row, fund_name: name, qty:q, avg_cost:a, invested:q*a, current_value:q*a }); setSaving(false)
+  }
+  return (
+    <Modal open onClose={onClose} title={row.id ? 'Edit Fund' : 'Add AMC MF'}
+      footer={<><Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button><Button size="sm" onClick={handleSave} loading={saving}>💾 Save</Button></>}
+    >
+      <div className="flex flex-col gap-4">
+        <Input label="Fund Name" value={name} onChange={e => setName(e.target.value)} />
+        <Input label="Units" type="number" step="0.001" value={qty} onChange={e => setQty(e.target.value)} />
+        <Input label="Avg NAV" prefix="₹" type="number" step="0.01" value={avg} onChange={e => setAvg(e.target.value)} />
+      </div>
+    </Modal>
+  )
+}
+
+export default function AmcMfPage() {
+  const userId = useAuthStore(s => s.user?.id)!; const toast = useToastStore(s => s.show)
+  const { data: rows = [], isLoading } = useAssets<AmcMfHolding>('amc_mf_holdings')
+  const [editRow, setEditRow] = useState<Partial<AmcMfHolding> | null>(null)
+  const { upsertMutation, deleteMutation } = useAssets<AmcMfHolding>('amc_mf_holdings')
+  const totalInvested = useMemo(() => rows.reduce((s, r) => s + (r.invested ?? r.qty*r.avg_cost), 0), [rows])
+  const totalValue    = useMemo(() => rows.reduce((s, r) => s + (r.current_value ?? r.invested ?? r.qty*r.avg_cost), 0), [rows])
+  const { gain, gainPct, isPositive } = calcGain(totalValue, totalInvested)
+  const handleSave = async (d: Partial<AmcMfHolding>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
+  const handleDelete = async (id: string) => { if (!confirm('Delete?')) return; try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') } }
+  const stats = [
+    { label: 'Invested',     value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
+    { label: 'Current Value', value: INR(totalValue),   icon: '◈', accentColor: '#0d9488', loading: isLoading },
+    { label: 'Gain / Loss',  value: `${isPositive?'+':''}${INR(gain)}`, sub: `${gainPct.toFixed(1)}%`, icon: isPositive?'▲':'▼', accentColor: isPositive?'#059669':'#dc2626', loading: isLoading },
+  ]
+  const cols = [
+    { key: 'fund_name', header: 'Fund Name', render: (r: AmcMfHolding) => <span className="font-bold">{r.fund_name}</span> },
+    { key: 'qty',       header: 'Units',      align: 'right' as const, render: (r: AmcMfHolding) => r.qty.toLocaleString('en-IN', { maximumFractionDigits: 4 }) },
+    { key: 'avg_cost',  header: 'Avg NAV',    align: 'right' as const, render: (r: AmcMfHolding) => INR(r.avg_cost) },
+    { key: 'invested',  header: 'Invested',   align: 'right' as const, render: (r: AmcMfHolding) => INR(r.invested ?? r.qty*r.avg_cost) },
+    { key: 'value',     header: 'Cur. Value', align: 'right' as const, render: (r: AmcMfHolding) => <span className="font-bold">{INR(r.current_value ?? r.invested ?? r.qty*r.avg_cost)}</span> },
+    { key: 'gain',      header: 'Gain / Loss', align: 'right' as const, render: (r: AmcMfHolding) => {
+      const inv=r.invested??r.qty*r.avg_cost; const val=r.current_value??inv; const {gain,gainPct,isPositive}=calcGain(val,inv)
+      return <span className={`font-bold ${isPositive?'text-green':'text-red'}`}>{isPositive?'+':''}{INR(gain)}<br /><span className="text-[10px] font-medium opacity-80">{isPositive?'+':''}{gainPct.toFixed(1)}%</span></span>
+    }},
+    { key: 'actions', header: '', align: 'center' as const, render: (r: AmcMfHolding) => (
+      <div className="flex gap-1">
+        <button onClick={() => setEditRow(r)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-teal transition-colors">✏</button>
+        <button onClick={() => handleDelete(r.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-red/10 hover:text-red transition-colors">✕</button>
+      </div>
+    )},
+  ]
+  return (
+    <PageShell title="AMC Mutual Funds" subtitle={`${rows.length} fund${rows.length!==1?'s':''}`}
+      actions={[{ label: '+ Add Fund', onClick: () => setEditRow({}), variant: 'primary' }]}
+    >
+      <StatGrid items={stats} cols={3} />
+      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No AMC MF holdings — click + Add Fund" /></div>
+      {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
+    </PageShell>
+  )
+}

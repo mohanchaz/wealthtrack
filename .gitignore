@@ -1,5 +1,51 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment files - NEVER commit these
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vite
+*.local
+vite.config.ts.timestamp-*
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V7
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dev only - not needed in repo
+dev-prices-server.mjs
+
+# TypeScript
+*.tsbuildinfo

@@ -1,28 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { loadActualInvested, saveActualInvested, deleteActualInvested } from '../services/actualInvestedService'
 import { useAuthStore } from '../store/authStore'
+import {
+  fetchActualInvested,
+  addActualEntry,
+  deleteActualEntry,
+  type ActualTable,
+} from '../services/actualInvestedService'
 
-export function useActualInvested(table: string | null) {
+export function useActualInvested(table: ActualTable) {
   const userId = useAuthStore(s => s.user?.id)
-  const qc = useQueryClient()
-  const key = ['actual-invested', table, userId]
+  const qc     = useQueryClient()
+  const qKey   = [table, userId]
 
   const query = useQuery({
-    queryKey: key,
-    queryFn:  () => loadActualInvested(table!, userId!),
-    enabled:  !!userId && !!table,
+    queryKey: qKey,
+    queryFn:  () => fetchActualInvested(table, userId!),
+    enabled:  !!userId,
   })
 
-  const saveMutation = useMutation({
-    mutationFn: (row: { id?: string; entry_date: string; amount: number; notes?: string }) =>
-      saveActualInvested(table!, userId!, row),
-    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
+  const addMutation = useMutation({
+    mutationFn: ({ amount, note }: { amount: number; note?: string }) =>
+      addActualEntry(table, userId!, amount, note),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qKey }),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (ids: string[]) => deleteActualInvested(table!, ids),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: key }),
+    mutationFn: (id: string) => deleteActualEntry(table, id),
+    onSuccess:  () => qc.invalidateQueries({ queryKey: qKey }),
   })
 
-  return { ...query, saveMutation, deleteMutation }
+  return { ...query, addMutation, deleteMutation }
 }

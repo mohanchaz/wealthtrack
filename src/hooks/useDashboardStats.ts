@@ -9,6 +9,6 @@ export function useDashboardStats() {
     queryKey: ['dashboard-stats', userId],
     queryFn:  () => loadDashboardStats(userId!),
     enabled:  !!userId,
-    staleTime: 2 * 60 * 1000,  // 2 minutes
+    staleTime: 2 * 60 * 1000,
   })
 }

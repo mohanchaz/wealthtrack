@@ -1,62 +1,97 @@
-# WealthTrack v2 — Module 1: Auth + Dashboard + Allocation
+# WealthTrack v2 — Module 1
 
-Modern React + TypeScript rewrite of WealthTrack. Cloudflare Pages compatible.
+Modern React + TypeScript rewrite. Cloudflare Pages compatible.
 
 ## Stack
-- **React 18** + TypeScript
-- **Vite 6** (build tool)
-- **Tailwind CSS 3** (design system)
-- **Supabase JS v2** (typed client)
-- **TanStack Query v5** (server state)
-- **Zustand** (client state)
-- **Recharts** (charts)
-- **React Router v6** (routing)
+- **React 18 + TypeScript**
+- **Vite 6** (build tool, HMR)
+- **Tailwind CSS 3** — light teal/green design system
+- **Plus Jakarta Sans** + **JetBrains Mono** (financial numbers)
+- **Supabase JS v2** — typed client
+- **TanStack Query v5** — server state & caching
+- **Zustand** — client state (auth, UI, toasts)
+- **Recharts** — allocation donut
+- **React Router v6** — SPA routing with auth guard
 
 ## Quick Start
 
 ```bash
-# 1. Install
+# 1. Install dependencies
 npm install
 
-# 2. Configure environment
+# 2. Set environment variables
 cp .env.example .env
-# Edit .env with your Supabase credentials
+# Edit .env with your Supabase credentials:
+#   VITE_SUPABASE_URL=https://...
+#   VITE_SUPABASE_ANON_KEY=...
 
-# 3. Dev server
+# 3. Start dev server
 npm run dev
-# Open http://localhost:5173
+# → http://localhost:5173
 ```
 
-## Environment Variables
-```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
+## Build & Deploy
 
-## Build & Deploy (Cloudflare Pages)
 ```bash
-npm run build   # outputs to dist/
+# Type check
+npm run typecheck
+
+# Production build (outputs to dist/)
+npm run build
+
+# Preview production build locally
+npm run preview
 ```
 
-Cloudflare Pages settings:
-- **Build command:** `npm run build`
-- **Build output dir:** `dist`
-- **Node version:** 20
+### Cloudflare Pages Settings
+| Setting | Value |
+|---------|-------|
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Node.js version | 20 |
+| Environment variable | `VITE_SUPABASE_URL` |
+| Environment variable | `VITE_SUPABASE_ANON_KEY` |
 
-The `/functions/api/prices.js` Cloudflare Pages Function is picked up automatically.
+The `functions/api/prices.js` Cloudflare Pages Function is detected automatically.
 
-## Module 1 — What's included
-- ✅ Full auth (Google OAuth + email/password)
-- ✅ Protected routing with React Router v6
-- ✅ Dashboard with live net worth stats (all 12 asset tables)
-- ✅ Ideal Allocation page — donut chart + bar list + full CRUD
-- ✅ Responsive sidebar navigation with nested groups
+## Project Structure
+
+```
+src/
+├── lib/            supabase.ts · utils.ts · queryClient.ts
+├── store/          authStore · toastStore · uiStore
+├── types/          index.ts · assets.ts
+├── services/       allocationService · dashboardService · priceService
+│                   assetService · actualInvestedService
+├── hooks/          useAllocations · useDashboardStats · useAssets · useActualInvested
+├── constants/      chartColors · navItems
+├── components/
+│   ├── ui/         Button · Input · Modal · Spinner · StatCard · Toast
+│   ├── layout/     AppShell · Sidebar · Topbar
+│   ├── charts/     AllocationDonut
+│   └── common/     AssetTable · SummaryCard · ActualInvestedPanel
+└── features/
+    ├── auth/       LoginPage
+    ├── dashboard/  DashboardPage
+    ├── allocation/ AllocationPage · EditAllocationModal
+    └── assets/     AssetsPage (stub — Module 2)
+
+functions/
+└── api/prices.js   ← Cloudflare Pages Function (unchanged)
+```
+
+## Module 1 Coverage
+- ✅ Google OAuth + Email/Password sign-in
+- ✅ Protected routing with `PrivateRoute`
+- ✅ Dashboard: live net worth from all 12 asset tables + P&L
+- ✅ Ideal Allocation: donut chart + bar list + full CRUD + seed defaults
+- ✅ Responsive sidebar with nested nav (Zerodha / Aionion / Foreign groups)
 - ✅ Toast notification system
-- ✅ Dark theme design system
+- ✅ Light teal+green design system (Plus Jakarta Sans + JetBrains Mono)
 
-## Module 2 — Coming next
-- Asset panels for all 12 asset classes
-- Live price refresh (NSE/BSE/Crypto)
+## Module 2 (next)
+- 12 asset panel pages with full holdings tables
+- Live NSE/BSE/Crypto price refresh
 - CSV import modals
 - Per-row edit modals
-- Actual-invested ledger
+- Actual-invested ledger per asset class

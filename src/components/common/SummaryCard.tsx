@@ -1,24 +1,21 @@
-interface SummaryCardProps {
-  label: string
-  value: string
-  sub?: string
-  color?: string
-  delay?: number
+interface Props {
+  label:    string
+  value:    string
+  sub?:     string
+  positive?: boolean | null
 }
 
-export function SummaryCard({ label, value, sub, color = 'var(--accent)', delay = 0 }: SummaryCardProps) {
+export function SummaryCard({ label, value, sub, positive }: Props) {
   return (
-    <div
-      className="summary-card anim-fadeup"
-      style={{ '--card-accent': color } as React.CSSProperties}
-      style2={{ animationDelay: `${delay * 0.07}s` }}
-    >
-      <div className="summary-card-label">
-        <div className="summary-card-label-dot" style={{ background: color }} />
-        {label}
-      </div>
-      <div className="summary-card-value" style={{ color }}>{value}</div>
-      {sub && <div className="summary-card-sub">{sub}</div>}
+    <div className="flex flex-col gap-1 px-4 py-3 rounded-xl border border-border bg-surface2">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-textmut">{label}</span>
+      <span className={`text-lg font-bold font-mono ${
+        positive === true  ? 'text-green' :
+        positive === false ? 'text-red'   : 'text-textprim'
+      }`}>
+        {value}
+      </span>
+      {sub && <span className="text-xs text-textmut">{sub}</span>}
     </div>
   )
 }
