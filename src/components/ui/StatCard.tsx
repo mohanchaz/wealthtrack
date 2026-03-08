@@ -16,7 +16,7 @@ export function StatCard({ label, value, sub, icon, accentColor = '#1A1A1A', loa
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-border bg-surface p-5 flex flex-col gap-3 shadow-card card-hover animate-fade-up"
+      className="relative overflow-hidden rounded-2xl border border-border bg-surface p-4 flex flex-col gap-2 shadow-card card-hover animate-fade-up"
       style={{ animationDelay: `${delay * 0.06}s` }}
     >
       <div className="flex items-start justify-between">

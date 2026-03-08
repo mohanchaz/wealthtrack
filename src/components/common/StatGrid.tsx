@@ -25,7 +25,7 @@ const COL_CLASS: Record<number, string> = {
 export function StatGrid({ items, cols }: Props) {
   const c = cols ?? (items.length <= 4 ? items.length : 5) as 2|3|4|5
   return (
-    <div className={`grid gap-3 ${COL_CLASS[c] ?? COL_CLASS[4]}`}>
+    <div className={`grid gap-2 ${COL_CLASS[c] ?? COL_CLASS[4]}`}>
       {items.map((item, i) => (
         <StatCard key={item.label} delay={i} {...item} />
       ))}
