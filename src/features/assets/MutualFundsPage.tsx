@@ -307,7 +307,9 @@ export default function MutualFundsPage() {
       key: 'value', header: 'Cur. Value', align: 'right' as const,
       render: (r: MfHolding) => {
         const nav = getLiveNAV(r)
-        return <span className="font-bold">{INR(nav != null ? r.qty * nav : r.qty * r.avg_cost)}</span>
+        const val = nav != null ? r.qty * nav : r.qty * r.avg_cost
+        const inv = r.qty * r.avg_cost
+        return <span className={`font-bold ${val >= inv ? 'text-green' : 'text-red'}`}>{INR(val)}</span>
       },
     },
     {

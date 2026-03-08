@@ -54,7 +54,7 @@ export default function AmcMfPage() {
     { key: 'qty',       header: 'Units',      align: 'right' as const, render: (r: AmcMfHolding) => r.qty.toLocaleString('en-IN', { maximumFractionDigits: 4 }) },
     { key: 'avg_cost',  header: 'Avg NAV',    align: 'right' as const, render: (r: AmcMfHolding) => INR(r.avg_cost) },
     { key: 'invested',  header: 'Invested',   align: 'right' as const, render: (r: AmcMfHolding) => INR(r.invested ?? r.qty*r.avg_cost) },
-    { key: 'value',     header: 'Cur. Value', align: 'right' as const, render: (r: AmcMfHolding) => <span className="font-bold">{INR(r.current_value ?? r.invested ?? r.qty*r.avg_cost)}</span> },
+    { key: 'value',     header: 'Cur. Value', align: 'right' as const, render: (r: AmcMfHolding) => <span className={`font-bold ${(r.current_value??r.qty*r.avg_cost)>=(r.invested??r.qty*r.avg_cost)?"text-green":"text-red"}`}>{INR(r.current_value??r.invested??r.qty*r.avg_cost)}</span> },
     { key: 'gain',      header: 'Gain / Loss', align: 'right' as const, render: (r: AmcMfHolding) => {
       const inv=r.invested??r.qty*r.avg_cost; const val=r.current_value??inv; const {gain,gainPct,isPositive}=calcGain(val,inv)
       return <span className={`font-bold ${isPositive?'text-green':'text-red'}`}>{isPositive?'+':''}{INR(gain)}<br /><span className="text-[10px] font-medium opacity-80">{isPositive?'+':''}{gainPct.toFixed(1)}%</span></span>

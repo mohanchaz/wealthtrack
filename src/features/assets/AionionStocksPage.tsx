@@ -101,7 +101,7 @@ export default function AionionStocksPage() {
     { key: 'avg_cost', header: 'Avg Cost',   align: 'right' as const, render: (r: StockHolding) => INR(r.avg_cost) },
     { key: 'ltp',      header: 'LTP',        align: 'right' as const, render: (r: StockHolding) => { const ltp=getLTP(r); return <span className="font-bold">{ltp!=null?INR(ltp):'—'}</span> }},
     { key: 'invested', header: 'Invested',   align: 'right' as const, render: (r: StockHolding) => INR(r.qty * r.avg_cost) },
-    { key: 'value',    header: 'Cur. Value', align: 'right' as const, render: (r: StockHolding) => { const ltp=getLTP(r); return <span className="font-bold">{INR(ltp!=null?r.qty*ltp:r.qty*r.avg_cost)}</span> }},
+    { key: 'value',    header: 'Cur. Value', align: 'right' as const, render: (r: StockHolding) => { const ltp=getLTP(r); return <span className={`font-bold ${(ltp??r.avg_cost)>=r.avg_cost?"text-green":"text-red"}`}>{INR(ltp!=null?r.qty*ltp:r.qty*r.avg_cost)}</span> }},
     { key: 'gain',     header: 'Gain / Loss', align: 'right' as const, render: (r: StockHolding) => {
       const ltp=getLTP(r); const inv=r.qty*r.avg_cost; const val=ltp!=null?r.qty*ltp:inv
       const {gain,gainPct,isPositive}=calcGain(val,inv)

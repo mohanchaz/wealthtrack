@@ -51,7 +51,7 @@ export default function AionionGoldPage() {
     { key: 'avg_cost', header: 'Avg Cost',  align: 'right' as const, render: (r: AionionGoldHolding) => INR(r.avg_cost) },
     { key: 'ltp',      header: 'Live Price', align: 'right' as const, render: (r: AionionGoldHolding) => { const ltp=getLTP(r); return <span className="font-bold">{ltp!=null?INR(ltp):'—'}</span> }},
     { key: 'invested', header: 'Invested',  align: 'right' as const, render: (r: AionionGoldHolding) => INR(r.qty*r.avg_cost) },
-    { key: 'value',    header: 'Cur. Value', align: 'right' as const, render: (r: AionionGoldHolding) => { const ltp=getLTP(r); return <span className="font-bold">{INR(ltp!=null?r.qty*ltp:r.qty*r.avg_cost)}</span> }},
+    { key: 'value',    header: 'Cur. Value', align: 'right' as const, render: (r: AionionGoldHolding) => { const ltp=getLTP(r); return <span className={`font-bold ${(ltp??r.avg_cost)>=r.avg_cost?"text-green":"text-red"}`}>{INR(ltp!=null?r.qty*ltp:r.qty*r.avg_cost)}</span> }},
     { key: 'gain',     header: 'Gain / Loss', align: 'right' as const, render: (r: AionionGoldHolding) => {
       const ltp=getLTP(r); const inv=r.qty*r.avg_cost; const val=ltp!=null?r.qty*ltp:inv; const {gain,gainPct,isPositive}=calcGain(val,inv)
       return <span className={`font-bold ${isPositive?'text-green':'text-red'}`}>{isPositive?'+':''}{INR(gain)}<br /><span className="text-[10px] font-medium opacity-80">{isPositive?'+':''}{gainPct.toFixed(1)}%</span></span>

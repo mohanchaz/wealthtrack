@@ -44,7 +44,7 @@ function SectionCard({ title, subtitle, invested, value, actual, liveLabel, load
           <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">
             {liveLabel ? <span className="text-green">● Live</span> : 'Cur. Value'}
           </div>
-          <div className="font-bold text-textprim text-sm">{loading ? '…' : INR(value)}</div>
+          <div className={`font-bold text-sm ${!loading ? (value >= invested ? 'text-green' : 'text-red') : 'text-textprim'}`}>{loading ? '…' : INR(value)}</div>
         </div>
         <div>
           <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Gain / Loss</div>

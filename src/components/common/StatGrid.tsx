@@ -58,7 +58,7 @@ export function buildInvestedStats(opts: {
       value:       INR(value),
       sub:         liveLabel,
       icon:        '◈',
-      accentColor: '#0d9488',
+      accentColor: value >= invested ? '#059669' : '#dc2626',
       loading,
     },
     {

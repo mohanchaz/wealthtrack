@@ -91,7 +91,7 @@ export default function CryptoPage() {
     { key: 'avg_price_gbp', header: 'Avg (£)',        align: 'right' as const, render: (r: CryptoHolding) => `£${r.avg_price_gbp.toFixed(2)}` },
     { key: 'ltp_gbp',       header: 'Live (£)',       align: 'right' as const, render: (r: CryptoHolding) => { const ltp=getLTPGbp(r); return <span className="font-bold">{ltp!=null?`£${ltp.toFixed(2)}`:'—'}</span> }},
     { key: 'invested_inr',  header: 'Invested (₹)',   align: 'right' as const, render: (r: CryptoHolding) => INR(gbpToInr(r.qty*r.avg_price_gbp)) },
-    { key: 'value_inr',     header: 'Value (₹)',      align: 'right' as const, render: (r: CryptoHolding) => { const ltp=getLTPGbp(r); return <span className="font-bold">{INR(gbpToInr(ltp!=null?r.qty*ltp:r.qty*r.avg_price_gbp))}</span> }},
+    { key: 'value_inr',     header: 'Value (₹)',      align: 'right' as const, render: (r: CryptoHolding) => { const ltp=getLTPGbp(r); const val=gbpToInr(ltp!=null?r.qty*ltp:r.qty*r.avg_price_gbp); const inv=gbpToInr(r.qty*r.avg_price_gbp); return <span className={`font-bold ${val>=inv?"text-green":"text-red"}`}>{INR(val)}</span> }},
     { key: 'gain',          header: 'Gain / Loss',    align: 'right' as const, render: (r: CryptoHolding) => {
       const ltp=getLTPGbp(r); const inv=gbpToInr(r.qty*r.avg_price_gbp); const val=gbpToInr(ltp!=null?r.qty*ltp:r.qty*r.avg_price_gbp)
       const {gain,gainPct,isPositive}=calcGain(val,inv)

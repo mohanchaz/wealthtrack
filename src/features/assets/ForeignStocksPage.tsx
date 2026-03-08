@@ -160,7 +160,7 @@ export default function ForeignStocksPage() {
     { key: 'avg_price', header: 'Avg Price', align: 'right' as const, render: (r: ForeignHolding) => fmtForeign(r.avg_price, r.currency) },
     { key: 'ltp',       header: 'Live Price', align: 'right' as const, render: (r: ForeignHolding) => { const ltp=getLTP(r); return <span className="font-bold">{ltp!=null ? fmtForeign(ltp, r.currency) : '—'}</span> }},
     { key: 'invested_inr', header: 'Invested (₹)', align: 'right' as const, render: (r: ForeignHolding) => INR(toInr(r.qty*r.avg_price, r.currency)) },
-    { key: 'value_inr',    header: 'Value (₹)',    align: 'right' as const, render: (r: ForeignHolding) => { const ltp=getLTP(r); const val=ltp!=null?r.qty*ltp:r.qty*r.avg_price; return <span className="font-bold">{INR(toInr(val,r.currency))}</span> }},
+    { key: 'value_inr',    header: 'Value (₹)',    align: 'right' as const, render: (r: ForeignHolding) => { const ltp=getLTP(r); const val=ltp!=null?r.qty*ltp:r.qty*r.avg_price; const inv=r.qty*r.avg_price; return <span className={`font-bold ${val>=inv?"text-green":"text-red"}`}>{INR(toInr(val,r.currency))}</span> }},
     { key: 'gain',         header: 'Gain / Loss',  align: 'right' as const, render: (r: ForeignHolding) => {
       const ltp=getLTP(r); const inv=toInr(r.qty*r.avg_price,r.currency); const val=ltp!=null?toInr(r.qty*ltp,r.currency):inv
       const {gain,gainPct,isPositive}=calcGain(val,inv)

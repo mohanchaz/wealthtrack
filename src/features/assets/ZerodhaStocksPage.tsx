@@ -220,7 +220,7 @@ export default function ZerodhaStocksPage() {
       key: 'value', header: 'Cur. Value', align: 'right' as const,
       render: (r: StockHolding) => {
         const ltp = getLTP(r)
-        return <span className="font-bold">{INR(ltp != null ? r.qty * ltp : r.qty * r.avg_cost)}</span>
+        return <span className={`font-bold ${(ltp ?? r.avg_cost) >= r.avg_cost ? "text-green" : "text-red"}`}>{INR(ltp != null ? r.qty * ltp : r.qty * r.avg_cost)}</span>
       },
     },
     {
