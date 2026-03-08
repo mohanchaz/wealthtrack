@@ -156,7 +156,7 @@ export default function GoldPage() {
       ]}
     >
       <AssetPageLayout
-        stats={<StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, loading: isLoading, liveLabel })} cols={5} />}
+        stats={<StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, loading: isLoading, liveLabel }).slice(0, 3)} cols={3} />}
         mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No gold holdings — click 📥 Import CSV or + Add Holding" 
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
