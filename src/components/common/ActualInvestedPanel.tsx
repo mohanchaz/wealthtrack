@@ -15,7 +15,6 @@ export function ActualInvestedPanel({ table }: Props) {
   const [error,     setError]     = useState('')
   const [selected,  setSelected]  = useState<Set<string>>(new Set())
   const [deleting,  setDeleting]  = useState(false)
-  const [showForm,  setShowForm]  = useState(false)
 
   const total    = data.reduce((s, r) => s + r.amount, 0)
   const allIds   = data.map(e => e.id)
