@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 interface Props {
   stats:          ReactNode
   mainTable:      ReactNode
-  actualInvested: ReactNode
+  actualInvested?: ReactNode
 }
 
 export function AssetPageLayout({ stats, mainTable, actualInvested }: Props) {
@@ -20,7 +20,7 @@ export function AssetPageLayout({ stats, mainTable, actualInvested }: Props) {
           {mainTable}
         </div>
         <div className="w-60 shrink-0 sticky top-[60px] card overflow-hidden">
-          {actualInvested}
+          {actualInvested ?? null}
         </div>
       </div>
     </div>
