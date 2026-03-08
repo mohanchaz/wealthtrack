@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import { useQueryClient }    from '@tanstack/react-query'
 import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
-import { useActualInvested } from '../../hooks/useActualInvested'
 import { useYahooPrices }    from '../../hooks/useLivePrices'
 import { replaceAssets }     from '../../services/assetService'
 import { useToastStore }     from '../../store/toastStore'
@@ -10,7 +9,6 @@ import { AssetPageLayout } from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
-import { ActualInvestedPanel } from '../../components/common/ActualInvestedPanel'
 import { CsvImportModal }    from '../../components/common/CsvImportModal'
 import { Modal }             from '../../components/ui/Modal'
 import { Button }            from '../../components/ui/Button'
@@ -111,7 +109,6 @@ export default function GoldPage() {
   const toast  = useToastStore(s => s.show)
   const qc     = useQueryClient()
   const { data: rows = [], isLoading } = useAssets<GoldHolding>('gold_holdings')
-  const aiHook = useActualInvested('gold_actual_invested')
   const symbols = useMemo(() => [...new Set(rows.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [rows])
   const { data: priceMap = {}, isFetching: pf, refetch } = useYahooPrices(symbols)
   const [editRow, setEditRow] = useState<Partial<GoldHolding> | null>(null)
@@ -120,7 +117,6 @@ export default function GoldPage() {
   const getLTP = (r: GoldHolding) => r.yahoo_symbol ? (priceMap[r.yahoo_symbol.replace(/\.(NS|BO)$/,'')]?.price ?? null) : null
   const totalInvested = useMemo(() => rows.reduce((s, r) => s + r.qty * r.avg_cost, 0), [rows])
   const totalValue    = useMemo(() => rows.reduce((s, r) => { const ltp = getLTP(r); return s + (ltp != null ? r.qty * ltp : r.qty * r.avg_cost) }, 0), [rows, priceMap])
-  const actual = aiHook.data?.reduce((s, e) => s + e.amount, 0)
   const liveLabel = pf ? '🔄 Fetching…' : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
   const handleSave = async (d: Partial<GoldHolding>) => {
     try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅', 'success'); setEditRow(null) }
@@ -166,9 +162,8 @@ export default function GoldPage() {
       ]}
     >
       <AssetPageLayout
-        stats={<StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, actual, loading: isLoading, liveLabel })} cols={5} />}
+        stats={<StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, loading: isLoading, liveLabel })} cols={5} />}
         mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No gold holdings — click 📥 Import CSV or + Add Holding" />}
-        actualInvested={<ActualInvestedPanel table="gold_actual_invested" />}
       />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
       <CsvImportModal open={showImport} onClose={() => setShowImport(false)} title="Import Gold Holdings CSV"

@@ -1,4 +1,5 @@
 import { useParams, Navigate } from 'react-router-dom'
+import ZerodhaOverviewPage from './ZerodhaOverviewPage'
 import ZerodhaStocksPage  from './ZerodhaStocksPage'
 import MutualFundsPage    from './MutualFundsPage'
 import GoldPage           from './GoldPage'
@@ -13,6 +14,7 @@ import CryptoPage         from './CryptoPage'
 import AmcMfPage          from './AmcMfPage'
 
 const PAGE_MAP: Record<string, React.ComponentType> = {
+  'zerodha':        ZerodhaOverviewPage,
   'zerodha-stocks': ZerodhaStocksPage,
   'mutual-funds':   MutualFundsPage,
   'gold':           GoldPage,
