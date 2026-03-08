@@ -32,6 +32,19 @@ const GOLD_ETF_SYMBOLS = new Set([
 // Known ETF/MF symbols that look like stocks but are funds
 const ETF_PATTERN = /BEES$|ETF$|FUND$|INDEX$/i
 
+function isStockRow(rawName: string): boolean {
+  const name = rawName.trim()
+  if (!name) return false
+  // Mutual fund rows always have spaces (e.g. "Aditya Birla Sun Life Large Cap Fund")
+  if (name.includes(' ')) return false
+  const upper = name.toUpperCase()
+  // Known Gold/Silver ETF symbols
+  if (GOLD_ETF_SYMBOLS.has(upper)) return false
+  // Symbols ending in BEES, ETF, FUND, INDEX
+  if (ETF_PATTERN.test(upper)) return false
+  return true
+}
+
 function parseZerodhaCsv(text: string): CsvRow[] | null {
   const rows = parseCsvRows(text)
   if (!rows.length) return null
@@ -43,22 +56,20 @@ function parseZerodhaCsv(text: string): CsvRow[] | null {
   const kAvg  = find('avg', 'cost', 'price')
   if (!kInst || !kQty || !kAvg) return null
 
-  return rows
-    .map(r => ({
-      instrument: (r[kInst] ?? '').toUpperCase().trim(),
-      qty:        cleanNum(r[kQty] ?? ''),
-      avg_cost:   cleanNum(r[kAvg] ?? ''),
-    }))
-    .filter(r => {
-      if (!r.instrument || r.qty <= 0) return false
-      // Skip rows with spaces = mutual fund names (e.g. "Aditya Birla Sun Life...")
-      if (r.instrument.includes(' ')) return false
-      // Skip known Gold/Silver ETFs
-      if (GOLD_ETF_SYMBOLS.has(r.instrument)) return false
-      // Skip anything ending in BEES, ETF, FUND, INDEX
-      if (ETF_PATTERN.test(r.instrument)) return false
-      return true
+  const result: CsvRow[] = []
+  for (const r of rows) {
+    const rawName = r[kInst] ?? ''
+    // Filter BEFORE uppercasing — check raw name from CSV
+    if (!isStockRow(rawName)) continue
+    const qty = cleanNum(r[kQty] ?? '')
+    if (qty <= 0) continue
+    result.push({
+      instrument: rawName.toUpperCase().trim(),
+      qty,
+      avg_cost: cleanNum(r[kAvg] ?? ''),
     })
+  }
+  return result.length ? result : null
 }
 
 // ── Edit modal ────────────────────────────────────────────────
