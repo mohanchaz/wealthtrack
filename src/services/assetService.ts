@@ -6,15 +6,21 @@ export type TableName =
   | 'cash_assets' | 'bank_fd_assets' | 'emergency_funds'
   | 'bonds' | 'foreign_stock_holdings' | 'crypto_holdings'
 
+// Tables with no created_at column — order by their own timestamp or skip ordering
+const ORDER_COL: Partial<Record<TableName, string>> = {
+  mf_holdings: 'fund_name',   // alphabetical is fine for funds
+}
+
 export async function fetchAssets<T = Record<string, unknown>>(
   table:  TableName,
   userId: string,
 ): Promise<T[]> {
+  const col = table in ORDER_COL ? ORDER_COL[table]! : 'created_at'
   const { data, error } = await supabase
     .from(table)
     .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .order(col, { ascending: col === 'fund_name' })
   if (error) throw new Error(error.message)
   return (data ?? []) as T[]
 }
