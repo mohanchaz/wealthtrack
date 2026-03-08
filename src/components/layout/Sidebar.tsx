@@ -22,10 +22,10 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
   // A section is "active" if the current path starts with its path
   const isSectionActive = location.pathname === item.path ||
     location.pathname.startsWith(item.path + '/') ||
-    item.children?.some(c =>
+    !!(item.children?.some(c =>
       location.pathname === c.path ||
       c.children?.some(gc => location.pathname === gc.path)
-    ) ?? false
+    ))
 
   const [open, setOpen] = useState(isSectionActive)
 
