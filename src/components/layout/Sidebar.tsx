@@ -16,25 +16,31 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; onClose?: () => void }) {
   const location = useLocation()
-  const [open, setOpen] = useState(() =>
-    item.children?.some(c =>
-      c.path === location.pathname ||
-      c.children?.some(gc => gc.path === location.pathname)
-    ) ?? false
-  )
+  const navigate  = useNavigate()
   const hasChildren = !!item.children?.length
-  const navigate = useNavigate()
+
+  // A section is "active" if the current path starts with its path
+  const isSectionActive = location.pathname === item.path ||
+    location.pathname.startsWith(item.path + '/') ||
+    item.children?.some(c =>
+      location.pathname === c.path ||
+      c.children?.some(gc => location.pathname === gc.path)
+    ) ?? false
+
+  const [open, setOpen] = useState(isSectionActive)
 
   const pad = depth === 0 ? 'px-3 py-2.5' : depth === 1 ? 'pl-8 pr-3 py-2' : 'pl-12 pr-3 py-1.5'
   const base = `w-full flex items-center gap-2.5 rounded-xl text-sm transition-all duration-150 ${pad}`
 
   if (hasChildren) {
-    const isParentActive = isActive || open
     return (
       <div>
         <button
-          onClick={() => { navigate(item.path); setOpen(o => !o) }}
-          className={`${base} ${isParentActive ? 'text-textprim font-semibold' : 'text-textmut hover:text-textprim hover:bg-surface2'} group`}
+          onClick={() => {
+            navigate(item.path)
+            setOpen(true)   // always open when navigating to it
+          }}
+          className={`${base} ${isSectionActive ? 'text-textprim font-semibold' : 'text-textmut hover:text-textprim hover:bg-surface2'} group`}
         >
           {depth === 0 && (
             <span className="w-5 h-5 flex items-center justify-center text-xs text-textfade group-hover:text-textmut transition-colors">
@@ -42,7 +48,12 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
             </span>
           )}
           <span className="flex-1 text-left font-semibold">{item.label}</span>
-          <ChevronIcon open={open} />
+          <span
+            onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+            className="p-1 rounded hover:bg-surface3 transition-colors"
+          >
+            <ChevronIcon open={open} />
+          </span>
         </button>
         {open && (
           <div className="mt-0.5 space-y-0.5">
