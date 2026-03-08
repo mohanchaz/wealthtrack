@@ -3,72 +3,111 @@ import { useActualInvested } from '../../hooks/useActualInvested'
 import type { ActualTable } from '../../services/actualInvestedService'
 import { INR, formatDate } from '../../lib/utils'
 import { Button } from '../ui/Button'
-import { Input } from '../ui/Input'
+import { Input }  from '../ui/Input'
 
 interface Props { table: ActualTable }
 
 export function ActualInvestedPanel({ table }: Props) {
   const { data = [], addMutation, deleteMutation } = useActualInvested(table)
   const [amount, setAmount] = useState('')
-  const [note,   setNote]   = useState('')
+  const [date,   setDate]   = useState('')
 
   const total = data.reduce((s, r) => s + r.amount, 0)
 
   const handleAdd = async () => {
     const n = parseFloat(amount)
     if (!n) return
-    await addMutation.mutateAsync({ amount: n, note })
+    await addMutation.mutateAsync({ amount: n, note: date || undefined })
     setAmount('')
-    setNote('')
+    setDate('')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleAdd()
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-textmut uppercase tracking-widest">Actual Invested</span>
         <span className="text-sm font-bold font-mono text-teal">{INR(total)}</span>
       </div>
 
-      {/* Add row */}
-      <div className="flex gap-2 items-end">
-        <Input
-          prefix="₹"
-          type="number"
-          placeholder="Amount"
-          value={amount}
-          onChange={e => setAmount(e.target.value)}
-          className="w-32"
-        />
-        <Input
-          type="text"
-          placeholder="Note (optional)"
-          value={note}
-          onChange={e => setNote(e.target.value)}
-          className="flex-1"
-        />
-        <Button size="sm" onClick={handleAdd} loading={addMutation.isPending}>
-          Add
-        </Button>
-      </div>
+      {/* Two-column layout: form left, table right */}
+      <div className="flex gap-4 items-start">
 
-      {/* Entries */}
-      {data.length > 0 && (
-        <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
-          {data.map(entry => (
-            <div key={entry.id} className="flex items-center justify-between text-xs px-2 py-1.5 rounded-lg bg-surface2">
-              <span className="font-mono font-semibold text-textprim">{INR(entry.amount)}</span>
-              {entry.note && <span className="text-textmut mx-2 flex-1 truncate">{entry.note}</span>}
-              <span className="text-textfade mr-2">{formatDate(entry.created_at)}</span>
-              <button
-                onClick={() => deleteMutation.mutate(entry.id)}
-                className="text-textfade hover:text-red transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+        {/* Left — Add form */}
+        <div className="flex flex-col gap-2 w-56 shrink-0">
+          <Input
+            prefix="₹"
+            type="number"
+            placeholder="Amount"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <Input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <Button
+            size="sm"
+            onClick={handleAdd}
+            loading={addMutation.isPending}
+            className="w-full"
+          >
+            + Add
+          </Button>
         </div>
-      )}
+
+        {/* Right — Entries table */}
+        <div className="flex-1 min-w-0">
+          {data.length === 0 ? (
+            <div className="flex items-center justify-center h-20 text-xs text-textfade">
+              No entries yet
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border overflow-hidden">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-border bg-surface2">
+                    <th className="px-3 py-2 text-left font-bold text-textmut uppercase tracking-wider">Amount</th>
+                    <th className="px-3 py-2 text-left font-bold text-textmut uppercase tracking-wider">Date</th>
+                    <th className="px-3 py-2 w-6" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((entry, i) => (
+                    <tr
+                      key={entry.id}
+                      className={`border-b border-border/50 last:border-0 ${i % 2 === 0 ? '' : 'bg-surface2/50'}`}
+                    >
+                      <td className="px-3 py-2 font-mono font-semibold text-textprim">
+                        {INR(entry.amount)}
+                      </td>
+                      <td className="px-3 py-2 text-textmut">
+                        {entry.note ? formatDate(entry.note) : formatDate(entry.created_at)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          onClick={() => deleteMutation.mutate(entry.id)}
+                          className="text-textfade hover:text-red transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+      </div>
     </div>
   )
 }
