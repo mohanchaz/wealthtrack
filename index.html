@@ -1,58 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FinTrack — Know Your Wealth</title>
-  <link rel="icon" type="image/png" href="logo.png" />
-  <link rel="apple-touch-icon" href="logo.png" />
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Inter:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet" />
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-
-<body>
-
-  <!-- Auth / Login view — content injected by loader.js -->
-  <div id="auth-view"></div>
-
-  <!-- Dashboard view — content injected by loader.js -->
-  <div id="dashboard-view" class="hidden"></div>
-
-  <!-- Toast notification (always present) -->
-  <div id="toast"></div>
-
-  <!-- Modals appended by loader.js -->
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-  <!-- config.js and loader.js run immediately (before fragments) -->
-  <script src="config.js"></script>
-  <script src="loader.js"></script>
-
-  <!-- App modules wire up after fragments-loaded event fires -->
-  <script src="auth.js"></script>
-  <script src="assets.js"></script>
-  <script src="assets-fd.js"></script>
-  <script src="assets-ef.js"></script>
-  <script src="assets-zerodha.js"></script>
-  <script src="assets-aionion.js"></script>
-  <script src="assets-mf.js"></script>
-  <script src="assets-aionion-gold.js"></script>
-  <script src="assets-gold.js"></script>
-  <script src="assets-bonds.js"></script>
-  <script src="assets-amc-mf.js"></script>
-  <script src="assets-foreign.js"></script>
-  <script src="assets-crypto.js"></script>
-  <script src="sidebar.js"></script>
-
-</body>
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WealthTrack — Know Your Wealth</title>
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
