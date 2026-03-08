@@ -6,6 +6,7 @@ import { useActualInvested } from '../../hooks/useActualInvested'
 import { useYahooPrices }    from '../../hooks/useLivePrices'
 import { replaceAssets }     from '../../services/assetService'
 import { useToastStore }     from '../../store/toastStore'
+import { AssetPageLayout } from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
@@ -157,11 +158,11 @@ export default function MutualFundsPage() {
         { label: '🔄', onClick: () => refetch(), variant: 'outline' },
       ]}
     >
-      <StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, actual, loading: isLoading, liveLabel })} cols={5} />
-      <div className="card overflow-hidden">
-        <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No funds — click 📥 Import CSV or + Add Fund" />
-      </div>
-      <div className="card p-5"><ActualInvestedPanel table="mf_actual_invested" /></div>
+      <AssetPageLayout
+        stats={<StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, actual, loading: isLoading, liveLabel })} cols={5} />}
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No funds — click 📥 Import CSV or + Add Fund" />}
+        actualInvested={<ActualInvestedPanel table="mf_actual_invested" />}
+      />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
       <CsvImportModal open={showImport} onClose={() => setShowImport(false)} title="Import Mutual Funds CSV"
         hint="Zerodha-style CSV: Fund Name (or Instrument), Units (or Qty), Avg Cost. Gold and ETF rows are auto-skipped. Append ||SYMBOL.BO to enable live NAVs."

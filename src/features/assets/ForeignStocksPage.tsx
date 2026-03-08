@@ -6,6 +6,7 @@ import { useActualInvested } from '../../hooks/useActualInvested'
 import { useYahooPrices, useFxRates } from '../../hooks/useLivePrices'
 import { replaceAssets }     from '../../services/assetService'
 import { useToastStore }     from '../../store/toastStore'
+import { AssetPageLayout } from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid }          from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
@@ -181,9 +182,11 @@ export default function ForeignStocksPage() {
         { label: '🔄', onClick: () => refetch(), variant: 'outline' },
       ]}
     >
-      <StatGrid items={stats} cols={4} />
-      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No foreign holdings — click 📥 Import CSV or + Add Holding" /></div>
-      <div className="card p-5"><ActualInvestedPanel table="foreign_actual_invested" /></div>
+      <AssetPageLayout
+        stats={<StatGrid items={stats} cols={4} />}
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No foreign holdings — click 📥 Import CSV or + Add Holding" />}
+        actualInvested={<ActualInvestedPanel table="foreign_actual_invested" />}
+      />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
       <CsvImportModal open={showImport} onClose={() => setShowImport(false)} title="Import Foreign Holdings CSV"
         hint="CSV: Symbol, Qty, Avg Price, Currency (USD/GBP/GBX). London stocks use .L suffix on Yahoo. GBX = pence (auto ÷100)."

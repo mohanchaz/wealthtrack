@@ -6,6 +6,7 @@ import { useActualInvested } from '../../hooks/useActualInvested'
 import { useNsePrices }      from '../../hooks/useLivePrices'
 import { replaceAssets }     from '../../services/assetService'
 import { useToastStore }     from '../../store/toastStore'
+import { AssetPageLayout } from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
@@ -217,21 +218,19 @@ export default function ZerodhaStocksPage() {
         { label: '🔄',            onClick: () => refreshPrices(),     variant: 'outline'   },
       ]}
     >
-      <StatGrid items={stats} cols={5} />
-
-      <div className="card overflow-hidden">
-        <AssetTable
-          columns={cols}
-          data={rows}
-          rowKey={r => r.id}
-          loading={isLoading}
-          emptyText="No holdings — click 📥 Import CSV or + Add Holding"
-        />
-      </div>
-
-      <div className="card p-5">
-        <ActualInvestedPanel table="zerodha_actual_invested" />
-      </div>
+      <AssetPageLayout
+        stats={<StatGrid items={stats} cols={5} />}
+        mainTable={
+          <AssetTable
+            columns={cols}
+            data={rows}
+            rowKey={r => r.id}
+            loading={isLoading}
+            emptyText="No holdings — click 📥 Import CSV or + Add Holding"
+          />
+        }
+        actualInvested={<ActualInvestedPanel table="zerodha_actual_invested" />}
+      />
 
       {editRow !== null && (
         <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />

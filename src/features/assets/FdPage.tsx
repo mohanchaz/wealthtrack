@@ -3,6 +3,7 @@ import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
 import { useActualInvested } from '../../hooks/useActualInvested'
 import { useToastStore }     from '../../store/toastStore'
+import { AssetPageLayout } from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid }          from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
@@ -87,9 +88,11 @@ export default function FdPage() {
     <PageShell title="Fixed Deposits" subtitle={`${rows.length} FD${rows.length !== 1 ? 's' : ''} tracked`}
       actions={[{ label: '+ Add FD', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
-      <StatGrid items={stats} cols={4} />
-      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No FDs yet — click + Add FD" /></div>
-      <div className="card p-5"><ActualInvestedPanel table="fd_actual_invested" /></div>
+      <AssetPageLayout
+        stats={<StatGrid items={stats} cols={4} />}
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No FDs yet — click + Add FD" />}
+        actualInvested={<ActualInvestedPanel table="fd_actual_invested" />}
+      />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
     </PageShell>
   )

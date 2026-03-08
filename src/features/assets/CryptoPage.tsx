@@ -4,6 +4,7 @@ import { useAssets }         from '../../hooks/useAssets'
 import { useActualInvested } from '../../hooks/useActualInvested'
 import { useYahooPrices, useFxRates } from '../../hooks/useLivePrices'
 import { useToastStore }     from '../../store/toastStore'
+import { AssetPageLayout } from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid }          from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
@@ -108,9 +109,11 @@ export default function CryptoPage() {
     <PageShell title="Crypto" subtitle={`${rows.length} holding${rows.length!==1?'s':''}`}
       actions={[{ label: '+ Add Crypto', onClick: () => setEditRow({}), variant: 'primary' }, { label: '🔄', onClick: () => refetch(), variant: 'outline' }]}
     >
-      <StatGrid items={stats} cols={4} />
-      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No crypto holdings — click + Add Crypto" /></div>
-      <div className="card p-5"><ActualInvestedPanel table="crypto_actual_invested" /></div>
+      <AssetPageLayout
+        stats={<StatGrid items={stats} cols={4} />}
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No crypto holdings — click + Add Crypto" />}
+        actualInvested={<ActualInvestedPanel table="crypto_actual_invested" />}
+      />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
     </PageShell>
   )

@@ -3,6 +3,7 @@ import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
 import { useActualInvested } from '../../hooks/useActualInvested'
 import { useToastStore }     from '../../store/toastStore'
+import { AssetPageLayout } from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid }          from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
@@ -82,9 +83,11 @@ export default function EfPage() {
     <PageShell title="Emergency Fund" subtitle={`${rows.length} entr${rows.length !== 1 ? 'ies' : 'y'}`}
       actions={[{ label: '+ Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
-      <StatGrid items={stats} cols={3} />
-      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No emergency fund entries — click + Add Entry" /></div>
-      <div className="card p-5"><ActualInvestedPanel table="ef_actual_invested" /></div>
+      <AssetPageLayout
+        stats={<StatGrid items={stats} cols={3} />}
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No emergency fund entries — click + Add Entry" />}
+        actualInvested={<ActualInvestedPanel table="ef_actual_invested" />}
+      />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
     </PageShell>
   )
