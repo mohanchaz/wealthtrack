@@ -59,19 +59,16 @@ export default function BondsPage() {
     { key: 'face_value',  header: 'Face Value', align: 'right' as const, render: (r: BondAsset) => r.face_value ? INR(r.face_value) : '—' },
     { key: 'coupon_rate', header: 'Coupon',     align: 'right' as const, render: (r: BondAsset) => r.coupon_rate ? `${r.coupon_rate.toFixed(2)}%` : '—' },
     { key: 'maturity',    header: 'Maturity',   align: 'right' as const, render: (r: BondAsset) => formatDate(r.maturity) },
-    { key: 'actions', header: '', align: 'center' as const, render: (r: BondAsset) => (
-      <div className="flex gap-1">
-        <button onClick={() => setEditRow(r)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-teal transition-colors">✏</button>
-        <button onClick={() => handleDelete(r.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-red/10 hover:text-red transition-colors">✕</button>
-      </div>
-    )},
   ]
   return (
     <PageShell title="Bonds" subtitle={`${rows.length} bond${rows.length !== 1 ? 's' : ''}`}
       actions={[{ label: '+ Add Bond', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       <StatGrid items={stats} cols={3} />
-      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No bonds — click + Add Bond" /></div>
+      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No bonds — click + Add Bond" 
+            onEditRow={r => setEditRow(r)}
+            onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+          /></div>
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
     </PageShell>
   )

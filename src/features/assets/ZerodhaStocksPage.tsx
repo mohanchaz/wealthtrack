@@ -240,11 +240,6 @@ export default function ZerodhaStocksPage() {
         )
       },
     },
-    {
-      key: 'actions', header: '', align: 'center' as const,
-      render: (r: StockHolding) => (
-        <div className="flex items-center gap-1">
-          <button onClick={() => setEditRow(r)}
             className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-teal transition-colors">✏</button>
           <button onClick={() => handleDelete(r.id)}
             className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-red/10 hover:text-red transition-colors">✕</button>
@@ -272,6 +267,9 @@ export default function ZerodhaStocksPage() {
             rowKey={r => r.id}
             loading={isLoading}
             emptyText="No holdings — click 📥 Import CSV or + Add Holding"
+          
+            onEditRow={r => setEditRow(r)}
+            onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
           />
         }
         actualInvested={<ActualInvestedPanel table="zerodha_actual_invested" />}

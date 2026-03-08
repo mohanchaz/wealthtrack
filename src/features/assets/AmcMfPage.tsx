@@ -59,19 +59,16 @@ export default function AmcMfPage() {
       const inv=r.invested??r.qty*r.avg_cost; const val=r.current_value??inv; const {gain,gainPct,isPositive}=calcGain(val,inv)
       return <span className={`font-bold ${isPositive?'text-green':'text-red'}`}>{isPositive?'+':''}{INR(gain)}<br /><span className="text-[10px] font-medium opacity-80">{isPositive?'+':''}{gainPct.toFixed(1)}%</span></span>
     }},
-    { key: 'actions', header: '', align: 'center' as const, render: (r: AmcMfHolding) => (
-      <div className="flex gap-1">
-        <button onClick={() => setEditRow(r)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-teal transition-colors">✏</button>
-        <button onClick={() => handleDelete(r.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-red/10 hover:text-red transition-colors">✕</button>
-      </div>
-    )},
   ]
   return (
     <PageShell title="AMC Mutual Funds" subtitle={`${rows.length} fund${rows.length!==1?'s':''}`}
       actions={[{ label: '+ Add Fund', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       <StatGrid items={stats} cols={3} />
-      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No AMC MF holdings — click + Add Fund" /></div>
+      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No AMC MF holdings — click + Add Fund" 
+            onEditRow={r => setEditRow(r)}
+            onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+          /></div>
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
     </PageShell>
   )

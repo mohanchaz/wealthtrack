@@ -56,19 +56,16 @@ export default function CashPage() {
     { key: 'invested',      header: 'Deposited',     align: 'right' as const, render: (r: CashAsset) => INR(r.invested) },
     { key: 'current_value', header: 'Current',       align: 'right' as const, render: (r: CashAsset) => <span className="font-bold">{INR(r.current_value ?? r.invested)}</span> },
     { key: 'notes',   header: 'Notes', render: (r: CashAsset) => <span className="text-textmut text-xs">{r.notes || '—'}</span> },
-    { key: 'actions', header: '', align: 'center' as const, render: (r: CashAsset) => (
-      <div className="flex gap-1">
-        <button onClick={() => setEditRow(r)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-teal transition-colors">✏</button>
-        <button onClick={() => handleDelete(r.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-red/10 hover:text-red transition-colors">✕</button>
-      </div>
-    )},
   ]
   return (
     <PageShell title="Cash" subtitle={`${rows.length} entr${rows.length !== 1 ? 'ies' : 'y'}`}
       actions={[{ label: '+ Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       <StatGrid items={stats} cols={3} />
-      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No cash entries — click + Add Entry" /></div>
+      <div className="card overflow-hidden"><AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No cash entries — click + Add Entry" 
+            onEditRow={r => setEditRow(r)}
+            onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+          /></div>
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
     </PageShell>
   )

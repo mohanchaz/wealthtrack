@@ -77,12 +77,6 @@ export default function FdPage() {
     { key: 'interest_rate', header: 'Rate',        align: 'right' as const, render: (r: FdAsset) => r.interest_rate ? `${r.interest_rate.toFixed(2)}%` : '—' },
     { key: 'maturity_date', header: 'Matures On',  align: 'right' as const, render: (r: FdAsset) => formatDate(r.maturity_date) },
     { key: 'maturity_amount', header: 'Maturity Amt', align: 'right' as const, render: (r: FdAsset) => <span className="font-bold">{r.maturity_amount ? INR(r.maturity_amount) : '—'}</span> },
-    { key: 'actions', header: '', align: 'center' as const, render: (r: FdAsset) => (
-      <div className="flex gap-1">
-        <button onClick={() => setEditRow(r)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-teal transition-colors">✏</button>
-        <button onClick={() => handleDelete(r.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-red/10 hover:text-red transition-colors">✕</button>
-      </div>
-    )},
   ]
   return (
     <PageShell title="Fixed Deposits" subtitle={`${rows.length} FD${rows.length !== 1 ? 's' : ''} tracked`}
@@ -90,7 +84,10 @@ export default function FdPage() {
     >
       <AssetPageLayout
         stats={<StatGrid items={stats} cols={4} />}
-        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No FDs yet — click + Add FD" />}
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No FDs yet — click + Add FD" 
+            onEditRow={r => setEditRow(r)}
+            onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+          />}
         actualInvested={<ActualInvestedPanel table="fd_actual_invested" />}
       />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}

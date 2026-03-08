@@ -72,12 +72,6 @@ export default function EfPage() {
     { key: 'interest_rate', header: 'Rate',       align: 'right' as const, render: (r: EfAsset) => r.interest_rate ? `${r.interest_rate.toFixed(2)}%` : '—' },
     { key: 'maturity_date', header: 'Matures On', align: 'right' as const, render: (r: EfAsset) => formatDate(r.maturity_date) },
     { key: 'maturity_amount', header: 'Maturity Amt', align: 'right' as const, render: (r: EfAsset) => <span className="font-bold">{r.maturity_amount ? INR(r.maturity_amount) : '—'}</span> },
-    { key: 'actions', header: '', align: 'center' as const, render: (r: EfAsset) => (
-      <div className="flex gap-1">
-        <button onClick={() => setEditRow(r)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-teal transition-colors">✏</button>
-        <button onClick={() => handleDelete(r.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-red/10 hover:text-red transition-colors">✕</button>
-      </div>
-    )},
   ]
   return (
     <PageShell title="Emergency Fund" subtitle={`${rows.length} entr${rows.length !== 1 ? 'ies' : 'y'}`}
@@ -85,7 +79,10 @@ export default function EfPage() {
     >
       <AssetPageLayout
         stats={<StatGrid items={stats} cols={3} />}
-        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No emergency fund entries — click + Add Entry" />}
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No emergency fund entries — click + Add Entry" 
+            onEditRow={r => setEditRow(r)}
+            onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+          />}
         actualInvested={<ActualInvestedPanel table="ef_actual_invested" />}
       />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}

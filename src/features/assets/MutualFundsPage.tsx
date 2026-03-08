@@ -326,15 +326,6 @@ export default function MutualFundsPage() {
         )
       },
     },
-    {
-      key: 'actions', header: '', align: 'center' as const,
-      render: (r: MfHolding) => (
-        <div className="flex gap-1">
-          <button onClick={() => setEditRow(r)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-textprim transition-colors text-xs">✏</button>
-          <button onClick={() => handleDelete(r.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-textmut hover:bg-red/10 hover:text-red transition-colors text-xs">✕</button>
-        </div>
-      ),
-    },
   ]
 
   return (
@@ -349,7 +340,10 @@ export default function MutualFundsPage() {
     >
       <AssetPageLayout
         stats={<StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, actual, loading: isLoading, liveLabel })} cols={5} />}
-        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No funds — click 📥 Import CSV or + Add Fund" />}
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No funds — click 📥 Import CSV or + Add Fund" 
+            onEditRow={r => setEditRow(r)}
+            onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+          />}
         actualInvested={<ActualInvestedPanel table="mf_actual_invested" />}
       />
 
