@@ -29,18 +29,17 @@ export function ActualInvestedPanel({ table }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col">
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-textmut uppercase tracking-widest">Actual Invested</span>
-        <span className="text-sm font-bold font-mono text-teal">{INR(total)}</span>
-      </div>
+      <div className="px-5 pt-5 pb-4 border-b border-border">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs font-bold text-textmut uppercase tracking-widest">Actual Invested</span>
+          <span className="text-base font-extrabold font-mono text-teal">{INR(total)}</span>
+        </div>
 
-      {/* Two-column layout: form left, table right */}
-      <div className="flex gap-4 items-start">
-
-        {/* Left — Add form */}
-        <div className="flex flex-col gap-2 w-56 shrink-0">
+        {/* Form */}
+        <div className="flex flex-col gap-2.5">
           <Input
             prefix="₹"
             type="number"
@@ -56,63 +55,66 @@ export function ActualInvestedPanel({ table }: Props) {
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
           />
           <Button
-            size="sm"
+            size="md"
             onClick={handleAdd}
             loading={addMutation.isPending}
             className="w-full"
           >
-            + Add
+            + Add Entry
           </Button>
           {error && (
-            <p className="text-[10px] text-red leading-tight">{error}</p>
+            <p className="text-[11px] text-red bg-red/5 border border-red/20 rounded-lg px-3 py-1.5 leading-snug">
+              {error}
+            </p>
           )}
         </div>
-
-        {/* Right — Entries table */}
-        <div className="flex-1 min-w-0">
-          {data.length === 0 ? (
-            <div className="flex items-center justify-center h-20 text-xs text-textfade">
-              No entries yet
-            </div>
-          ) : (
-            <div className="rounded-xl border border-border overflow-hidden">
-              <table className="w-full text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-border bg-surface2">
-                    <th className="px-3 py-2 text-left font-bold text-textmut uppercase tracking-wider">Amount</th>
-                    <th className="px-3 py-2 text-left font-bold text-textmut uppercase tracking-wider">Date</th>
-                    <th className="px-3 py-2 w-6" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((entry, i) => (
-                    <tr
-                      key={entry.id}
-                      className={`border-b border-border/50 last:border-0 ${i % 2 === 0 ? '' : 'bg-surface2/50'}`}
-                    >
-                      <td className="px-3 py-2 font-mono font-semibold text-textprim">
-                        {INR(entry.amount)}
-                      </td>
-                      <td className="px-3 py-2 text-textmut">
-                        {formatDate(entry.entry_date ?? entry.created_at)}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <button
-                          onClick={() => deleteMutation.mutate(entry.id)}
-                          className="text-textfade hover:text-red transition-colors"
-                        >
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
       </div>
+
+      {/* Entries list */}
+      <div className="max-h-[420px] overflow-y-auto">
+        {data.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+            <span className="text-2xl opacity-30">₹</span>
+            <p className="text-xs text-textfade">No entries yet</p>
+          </div>
+        ) : (
+          <table className="w-full text-xs border-collapse">
+            <thead className="sticky top-0 bg-surface">
+              <tr className="border-b border-border">
+                <th className="px-5 py-2.5 text-left font-bold text-textmut uppercase tracking-wider">Amount</th>
+                <th className="px-5 py-2.5 text-left font-bold text-textmut uppercase tracking-wider">Date</th>
+                <th className="px-3 py-2.5 w-8" />
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((entry, i) => (
+                <tr
+                  key={entry.id}
+                  className={`border-b border-border/40 last:border-0 transition-colors hover:bg-surface2 ${
+                    i % 2 === 0 ? 'bg-white' : 'bg-surface2/40'
+                  }`}
+                >
+                  <td className="px-5 py-3 font-mono font-bold text-textprim">
+                    {INR(entry.amount)}
+                  </td>
+                  <td className="px-5 py-3 text-textmut">
+                    {formatDate(entry.entry_date ?? entry.created_at)}
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <button
+                      onClick={() => deleteMutation.mutate(entry.id)}
+                      className="w-5 h-5 rounded-md flex items-center justify-center text-textfade hover:bg-red/10 hover:text-red transition-colors mx-auto"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
     </div>
   )
 }
