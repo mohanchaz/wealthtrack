@@ -8,7 +8,10 @@ export type TableName =
 
 // Tables with no created_at column — order by their own timestamp or skip ordering
 const ORDER_COL: Partial<Record<TableName, string>> = {
-  mf_holdings: 'fund_name',   // alphabetical is fine for funds
+  mf_holdings:    'fund_name',      // no created_at — order alphabetically
+  gold_holdings:  'holding_name',   // no created_at — order alphabetically
+  aionion_gold:   'holding_name',   // no created_at
+  aionion_stocks: 'instrument',     // no created_at — uses imported_at
 }
 
 export async function fetchAssets<T = Record<string, unknown>>(
