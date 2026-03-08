@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { NAV_ITEMS, type NavItem } from '../../constants/navItems'
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -23,16 +23,18 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
     ) ?? false
   )
   const hasChildren = !!item.children?.length
+  const navigate = useNavigate()
 
   const pad = depth === 0 ? 'px-3 py-2.5' : depth === 1 ? 'pl-8 pr-3 py-2' : 'pl-12 pr-3 py-1.5'
   const base = `w-full flex items-center gap-2.5 rounded-xl text-sm transition-all duration-150 ${pad}`
 
   if (hasChildren) {
+    const isParentActive = isActive || open
     return (
       <div>
         <button
-          onClick={() => setOpen(o => !o)}
-          className={`${base} text-textmut hover:text-textprim hover:bg-surface2 group`}
+          onClick={() => { navigate(item.path); setOpen(o => !o) }}
+          className={`${base} ${isParentActive ? 'text-textprim font-semibold' : 'text-textmut hover:text-textprim hover:bg-surface2'} group`}
         >
           {depth === 0 && (
             <span className="w-5 h-5 flex items-center justify-center text-xs text-textfade group-hover:text-textmut transition-colors">
