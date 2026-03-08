@@ -4,22 +4,25 @@ import { useAuthStore }   from '../../store/authStore'
 import { useAssets }      from '../../hooks/useAssets'
 import { useNsePrices, useYahooPrices } from '../../hooks/useLivePrices'
 import { PageShell }      from '../../components/common/PageShell'
+import { useActualInvested } from '../../hooks/useActualInvested'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { INR, calcGain }  from '../../lib/utils'
 import type { StockHolding, MfHolding, GoldHolding } from '../../types/assets'
 
 interface SectionCardProps {
-  title:      string
-  subtitle:   string
-  invested:   number
-  value:      number
-  liveLabel?: string
-  loading:    boolean
-  onClick:    () => void
+  title:       string
+  subtitle:    string
+  invested:    number
+  value:       number
+  actual?:     number
+  liveLabel?:  string
+  loading:     boolean
+  onClick:     () => void
 }
 
-function SectionCard({ title, subtitle, invested, value, liveLabel, loading, onClick }: SectionCardProps) {
+function SectionCard({ title, subtitle, invested, value, actual, liveLabel, loading, onClick }: SectionCardProps) {
   const { gain, gainPct, isPositive } = calcGain(value, invested)
+  const actGain = actual != null ? calcGain(value, actual) : null
   return (
     <button
       onClick={onClick}
@@ -32,7 +35,7 @@ function SectionCard({ title, subtitle, invested, value, liveLabel, loading, onC
         </div>
         <span className="text-textfade group-hover:text-textmut transition-colors text-lg">→</span>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className={`grid gap-3 ${actual != null ? 'grid-cols-5' : 'grid-cols-3'}`}>
         <div>
           <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Invested</div>
           <div className="font-bold text-textprim text-sm">{loading ? '…' : INR(invested)}</div>
@@ -50,6 +53,21 @@ function SectionCard({ title, subtitle, invested, value, liveLabel, loading, onC
             {!loading && <span className="text-[10px] font-medium ml-1 opacity-80">{isPositive ? '+' : ''}{gainPct.toFixed(1)}%</span>}
           </div>
         </div>
+        {actual != null && (
+          <>
+            <div>
+              <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Actual Invested</div>
+              <div className="font-bold text-textprim text-sm">{loading ? '…' : INR(actual)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Actual Gain</div>
+              <div className={`font-bold text-sm ${actGain?.isPositive ? 'text-green' : 'text-red'}`}>
+                {loading ? '…' : `${actGain?.isPositive ? '+' : ''}${INR(actGain?.gain ?? 0)}`}
+                {!loading && actGain && <span className="text-[10px] font-medium ml-1 opacity-80">{actGain.isPositive ? '+' : ''}{actGain.gainPct.toFixed(1)}%</span>}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </button>
   )
@@ -74,6 +92,10 @@ export default function ZerodhaOverviewPage() {
   const goldSymbols = useMemo(() => [...new Set(gold.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [gold])
   const { data: goldPrices = {}, isFetching: goldFetching } = useYahooPrices(goldSymbols)
 
+  // Actual invested
+  const stocksActual = useActualInvested('zerodha_actual_invested')
+  const mfsActual    = useActualInvested('mf_actual_invested')
+
   // ── Stocks totals ────────────────────────────────────────────
   const stocksInvested = useMemo(() => stocks.reduce((s, r) => s + r.qty * r.avg_cost, 0), [stocks])
   const stocksValue    = useMemo(() => stocks.reduce((s, r) => {
@@ -95,6 +117,9 @@ export default function ZerodhaOverviewPage() {
     const ltp = r.yahoo_symbol ? (goldPrices[r.yahoo_symbol.replace(/\.(NS|BO)$/, '')]?.price ?? null) : null
     return s + (ltp != null ? r.qty * ltp : r.qty * r.avg_cost)
   }, 0), [gold, goldPrices])
+
+  const stocksActualTotal = stocksActual.data?.reduce((s, e) => s + e.amount, 0)
+  const mfsActualTotal    = mfsActual.data?.reduce((s, e) => s + e.amount, 0)
 
   // ── Combined totals ──────────────────────────────────────────
   const totalInvested = stocksInvested + mfsInvested + goldInvested
@@ -123,6 +148,7 @@ export default function ZerodhaOverviewPage() {
           subtitle={`${stocks.length} holding${stocks.length !== 1 ? 's' : ''}`}
           invested={stocksInvested}
           value={stocksValue}
+          actual={stocksActualTotal}
           liveLabel={Object.keys(stockPrices).length > 0 ? 'live' : undefined}
           loading={stocksLoading}
           onClick={() => navigate('/assets/zerodha-stocks')}
@@ -132,6 +158,7 @@ export default function ZerodhaOverviewPage() {
           subtitle={`${mfs.length} fund${mfs.length !== 1 ? 's' : ''}`}
           invested={mfsInvested}
           value={mfsValue}
+          actual={mfsActualTotal}
           liveLabel={Object.keys(mfPrices).length > 0 ? 'live' : undefined}
           loading={mfsLoading}
           onClick={() => navigate('/assets/mutual-funds')}

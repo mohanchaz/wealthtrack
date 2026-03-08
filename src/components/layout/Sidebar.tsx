@@ -40,7 +40,13 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
             navigate(item.path)
             setOpen(true)   // always open when navigating to it
           }}
-          className={`${base} ${isSectionActive ? 'text-textprim font-semibold' : 'text-textmut hover:text-textprim hover:bg-surface2'} group`}
+          className={`${base} ${
+            location.pathname === item.path
+              ? 'bg-ink text-chalk font-semibold shadow-card'
+              : isSectionActive
+                ? 'text-textprim font-semibold hover:bg-surface2'
+                : 'text-textmut hover:text-textprim hover:bg-surface2'
+          } group`}
         >
           {depth === 0 && (
             <span className="w-5 h-5 flex items-center justify-center text-xs text-textfade group-hover:text-textmut transition-colors">
