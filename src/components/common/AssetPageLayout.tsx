@@ -16,15 +16,15 @@ export function AssetPageLayout({ stats, mainTable, actualInvested }: Props) {
       </div>
 
       {/* Two-column body */}
-      <div className="flex gap-5 items-start">
+      <div className="flex gap-4 items-start">
 
-        {/* Left — holdings table */}
+        {/* Left — holdings table, takes all remaining space */}
         <div className="flex-1 min-w-0 card overflow-hidden">
           {mainTable}
         </div>
 
-        {/* Right — actual invested (320px, sticky) */}
-        <div className="w-[320px] shrink-0 sticky top-[72px] card overflow-hidden">
+        {/* Right — actual invested, fixed narrow width */}
+        <div className="w-64 shrink-0 sticky top-[72px] card overflow-hidden">
           {actualInvested}
         </div>
 
