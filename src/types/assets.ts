@@ -12,13 +12,12 @@ export interface StockHolding {
 export interface MfHolding {
   id:            string
   user_id:       string
-  fund_name:     string        // may embed "||SYMBOL.BO"
+  fund_name:     string
   qty:           number
   avg_cost:      number
-  invested?:     number
-  current_value?: number
-  qty_diff?:     number | null
-  created_at?:   string
+  nav_symbol?:   string | null  // BSE symbol for live NAV e.g. "0P0000XW75.BO"
+  prev_qty?:     number
+  imported_at?:  string
 }
 
 // ── Gold holding (gold_holdings) ─────────────────────────────
