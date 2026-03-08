@@ -16,8 +16,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal to-cyan flex items-center justify-center text-white font-bold text-lg shadow-card">
-            ₹
+          <div className="flex items-center gap-2 bg-ink text-chalk px-4 py-2 rounded-full text-sm font-bold shadow-card">
+            <span className="opacity-60">₹</span>
+            <span>WealthTrack</span>
           </div>
           <PageSpinner />
         </div>
@@ -41,11 +42,11 @@ export default function App() {
             </PrivateRoute>
           }
         >
-          <Route index                   element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard"       element={<DashboardPage />} />
-          <Route path="/allocation"      element={<AllocationPage />} />
+          <Route index                      element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard"          element={<DashboardPage />} />
+          <Route path="/allocation"         element={<AllocationPage />} />
           <Route path="/assets/:assetClass" element={<AssetsPage />} />
-          <Route path="/assets"          element={<Navigate to="/assets/zerodha-stocks" replace />} />
+          <Route path="/assets"             element={<Navigate to="/assets/zerodha-stocks" replace />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

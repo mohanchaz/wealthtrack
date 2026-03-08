@@ -2,18 +2,17 @@ import { useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
 
 export default function LoginPage() {
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuthStore()
-  const [mode, setMode]     = useState<'login' | 'signup'>('login')
-  const [email, setEmail]   = useState('')
-  const [password, setPass] = useState('')
+  const { signInWithGoogle, signInWithEmail } = useAuthStore()
+  const [email, setEmail]     = useState('')
+  const [password, setPass]   = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError]   = useState('')
+  const [error, setError]     = useState('')
 
   const handleSubmit = async () => {
     setLoading(true); setError('')
     try {
-      if (mode === 'login') await signInWithEmail(email, password)
-      else                  await signUpWithEmail(email, password)
+      const err = await signInWithEmail(email, password)
+      if (err) setError(err)
     } catch (e: any) {
       setError(e.message ?? 'Something went wrong')
     } finally {
@@ -33,12 +32,8 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-surface rounded-2xl border border-border shadow-card p-8">
-          <h1 className="text-xl font-bold text-textprim mb-1">
-            {mode === 'login' ? 'Welcome back' : 'Create account'}
-          </h1>
-          <p className="text-sm text-textmut mb-6">
-            {mode === 'login' ? 'Sign in to your portfolio' : 'Start tracking your wealth'}
-          </p>
+          <h1 className="text-xl font-bold text-textprim mb-1">Welcome back</h1>
+          <p className="text-sm text-textmut mb-6">Sign in to your portfolio</p>
 
           {/* Google */}
           <button
@@ -69,6 +64,7 @@ export default function LoginPage() {
             <input
               type="password" placeholder="Password" value={password}
               onChange={e => setPass(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               className="w-full h-9 rounded-xl bg-white border border-border text-sm text-textprim placeholder:text-textfade outline-none px-3 focus:border-ink focus:ring-2 focus:ring-ink/10 transition-all"
             />
           </div>
@@ -81,15 +77,8 @@ export default function LoginPage() {
             className="w-full h-10 rounded-xl bg-ink hover:bg-ink2 text-chalk text-sm font-bold transition-all shadow-card disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading && <span className="w-4 h-4 rounded-full border-2 border-chalk/30 border-t-chalk animate-spin" />}
-            {mode === 'login' ? 'Sign In' : 'Create Account'}
+            Sign In
           </button>
-
-          <p className="text-center text-xs text-textmut mt-4">
-            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-            <button onClick={() => setMode(m => m === 'login' ? 'signup' : 'login')} className="font-semibold text-textprim underline underline-offset-2">
-              {mode === 'login' ? 'Sign up' : 'Sign in'}
-            </button>
-          </p>
         </div>
       </div>
     </div>
