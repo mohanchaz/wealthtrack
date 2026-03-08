@@ -12,11 +12,11 @@ export type ActualTable =
   | 'crypto_actual_invested'
 
 export interface ActualEntry {
-  id:          string
-  user_id:     string
-  amount:      number
-  note?:       string
-  created_at?: string
+  id:           string
+  user_id:      string
+  amount:       number
+  entry_date?:  string
+  created_at?:  string
 }
 
 export async function fetchActualInvested(
@@ -27,19 +27,19 @@ export async function fetchActualInvested(
     .from(table)
     .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .order('entry_date', { ascending: false })
   if (error) throw new Error(error.message)
   return (data ?? []) as ActualEntry[]
 }
 
 export async function addActualEntry(
-  table:  ActualTable,
-  userId: string,
-  amount: number,
-  note?:  string,
+  table:      ActualTable,
+  userId:     string,
+  amount:     number,
+  entryDate?: string,
 ): Promise<void> {
   const payload: Record<string, unknown> = { user_id: userId, amount }
-  if (note) payload.note = note
+  if (entryDate) payload.entry_date = entryDate
   const { error } = await supabase.from(table).insert(payload)
   if (error) throw new Error(error.message)
 }

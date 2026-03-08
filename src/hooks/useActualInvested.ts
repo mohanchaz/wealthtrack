@@ -19,8 +19,8 @@ export function useActualInvested(table: ActualTable) {
   })
 
   const addMutation = useMutation({
-    mutationFn: ({ amount, note }: { amount: number; note?: string }) =>
-      addActualEntry(table, userId!, amount, note),
+    mutationFn: ({ amount, entryDate }: { amount: number; entryDate?: string }) =>
+      addActualEntry(table, userId!, amount, entryDate),
     onSuccess: () => qc.invalidateQueries({ queryKey: qKey }),
   })
 

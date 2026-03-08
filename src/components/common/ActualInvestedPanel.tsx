@@ -9,28 +9,23 @@ interface Props { table: ActualTable }
 
 export function ActualInvestedPanel({ table }: Props) {
   const { data = [], addMutation, deleteMutation } = useActualInvested(table)
-  const [amount, setAmount] = useState('')
-  const [date,   setDate]   = useState('')
+  const [amount,    setAmount]    = useState('')
+  const [entryDate, setEntryDate] = useState('')
+  const [error,     setError]     = useState('')
 
   const total = data.reduce((s, r) => s + r.amount, 0)
-
-  const [error, setError] = useState('')
 
   const handleAdd = async () => {
     const n = parseFloat(amount)
     if (!n || n <= 0) return
     setError('')
     try {
-      await addMutation.mutateAsync({ amount: n, note: date || undefined })
+      await addMutation.mutateAsync({ amount: n, entryDate: entryDate || undefined })
       setAmount('')
-      setDate('')
+      setEntryDate('')
     } catch (e) {
       setError((e as Error).message)
     }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleAdd()
   }
 
   return (
@@ -52,13 +47,13 @@ export function ActualInvestedPanel({ table }: Props) {
             placeholder="Amount"
             value={amount}
             onChange={e => setAmount(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
           />
           <Input
             type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            onKeyDown={handleKeyDown}
+            value={entryDate}
+            onChange={e => setEntryDate(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
           />
           <Button
             size="sm"
@@ -99,7 +94,7 @@ export function ActualInvestedPanel({ table }: Props) {
                         {INR(entry.amount)}
                       </td>
                       <td className="px-3 py-2 text-textmut">
-                        {entry.note ? formatDate(entry.note) : formatDate(entry.created_at)}
+                        {formatDate(entry.entry_date ?? entry.created_at)}
                       </td>
                       <td className="px-3 py-2 text-center">
                         <button
