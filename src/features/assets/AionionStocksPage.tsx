@@ -85,8 +85,10 @@ export default function AionionStocksPage() {
     try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') }
   }
   const handleImport = async (parsed: Record<string, unknown>[]) => {
+    type R = { instrument: string; qty: number; avg_cost: number }
+    const rows = parsed as unknown as R[]
     await replaceAssets('aionion_stocks', userId,
-      parsed.map(r => ({ user_id: userId, instrument: r.instrument, qty: r.qty, avg_cost: r.avg_cost })))
+      rows.map(r => ({ user_id: userId, instrument: r.instrument, qty: r.qty, avg_cost: r.avg_cost })))
     qc.invalidateQueries({ queryKey: ['aionion_stocks', userId] })
     toast(`${parsed.length} stocks imported ✅`, 'success')
   }

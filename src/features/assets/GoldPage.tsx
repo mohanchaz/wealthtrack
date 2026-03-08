@@ -97,7 +97,7 @@ export default function GoldPage() {
     try { await deleteMutation.mutateAsync(id); toast('Deleted', 'success') } catch (e) { toast((e as Error).message, 'error') }
   }
   const handleImport = async (parsed: Record<string, unknown>[]) => {
-    await replaceAssets('gold_holdings', userId, parsed.map(r => ({ ...r, user_id: userId, invested: r.qty * r.avg_cost, current_value: r.qty * r.avg_cost })))
+    await replaceAssets('gold_holdings', userId, parsed.map(r => ({ ...r, user_id: userId, invested: (r.qty as number) * (r.avg_cost as number), current_value: (r.qty as number) * (r.avg_cost as number) })))
     qc.invalidateQueries({ queryKey: ['gold_holdings', userId] })
     toast(`${parsed.length} holdings imported ✅`, 'success')
   }

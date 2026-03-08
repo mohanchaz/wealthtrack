@@ -119,7 +119,9 @@ export default function MutualFundsPage() {
     catch (e) { toast((e as Error).message, 'error') }
   }
   const handleImport = async (parsed: Record<string, unknown>[]) => {
-    await replaceAssets('mf_holdings', userId, parsed.map(r => ({ user_id: userId, fund_name: r.fund_name, qty: r.qty, avg_cost: r.avg_cost })))
+    type R = { fund_name: string; qty: number; avg_cost: number; invested?: number; current_value?: number }
+    const rows = parsed as unknown as R[]
+    await replaceAssets('mf_holdings', userId, rows.map(r => ({ user_id: userId, fund_name: r.fund_name, qty: r.qty, avg_cost: r.avg_cost, invested: r.invested, current_value: r.current_value })))
     qc.invalidateQueries({ queryKey: ['mf_holdings', userId] })
     toast(`${parsed.length} funds imported ✅`, 'success')
   }

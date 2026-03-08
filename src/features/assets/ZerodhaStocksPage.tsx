@@ -133,9 +133,10 @@ export default function ZerodhaStocksPage() {
   }
 
   const handleImport = async (parsed: Record<string, unknown>[]) => {
-    // Only pass columns that exist in the DB schema
+    type R = { instrument: string; qty: number; avg_cost: number }
+    const rows = parsed as unknown as R[]
     await replaceAssets('zerodha_stocks', userId,
-      parsed.map(r => ({ user_id: userId, instrument: r.instrument, qty: r.qty, avg_cost: r.avg_cost }))
+      rows.map(r => ({ user_id: userId, instrument: r.instrument, qty: r.qty, avg_cost: r.avg_cost }))
     )
     qc.invalidateQueries({ queryKey: ['zerodha_stocks', userId] })
     toast(`${parsed.length} stocks imported ✅`, 'success')
