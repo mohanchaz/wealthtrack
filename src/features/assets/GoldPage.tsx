@@ -19,6 +19,28 @@ import { INR, calcGain }     from '../../lib/utils'
 import { parseCsvRows, cleanNum } from '../../lib/csvParser'
 import type { GoldHolding }  from '../../types/assets'
 
+// Known gold holdings: name fragment → { type, yahoo_symbol }
+const GOLD_LOOKUP: { match: RegExp; type: string; yahoo: string }[] = [
+  { match: /goldbees/i,              type: 'ETF', yahoo: 'GOLDBEES.NS' },
+  { match: /nippon.*gold/i,          type: 'MF',  yahoo: '0P0000XVDS.BO' },
+  { match: /axis.*gold/i,            type: 'ETF', yahoo: 'AXISGOLD.NS' },
+  { match: /hdfc.*gold/i,            type: 'ETF', yahoo: 'HDFCGOLD.NS' },
+  { match: /icici.*gold/i,           type: 'ETF', yahoo: 'ICICIGOLD.NS' },
+  { match: /kotak.*gold/i,           type: 'ETF', yahoo: 'KOTAKGOLD.NS' },
+  { match: /sbi.*gold/i,             type: 'ETF', yahoo: 'SBIGOLD.NS' },
+  { match: /quantum.*gold/i,         type: 'MF',  yahoo: '0P0000XV6Q.BO' },
+  { match: /invesco.*gold/i,         type: 'MF',  yahoo: '' },
+  { match: /dsp.*gold/i,             type: 'MF',  yahoo: '' },
+]
+
+function lookupGold(name: string): { type: string; yahoo: string } {
+  for (const entry of GOLD_LOOKUP) {
+    if (entry.match.test(name)) return { type: entry.type, yahoo: entry.yahoo }
+  }
+  // Default: if name has "fund" it's MF, else ETF
+  return { type: /fund/i.test(name) ? 'MF' : 'ETF', yahoo: '' }
+}
+
 function parseGoldCsv(text: string): Omit<GoldHolding,'id'|'user_id'>[] | null {
   const rows = parseCsvRows(text)
   if (!rows.length) return null
@@ -30,15 +52,22 @@ function parseGoldCsv(text: string): Omit<GoldHolding,'id'|'user_id'>[] | null {
   const kAvg  = find('avg', 'cost', 'nav')
   const kSym  = find('symbol', 'yahoo')
   if (!kName || !kQty || !kAvg) return null
-  return rows.map(r => ({
-    holding_name: r[kName!] ?? '',
-    holding_type: kType ? (r[kType] ?? 'ETF').toUpperCase() : 'ETF',
-    qty:          cleanNum(r[kQty!] ?? ''),
-    avg_cost:     cleanNum(r[kAvg!] ?? ''),
-    yahoo_symbol: kSym ? (r[kSym] ?? '') : '',
-  })).filter(r => {
+  return rows.map(r => {
+    const name = r[kName!] ?? ''
+    const qty  = cleanNum(r[kQty!] ?? '')
+    const avg  = cleanNum(r[kAvg!] ?? '')
+    const { type, yahoo } = lookupGold(name)
+    return {
+      holding_name: name,
+      // Use CSV type if explicitly provided, otherwise auto-detect
+      holding_type: kType && r[kType] ? r[kType].toUpperCase() : type,
+      qty,
+      avg_cost:     avg,
+      // Use CSV yahoo_symbol if provided, otherwise auto-detect
+      yahoo_symbol: (kSym && r[kSym]) ? r[kSym] : yahoo,
+    }
+  }).filter(r => {
     if (!r.holding_name || r.qty <= 0) return false
-    // Only include rows where the name contains "gold" (case-insensitive)
     return /gold/i.test(r.holding_name)
   }) as Omit<GoldHolding,'id'|'user_id'>[]
 }
@@ -54,7 +83,7 @@ function EditModal({ row, onClose, onSave }: { row: Partial<GoldHolding>; onClos
     if (!name || !qty || !avg) return
     setSaving(true)
     const q = parseFloat(qty), a = parseFloat(avg)
-    await onSave({ ...row, holding_name: name, holding_type: type, qty: q, avg_cost: a, yahoo_symbol: sym, invested: q * a, current_value: q * a })
+    await onSave({ ...row, holding_name: name, holding_type: type, qty: q, avg_cost: a, yahoo_symbol: sym })
     setSaving(false)
   }
   return (
