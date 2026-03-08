@@ -9,11 +9,13 @@ interface Props { table: ActualTable }
 
 export function ActualInvestedPanel({ table }: Props) {
   const { data = [], addMutation, deleteMutation } = useActualInvested(table)
+  const [showForm,  setShowForm]  = useState(false)
   const [amount,    setAmount]    = useState('')
   const [entryDate, setEntryDate] = useState('')
   const [error,     setError]     = useState('')
   const [selected,  setSelected]  = useState<Set<string>>(new Set())
   const [deleting,  setDeleting]  = useState(false)
+  const [showForm,  setShowForm]  = useState(false)
 
   const total    = data.reduce((s, r) => s + r.amount, 0)
   const allIds   = data.map(e => e.id)
@@ -31,7 +33,7 @@ export function ActualInvestedPanel({ table }: Props) {
     setError('')
     try {
       await addMutation.mutateAsync({ amount: n, entryDate: entryDate || undefined })
-      setAmount(''); setEntryDate('')
+      setAmount(''); setEntryDate(''); setShowForm(false)
     } catch (e) { setError((e as Error).message) }
   }
 
@@ -46,22 +48,27 @@ export function ActualInvestedPanel({ table }: Props) {
 
   return (
     <div className="flex flex-col">
-      {/* Header + form */}
+      {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-border">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-bold text-textmut uppercase tracking-widest">Actual Invested</span>
           <span className="text-sm font-extrabold font-mono text-teal">{INR(total)}</span>
         </div>
-        <div className="flex flex-col gap-2">
-          <Input prefix="₹" type="number" placeholder="Amount" value={amount}
-            onChange={e => setAmount(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
-          <Input type="date" value={entryDate}
-            onChange={e => setEntryDate(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
-          <Button size="sm" onClick={handleAdd} loading={addMutation.isPending} className="w-full">
-            + Add Entry
-          </Button>
-          {error && <p className="text-[10px] text-red bg-red/5 border border-red/20 rounded-lg px-2 py-1 leading-snug">{error}</p>}
-        </div>
+        <Button size="sm" onClick={() => setShowForm(f => !f)} className="w-full" variant={showForm ? 'secondary' : 'primary'}>
+          {showForm ? '✕ Cancel' : '+ Add Entry'}
+        </Button>
+        {showForm && (
+          <div className="flex flex-col gap-2 mt-2">
+            <Input prefix="₹" type="number" placeholder="Amount" value={amount}
+              onChange={e => setAmount(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
+            <Input type="date" value={entryDate}
+              onChange={e => setEntryDate(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
+            <Button size="sm" onClick={handleAdd} loading={addMutation.isPending} className="w-full">
+              Save Entry
+            </Button>
+            {error && <p className="text-[10px] text-red bg-red/5 border border-red/20 rounded-lg px-2 py-1 leading-snug">{error}</p>}
+          </div>
+        )}
       </div>
 
       {/* Entries */}
