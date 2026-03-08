@@ -118,7 +118,7 @@ export default function MutualFundsPage() {
     try { await deleteMutation.mutateAsync(id); toast('Deleted', 'success') }
     catch (e) { toast((e as Error).message, 'error') }
   }
-  const handleImport = async (parsed: Omit<MfHolding,'id'|'user_id'>[]) => {
+  const handleImport = async (parsed: Record<string, unknown>[]) => {
     await replaceAssets('mf_holdings', userId, parsed.map(r => ({ user_id: userId, fund_name: r.fund_name, qty: r.qty, avg_cost: r.avg_cost })))
     qc.invalidateQueries({ queryKey: ['mf_holdings', userId] })
     toast(`${parsed.length} funds imported ✅`, 'success')
@@ -163,7 +163,7 @@ export default function MutualFundsPage() {
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
       <CsvImportModal open={showImport} onClose={() => setShowImport(false)} title="Import Mutual Funds CSV"
         hint="Zerodha-style CSV: Fund Name (or Instrument), Units (or Qty), Avg Cost. Gold and ETF rows are auto-skipped. Append ||SYMBOL.BO to enable live NAVs."
-        parse={parseMfCsv as (t: string) => Record<string,unknown>[] | null}
+        parse={parseMfCsv}
         columns={[
           { key: 'fund_name', header: 'Fund Name' },
           { key: 'qty',       header: 'Units',    align: 'right' },
@@ -171,7 +171,7 @@ export default function MutualFundsPage() {
           { key: 'invested',  header: 'Invested', align: 'right' },
         ]}
         renderCell={(row, key) => typeof row[key] === 'number' ? INR(row[key] as number) : String(row[key] ?? '—')}
-        onImport={handleImport as (rows: Record<string,unknown>[]) => Promise<void>}
+        onImport={handleImport}
       />
     </PageShell>
   )

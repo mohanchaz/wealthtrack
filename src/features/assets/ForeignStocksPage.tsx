@@ -143,7 +143,7 @@ export default function ForeignStocksPage() {
 
   const handleSave = async (d: Partial<ForeignHolding>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
   const handleDelete = async (id: string) => { if (!confirm('Delete?')) return; try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') } }
-  const handleImport = async (parsed: Omit<ForeignHolding,'id'|'user_id'>[]) => {
+  const handleImport = async (parsed: Record<string, unknown>[]) => {
     await replaceAssets('foreign_stock_holdings', userId, parsed.map(r => ({ ...r, user_id: userId })))
     qc.invalidateQueries({ queryKey: ['foreign_stock_holdings', userId] }); toast(`${parsed.length} holdings imported ✅`,'success')
   }
@@ -187,13 +187,13 @@ export default function ForeignStocksPage() {
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
       <CsvImportModal open={showImport} onClose={() => setShowImport(false)} title="Import Foreign Holdings CSV"
         hint="CSV: Symbol, Qty, Avg Price, Currency (USD/GBP/GBX). London stocks use .L suffix on Yahoo. GBX = pence (auto ÷100)."
-        parse={parseForeignCsv as (t: string) => Record<string,unknown>[] | null}
+        parse={parseForeignCsv}
         columns={[
           { key: 'symbol', header: 'Symbol' }, { key: 'currency', header: 'CCY' },
           { key: 'qty', header: 'Qty', align: 'right' }, { key: 'avg_price', header: 'Avg Price', align: 'right' },
         ]}
         renderCell={(row, key) => typeof row[key] === 'number' ? (row[key] as number).toFixed(4) : String(row[key] ?? '—')}
-        onImport={handleImport as (rows: Record<string,unknown>[]) => Promise<void>}
+        onImport={handleImport}
       />
     </PageShell>
   )

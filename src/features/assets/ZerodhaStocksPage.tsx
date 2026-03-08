@@ -132,7 +132,7 @@ export default function ZerodhaStocksPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
-  const handleImport = async (parsed: CsvRow[]) => {
+  const handleImport = async (parsed: Record<string, unknown>[]) => {
     // Only pass columns that exist in the DB schema
     await replaceAssets('zerodha_stocks', userId,
       parsed.map(r => ({ user_id: userId, instrument: r.instrument, qty: r.qty, avg_cost: r.avg_cost }))
@@ -241,7 +241,7 @@ export default function ZerodhaStocksPage() {
         onClose={() => setShowImport(false)}
         title="Import Zerodha Holdings"
         hint="CSV must have: Instrument (or Symbol), Qty, Avg Cost. Current value is fetched live from NSE — no need to import it."
-        parse={parseZerodhaCsv as (t: string) => Record<string, unknown>[] | null}
+        parse={parseZerodhaCsv}
         columns={[
           { key: 'instrument', header: 'Instrument' },
           { key: 'qty',        header: 'Qty',      align: 'right' },
@@ -250,7 +250,7 @@ export default function ZerodhaStocksPage() {
         renderCell={(row, key) =>
           typeof row[key] === 'number' ? INR(row[key] as number) : String(row[key] ?? '—')
         }
-        onImport={handleImport as (rows: Record<string, unknown>[]) => Promise<void>}
+        onImport={handleImport}
       />
     </PageShell>
   )

@@ -2,25 +2,28 @@ import { useState, type ReactNode } from 'react'
 import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 
-interface Props<T> {
-  open:      boolean
-  onClose:   () => void
-  title:     string
-  hint?:     string
-  parse:     (text: string) => T[] | null
-  columns:   { key: keyof T & string; header: string; align?: 'right' | 'left' }[]
-  renderCell?: (row: T, key: keyof T & string) => ReactNode
-  onImport:  (rows: T[]) => Promise<void>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRow = any
+
+interface Props {
+  open:       boolean
+  onClose:    () => void
+  title:      string
+  hint?:      string
+  parse:      (text: string) => AnyRow[] | null
+  columns:    { key: string; header: string; align?: 'right' | 'left' }[]
+  renderCell?: (row: AnyRow, key: string) => ReactNode
+  onImport:   (rows: AnyRow[]) => Promise<void>
 }
 
-export function CsvImportModal<T extends Record<string, unknown>>({
+export function CsvImportModal({
   open, onClose, title, hint, parse, columns, renderCell, onImport,
-}: Props<T>) {
-  const [preview, setPreview]   = useState<T[]>([])
+}: Props) {
+  const [preview,  setPreview]  = useState<AnyRow[]>([])
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [filename, setFilename] = useState('')
-  const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [error,    setError]    = useState('')
+  const [loading,  setLoading]  = useState(false)
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -31,21 +34,19 @@ export function CsvImportModal<T extends Record<string, unknown>>({
       const rows = parse(ev.target?.result as string)
       if (!rows || !rows.length) { setError('Could not parse CSV — check format'); setPreview([]); return }
       setPreview(rows)
-      setSelected(new Set(rows.map((_, i) => i)))
+      setSelected(new Set(rows.map((_: AnyRow, i: number) => i)))
     }
     reader.readAsText(file)
   }
 
   const toggle = (i: number) => setSelected(prev => {
-    const s = new Set(prev)
-    s.has(i) ? s.delete(i) : s.add(i)
-    return s
+    const s = new Set(prev); s.has(i) ? s.delete(i) : s.add(i); return s
   })
   const allChecked = preview.length > 0 && selected.size === preview.length
-  const toggleAll  = () => setSelected(allChecked ? new Set() : new Set(preview.map((_, i) => i)))
+  const toggleAll  = () => setSelected(allChecked ? new Set() : new Set(preview.map((_: AnyRow, i: number) => i)))
 
   const handleImport = async () => {
-    const rows = preview.filter((_, i) => selected.has(i))
+    const rows = preview.filter((_: AnyRow, i: number) => selected.has(i))
     if (!rows.length) return
     setLoading(true)
     try {
@@ -142,7 +143,7 @@ export function CsvImportModal<T extends Record<string, unknown>>({
                     </tr>
                   </thead>
                   <tbody>
-                    {preview.map((row, i) => (
+                    {preview.map((row: AnyRow, i: number) => (
                       <tr
                         key={i}
                         onClick={() => toggle(i)}

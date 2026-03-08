@@ -84,7 +84,7 @@ export default function AionionStocksPage() {
     if (!confirm('Delete?')) return
     try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') }
   }
-  const handleImport = async (parsed: AionionCsvRow[]) => {
+  const handleImport = async (parsed: Record<string, unknown>[]) => {
     await replaceAssets('aionion_stocks', userId,
       parsed.map(r => ({ user_id: userId, instrument: r.instrument, qty: r.qty, avg_cost: r.avg_cost })))
     qc.invalidateQueries({ queryKey: ['aionion_stocks', userId] })
@@ -125,14 +125,14 @@ export default function AionionStocksPage() {
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
       <CsvImportModal open={showImport} onClose={() => setShowImport(false)} title="Import Aionion Holdings CSV"
         hint="CSV: Instrument (or Symbol), Qty, Avg Cost. Live prices fetched automatically."
-        parse={parseAionionCsv as (t: string) => Record<string,unknown>[] | null}
+        parse={parseAionionCsv}
         columns={[
           { key: 'instrument', header: 'Instrument' },
           { key: 'qty', header: 'Qty', align: 'right' },
           { key: 'avg_cost', header: 'Avg Cost', align: 'right' },
         ]}
         renderCell={(row, key) => key === 'avg_cost' && typeof row[key] === 'number' ? INR(row[key] as number) : String(row[key] ?? '—')}
-        onImport={handleImport as (rows: Record<string,unknown>[]) => Promise<void>}
+        onImport={handleImport}
       />
     </PageShell>
   )

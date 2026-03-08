@@ -96,7 +96,7 @@ export default function GoldPage() {
     if (!confirm('Delete?')) return
     try { await deleteMutation.mutateAsync(id); toast('Deleted', 'success') } catch (e) { toast((e as Error).message, 'error') }
   }
-  const handleImport = async (parsed: Omit<GoldHolding,'id'|'user_id'>[]) => {
+  const handleImport = async (parsed: Record<string, unknown>[]) => {
     await replaceAssets('gold_holdings', userId, parsed.map(r => ({ ...r, user_id: userId, invested: r.qty * r.avg_cost, current_value: r.qty * r.avg_cost })))
     qc.invalidateQueries({ queryKey: ['gold_holdings', userId] })
     toast(`${parsed.length} holdings imported ✅`, 'success')
@@ -139,7 +139,7 @@ export default function GoldPage() {
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
       <CsvImportModal open={showImport} onClose={() => setShowImport(false)} title="Import Gold Holdings CSV"
         hint="CSV: Name (or Holding), Qty (or Units), Avg Cost (or NAV). Optional: Type (ETF/MF), Yahoo Symbol."
-        parse={parseGoldCsv as (t: string) => Record<string,unknown>[] | null}
+        parse={parseGoldCsv}
         columns={[
           { key: 'holding_name', header: 'Name' },
           { key: 'holding_type', header: 'Type' },
@@ -147,7 +147,7 @@ export default function GoldPage() {
           { key: 'avg_cost',     header: 'Avg Cost', align: 'right' },
         ]}
         renderCell={(row, key) => typeof row[key] === 'number' ? INR(row[key] as number) : String(row[key] ?? '—')}
-        onImport={handleImport as (rows: Record<string,unknown>[]) => Promise<void>}
+        onImport={handleImport}
       />
     </PageShell>
   )
