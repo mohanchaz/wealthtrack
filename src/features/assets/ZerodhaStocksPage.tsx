@@ -22,6 +22,16 @@ import type { StockHolding } from '../../types/assets'
 // Only store what's in the DB schema: instrument, qty, avg_cost
 interface CsvRow { instrument: string; qty: number; avg_cost: number }
 
+// Gold/Silver ETFs listed on NSE that appear in Zerodha holdings but belong in Gold page
+const GOLD_ETF_SYMBOLS = new Set([
+  'GOLDBEES','GOLDIETF','AXISGOLD','HDFCGOLD','ICICIGOLD','KOTAKGOLD',
+  'NIPGOLD','SBIGOLD','QGOLDHALF','BSLGOLDETF','LICMFGOLD','MAFANG',
+  'SILVERBEES','SILVERETF','SILVER','SILVERIETF',
+])
+
+// Known ETF/MF symbols that look like stocks but are funds
+const ETF_PATTERN = /BEES$|ETF$|FUND$|INDEX$/i
+
 function parseZerodhaCsv(text: string): CsvRow[] | null {
   const rows = parseCsvRows(text)
   if (!rows.length) return null
@@ -35,11 +45,20 @@ function parseZerodhaCsv(text: string): CsvRow[] | null {
 
   return rows
     .map(r => ({
-      instrument: (r[kInst] ?? '').toUpperCase(),
+      instrument: (r[kInst] ?? '').toUpperCase().trim(),
       qty:        cleanNum(r[kQty] ?? ''),
       avg_cost:   cleanNum(r[kAvg] ?? ''),
     }))
-    .filter(r => r.instrument && r.qty > 0)
+    .filter(r => {
+      if (!r.instrument || r.qty <= 0) return false
+      // Skip rows with spaces = mutual fund names (e.g. "Aditya Birla Sun Life...")
+      if (r.instrument.includes(' ')) return false
+      // Skip known Gold/Silver ETFs
+      if (GOLD_ETF_SYMBOLS.has(r.instrument)) return false
+      // Skip anything ending in BEES, ETF, FUND, INDEX
+      if (ETF_PATTERN.test(r.instrument)) return false
+      return true
+    })
 }
 
 // ── Edit modal ────────────────────────────────────────────────
