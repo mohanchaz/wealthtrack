@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,18 +15,15 @@
     min-height: 100vh;
   }
 
-  /* ── Scrollbars ───────────────────────────────────────── */
-  ::-webkit-scrollbar            { width: 5px; height: 5px; }
+  ::-webkit-scrollbar            { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track      { background: transparent; }
-  ::-webkit-scrollbar-thumb      { @apply bg-border rounded-full; }
-  ::-webkit-scrollbar-thumb:hover{ @apply bg-border2; }
+  ::-webkit-scrollbar-thumb      { @apply bg-border2 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover{ @apply bg-textfade; }
 
-  /* ── Focus ring ───────────────────────────────────────── */
-  :focus-visible { outline: 2px solid #0d9488; outline-offset: 2px; }
+  :focus-visible { outline: 2px solid #1A1A1A; outline-offset: 2px; }
 }
 
 @layer components {
-  /* Animation delays */
   .delay-1 { animation-delay: 0.06s; }
   .delay-2 { animation-delay: 0.12s; }
   .delay-3 { animation-delay: 0.18s; }
@@ -32,9 +31,9 @@
   .delay-5 { animation-delay: 0.30s; }
   .delay-6 { animation-delay: 0.36s; }
 
-  /* Skeleton shimmer */
+  /* Skeleton shimmer — neutral warm grey */
   .skeleton {
-    background: linear-gradient(90deg, #e6faf6 25%, #b2f0e8 50%, #e6faf6 75%);
+    background: linear-gradient(90deg, #EFEDE8 25%, #E0DDD6 50%, #EFEDE8 75%);
     background-size: 200% 100%;
     @apply animate-shimmer rounded-lg;
   }
@@ -47,11 +46,18 @@
     @apply transition-all duration-200 hover:shadow-cardHov hover:border-border2;
   }
 
-  /* Teal pill badge */
-  .badge-teal {
+  /* Ink pill badge */
+  .badge-ink {
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold
+           px-2.5 py-1 rounded-full
+           bg-ink text-chalk;
+  }
+
+  /* Neutral pill badge */
+  .badge-neutral {
     @apply inline-flex items-center gap-1.5 text-xs font-medium
            px-2.5 py-1 rounded-full
-           bg-teal/10 text-teal border border-teal/20;
+           bg-surface2 text-textmut border border-border;
   }
 
   /* Mono financial number */
@@ -61,23 +67,14 @@
 }
 
 @layer utilities {
-  .text-gradient-teal {
-    background: linear-gradient(135deg, #0d9488, #0891b2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  /* Ink-on-paper button feel */
+  .btn-ink {
+    @apply bg-ink text-chalk rounded-xl font-semibold transition-all duration-150
+           hover:bg-ink2 active:scale-[0.98] shadow-card;
   }
-  .text-gradient-green {
-    background: linear-gradient(135deg, #059669, #0d9488);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .bg-teal-mesh {
-    background:
-      radial-gradient(ellipse 70% 60% at 10% 0%, rgba(13,148,136,0.08) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 90% 100%, rgba(8,145,178,0.07) 0%, transparent 60%),
-      radial-gradient(ellipse 40% 35% at 50% 50%, rgba(5,150,105,0.04) 0%, transparent 60%),
-      #f0fdf9;
+  .btn-outline {
+    @apply bg-surface text-textprim border border-border rounded-xl font-semibold
+           transition-all duration-150 hover:bg-surface2 hover:border-border2
+           active:scale-[0.98];
   }
 }

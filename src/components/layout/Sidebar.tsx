@@ -15,7 +15,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; onClose?: () => void }) {
-  const location     = useLocation()
+  const location = useLocation()
   const [open, setOpen] = useState(() =>
     item.children?.some(c =>
       c.path === location.pathname ||
@@ -24,7 +24,7 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
   )
   const hasChildren = !!item.children?.length
 
-  const pad = depth === 0 ? 'px-3 py-2' : depth === 1 ? 'pl-9 pr-3 py-1.5' : 'pl-[52px] pr-3 py-1.5'
+  const pad = depth === 0 ? 'px-3 py-2.5' : depth === 1 ? 'pl-8 pr-3 py-2' : 'pl-12 pr-3 py-1.5'
   const base = `w-full flex items-center gap-2.5 rounded-xl text-sm transition-all duration-150 ${pad}`
 
   if (hasChildren) {
@@ -32,10 +32,10 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
       <div>
         <button
           onClick={() => setOpen(o => !o)}
-          className={`${base} text-textmut hover:text-textsec hover:bg-surface2 group`}
+          className={`${base} text-textmut hover:text-textprim hover:bg-surface2 group`}
         >
           {depth === 0 && (
-            <span className="w-6 h-6 flex items-center justify-center text-xs text-textmut group-hover:text-teal transition-colors">
+            <span className="w-5 h-5 flex items-center justify-center text-xs text-textfade group-hover:text-textmut transition-colors">
               {item.icon}
             </span>
           )}
@@ -60,16 +60,16 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
       className={({ isActive }) => `
         ${base}
         ${isActive
-          ? 'bg-teal/10 text-teal font-semibold border border-teal/15'
-          : 'text-textmut hover:text-textsec hover:bg-surface2 border border-transparent'
+          ? 'bg-ink text-chalk font-semibold shadow-card'
+          : 'text-textmut hover:text-textprim hover:bg-surface2'
         }
       `}
     >
       {depth === 0 && (
-        <span className="w-6 h-6 flex items-center justify-center text-xs">{item.icon}</span>
+        <span className="w-5 h-5 flex items-center justify-center text-xs">{item.icon}</span>
       )}
       {depth > 0 && (
-        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" />
+        <span className="w-1 h-1 rounded-full bg-current opacity-40 shrink-0" />
       )}
       <span>{item.label}</span>
     </NavLink>
@@ -78,8 +78,8 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
-    <aside className="flex flex-col h-full bg-white border-r border-border w-56 shrink-0">
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
+    <aside className="flex flex-col h-full bg-surface border-r border-border w-56 shrink-0">
+      <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-0.5">
         <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-textfade">
           Overview
         </p>
@@ -90,7 +90,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         <div className="my-3 border-t border-border" />
 
         <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-textfade">
-          Wealth
+          Assets
         </p>
         {NAV_ITEMS.slice(2).map(item => (
           <NavNode key={item.id} item={item} onClose={onClose} />
@@ -99,10 +99,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       {/* Footer badge */}
       <div className="p-3 border-t border-border">
-        <div className="rounded-xl bg-teal/5 border border-teal/15 px-3 py-2.5 text-[10px] text-textmut">
-          <div className="flex items-center gap-1.5 mb-1">
+        <div className="rounded-xl bg-surface2 border border-border px-3 py-2.5 text-[10px] text-textmut">
+          <div className="flex items-center gap-1.5 mb-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse-dot" />
-            <span className="font-bold text-textsec">Secure &amp; Private</span>
+            <span className="font-semibold text-textsec">Secure &amp; Private</span>
           </div>
           No broker credentials ever stored
         </div>

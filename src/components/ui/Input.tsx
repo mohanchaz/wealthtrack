@@ -26,8 +26,8 @@ export const Input = forwardRef<HTMLInputElement, Props>(
           className={`
             w-full h-9 rounded-xl bg-white border text-sm text-textprim
             placeholder:text-textfade outline-none transition-all duration-150
-            focus:border-teal focus:ring-2 focus:ring-teal/15 shadow-inner
-            ${error ? 'border-red/50 focus:border-red focus:ring-red/15' : 'border-border hover:border-border2'}
+            focus:border-ink focus:ring-2 focus:ring-ink/10
+            ${error ? 'border-red/50 focus:border-red focus:ring-red/10' : 'border-border hover:border-border2'}
             ${prefix ? 'pl-7' : 'pl-3'}
             pr-3 ${className}
           `}

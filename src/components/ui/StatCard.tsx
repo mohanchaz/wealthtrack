@@ -1,32 +1,28 @@
 interface Props {
-  label:       string
-  value:       string
-  sub?:        string
-  icon?:       string
+  label:        string
+  value:        string
+  sub?:         string
+  icon?:        string
   accentColor?: string
-  loading?:    boolean
-  delay?:      number
+  loading?:     boolean
+  delay?:       number
 }
 
-export function StatCard({ label, value, sub, icon, accentColor = '#0d9488', loading, delay = 0 }: Props) {
+export function StatCard({ label, value, sub, icon, accentColor = '#1A1A1A', loading, delay = 0 }: Props) {
+  // Determine if this is a gain (green) or loss (red) card for coloured value text
+  const isGreen = accentColor === '#059669' || accentColor === '#1A7A3C'
+  const isRed   = accentColor === '#dc2626' || accentColor === '#C0392B'
+  const valueColor = isGreen ? '#1A7A3C' : isRed ? '#C0392B' : '#1A1A1A'
+
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-border bg-white p-5 flex flex-col gap-3 shadow-card card-hover animate-fade-up"
+      className="relative overflow-hidden rounded-2xl border border-border bg-surface p-5 flex flex-col gap-3 shadow-card card-hover animate-fade-up"
       style={{ animationDelay: `${delay * 0.06}s` }}
     >
-      {/* Subtle coloured corner glow */}
-      <div
-        className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-[0.12] blur-2xl pointer-events-none"
-        style={{ background: accentColor }}
-      />
-
-      <div className="flex items-start justify-between relative z-10">
-        <span className="text-[11px] font-bold text-textmut uppercase tracking-widest">{label}</span>
+      <div className="flex items-start justify-between">
+        <span className="text-[10px] font-bold text-textmut uppercase tracking-widest">{label}</span>
         {icon && (
-          <span
-            className="text-sm w-8 h-8 rounded-xl flex items-center justify-center font-bold"
-            style={{ background: `${accentColor}14`, color: accentColor }}
-          >
+          <span className="text-xs w-7 h-7 rounded-lg flex items-center justify-center font-bold bg-surface2 text-textmut">
             {icon}
           </span>
         )}
@@ -36,16 +32,19 @@ export function StatCard({ label, value, sub, icon, accentColor = '#0d9488', loa
         <div className="h-8 w-36 skeleton" />
       ) : (
         <span
-          className="text-2xl font-mono font-bold tabular-nums tracking-tight relative z-10"
-          style={{ color: accentColor }}
+          className="text-2xl font-mono font-bold tabular-nums tracking-tight"
+          style={{ color: valueColor }}
         >
           {value}
         </span>
       )}
 
       {sub && (
-        <span className="text-xs text-textmut relative z-10 truncate leading-relaxed">{sub}</span>
+        <span className="text-xs text-textmut truncate leading-relaxed">{sub}</span>
       )}
+
+      {/* Bottom accent line */}
+      <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-2xl" style={{ background: valueColor, opacity: 0.15 }} />
     </div>
   )
 }

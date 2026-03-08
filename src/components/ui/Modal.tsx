@@ -28,17 +28,15 @@ export function Modal({ open, onClose, title, children, footer, maxWidth = 'max-
       className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-textprim/20 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-ink/20 backdrop-blur-sm" />
 
-      {/* Card */}
       <div className={`relative w-full ${maxWidth} bg-surface border border-border rounded-2xl shadow-cardHov flex flex-col max-h-[90vh] animate-fade-up`}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h3 className="text-base font-bold text-textprim">{title}</h3>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-textprim transition-colors text-sm"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-textmut hover:bg-surface2 hover:text-textprim transition-colors text-sm font-bold"
           >
             ✕
           </button>

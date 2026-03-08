@@ -8,22 +8,20 @@ interface Action {
 }
 
 interface Props {
-  title:      string
-  subtitle?:  string
-  badge?:     ReactNode
-  actions?:   Action[]
-  children:   ReactNode
+  title:     string
+  subtitle?: string
+  badge?:    ReactNode
+  actions?:  Action[]
+  children:  ReactNode
 }
 
-/** Consistent page wrapper: header + action buttons + content */
 export function PageShell({ title, subtitle, badge, actions = [], children }: Props) {
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-extrabold text-textprim tracking-tight">{title}</h1>
+            <h1 className="text-xl font-bold text-textprim tracking-tight">{title}</h1>
             {badge}
           </div>
           {subtitle && (
@@ -45,7 +43,6 @@ export function PageShell({ title, subtitle, badge, actions = [], children }: Pr
           </div>
         )}
       </div>
-
       {children}
     </div>
   )
