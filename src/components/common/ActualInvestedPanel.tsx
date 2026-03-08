@@ -14,12 +14,19 @@ export function ActualInvestedPanel({ table }: Props) {
 
   const total = data.reduce((s, r) => s + r.amount, 0)
 
+  const [error, setError] = useState('')
+
   const handleAdd = async () => {
     const n = parseFloat(amount)
-    if (!n) return
-    await addMutation.mutateAsync({ amount: n, note: date || undefined })
-    setAmount('')
-    setDate('')
+    if (!n || n <= 0) return
+    setError('')
+    try {
+      await addMutation.mutateAsync({ amount: n, note: date || undefined })
+      setAmount('')
+      setDate('')
+    } catch (e) {
+      setError((e as Error).message)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -61,6 +68,9 @@ export function ActualInvestedPanel({ table }: Props) {
           >
             + Add
           </Button>
+          {error && (
+            <p className="text-[10px] text-red leading-tight">{error}</p>
+          )}
         </div>
 
         {/* Right — Entries table */}

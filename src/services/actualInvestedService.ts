@@ -38,7 +38,9 @@ export async function addActualEntry(
   amount: number,
   note?:  string,
 ): Promise<void> {
-  const { error } = await supabase.from(table).insert({ user_id: userId, amount, note })
+  const payload: Record<string, unknown> = { user_id: userId, amount }
+  if (note) payload.note = note
+  const { error } = await supabase.from(table).insert(payload)
   if (error) throw new Error(error.message)
 }
 
