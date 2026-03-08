@@ -276,7 +276,22 @@ export default function MutualFundsPage() {
         </div>
       ),
     },
-    { key: 'qty',      header: 'Units',     align: 'right' as const, render: (r: MfHolding) => r.qty.toLocaleString('en-IN', { maximumFractionDigits: 3 }) },
+    {
+      key: 'qty', header: 'UNITS', align: 'right' as const,
+      render: (r: MfHolding) => {
+        const diff = r.prev_qty != null ? r.qty - r.prev_qty : null
+        return (
+          <div className="text-right">
+            <div>{r.qty.toLocaleString('en-IN', { maximumFractionDigits: 3 })}</div>
+            {diff !== null && diff !== 0 && (
+              <div className={`text-[10px] font-semibold ${diff > 0 ? 'text-green' : 'text-red'}`}>
+                {diff > 0 ? '+' : ''}{diff.toLocaleString('en-IN', { maximumFractionDigits: 3 })}
+              </div>
+            )}
+          </div>
+        )
+      },
+    },
     { key: 'avg_cost', header: 'Avg NAV',   align: 'right' as const, render: (r: MfHolding) => INR(r.avg_cost) },
     {
       key: 'ltp', header: 'Live NAV', align: 'right' as const,

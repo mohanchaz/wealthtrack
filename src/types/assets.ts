@@ -4,8 +4,10 @@ export interface StockHolding {
   user_id:     string
   instrument:  string
   qty:         number
+  prev_qty?:   number
   avg_cost:    number
   created_at?: string
+  imported_at?: string
 }
 
 // ── MF holding (mf_holdings) ──────────────────────────────────

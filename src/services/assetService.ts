@@ -38,15 +38,44 @@ export async function deleteAsset(table: TableName, id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-/** Replace all rows for user (used by CSV import) */
+/** Replace all rows for user (used by CSV import).
+ *  Reads existing qtys first so we can store prev_qty for diff display. */
 export async function replaceAssets<T extends Record<string, unknown>>(
   table:  TableName,
   userId: string,
   rows:   T[],
 ): Promise<void> {
+  // Tables that support prev_qty diff tracking
+  const DIFF_TABLES: TableName[] = ['zerodha_stocks', 'aionion_stocks', 'mf_holdings']
+
+  let prevQtyMap: Record<string, number> = {}
+
+  if (DIFF_TABLES.includes(table)) {
+    // Fetch current rows to capture existing qtys before we delete them
+    const { data: existing } = await supabase
+      .from(table).select('*').eq('user_id', userId)
+    if (existing) {
+      for (const row of existing as Record<string, unknown>[]) {
+        // key by instrument (stocks) or fund_name (MFs)
+        const key = (row.instrument ?? row.fund_name) as string
+        if (key) prevQtyMap[key] = Number(row.qty ?? 0)
+      }
+    }
+  }
+
   const { error: delErr } = await supabase.from(table).delete().eq('user_id', userId)
   if (delErr) throw new Error(delErr.message)
   if (!rows.length) return
-  const { error: insErr } = await supabase.from(table).insert(rows)
+
+  // Attach prev_qty to each row if the table supports it
+  const enriched = DIFF_TABLES.includes(table)
+    ? rows.map(r => {
+        const key = (r.instrument ?? r.fund_name) as string
+        const prev = prevQtyMap[key] ?? 0
+        return { ...r, prev_qty: prev }
+      })
+    : rows
+
+  const { error: insErr } = await supabase.from(table).insert(enriched)
   if (insErr) throw new Error(insErr.message)
 }

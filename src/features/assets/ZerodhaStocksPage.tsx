@@ -161,7 +161,22 @@ export default function ZerodhaStocksPage() {
         </div>
       ),
     },
-    { key: 'qty',      header: 'Qty',        align: 'right' as const, render: (r: StockHolding) => r.qty.toLocaleString('en-IN') },
+    {
+      key: 'qty', header: 'QTY', align: 'right' as const,
+      render: (r: StockHolding) => {
+        const diff = r.prev_qty != null ? r.qty - r.prev_qty : null
+        return (
+          <div className="text-right">
+            <div>{r.qty.toLocaleString('en-IN')}</div>
+            {diff !== null && diff !== 0 && (
+              <div className={`text-[10px] font-semibold ${diff > 0 ? 'text-green' : 'text-red'}`}>
+                {diff > 0 ? '+' : ''}{diff.toLocaleString('en-IN')}
+              </div>
+            )}
+          </div>
+        )
+      },
+    },
     { key: 'avg_cost', header: 'Avg Cost',   align: 'right' as const, render: (r: StockHolding) => INR(r.avg_cost) },
     {
       key: 'ltp', header: 'LTP', align: 'right' as const,
