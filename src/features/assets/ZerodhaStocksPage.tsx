@@ -4,14 +4,12 @@ import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
 import { useActualInvested } from '../../hooks/useActualInvested'
 import { useNsePrices }      from '../../hooks/useLivePrices'
-import { replaceAssets }     from '../../services/assetService'
 import { useToastStore }     from '../../store/toastStore'
 import { AssetPageLayout } from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
 import { ActualInvestedPanel } from '../../components/common/ActualInvestedPanel'
-import { CsvImportModal }    from '../../components/common/CsvImportModal'
 import { Modal }             from '../../components/ui/Modal'
 import { Button }            from '../../components/ui/Button'
 import { Input }             from '../../components/ui/Input'
@@ -43,33 +41,6 @@ function isStockRow(rawName: string): boolean {
   // Symbols ending in BEES, ETF, FUND, INDEX
   if (ETF_PATTERN.test(upper)) return false
   return true
-}
-
-function parseZerodhaCsv(text: string): CsvRow[] | null {
-  const rows = parseCsvRows(text)
-  if (!rows.length) return null
-  const keys = Object.keys(rows[0])
-  const find = (...n: string[]) => keys.find(k => n.some(x => k.includes(x))) ?? null
-
-  const kInst = find('instrument', 'symbol', 'stock')
-  const kQty  = find('qty', 'quantity')
-  const kAvg  = find('avg', 'cost', 'price')
-  if (!kInst || !kQty || !kAvg) return null
-
-  const result: CsvRow[] = []
-  for (const r of rows) {
-    const rawName = r[kInst] ?? ''
-    // Filter BEFORE uppercasing — check raw name from CSV
-    if (!isStockRow(rawName)) continue
-    const qty = cleanNum(r[kQty] ?? '')
-    if (qty <= 0) continue
-    result.push({
-      instrument: rawName.toUpperCase().trim(),
-      qty,
-      avg_cost: cleanNum(r[kAvg] ?? ''),
-    })
-  }
-  return result.length ? result : null
 }
 
 // ── Edit modal ────────────────────────────────────────────────
@@ -125,7 +96,6 @@ export default function ZerodhaStocksPage() {
   const { data: priceMap = {}, isFetching: pricesFetching, refetch: refreshPrices } = useNsePrices(instruments)
 
   const [editRow,    setEditRow]    = useState<Partial<StockHolding> | null>(null)
-  const [showImport, setShowImport] = useState(false)
 
   const { upsertMutation, deleteMutation } = useAssets<StockHolding>('zerodha_stocks')
 
@@ -161,16 +131,6 @@ export default function ZerodhaStocksPage() {
       await deleteMutation.mutateAsync(id)
       toast('Deleted', 'success')
     } catch (e) { toast((e as Error).message, 'error') }
-  }
-
-  const handleImport = async (parsed: Record<string, unknown>[]) => {
-    type R = { instrument: string; qty: number; avg_cost: number }
-    const rows = parsed as unknown as R[]
-    await replaceAssets('zerodha_stocks', userId,
-      rows.map(r => ({ user_id: userId, instrument: r.instrument, qty: r.qty, avg_cost: r.avg_cost }))
-    )
-    qc.invalidateQueries({ queryKey: ['zerodha_stocks', userId] })
-    toast(`${parsed.length} stocks imported ✅`, 'success')
   }
 
   const stats = buildInvestedStats({
@@ -246,8 +206,7 @@ export default function ZerodhaStocksPage() {
     <PageShell
       title="Zerodha Stocks"
       subtitle={`${rows.length} holding${rows.length !== 1 ? 's' : ''}`}
-      actions={[
-        { label: '📥 Import CSV', onClick: () => setShowImport(true), variant: 'secondary' },
+      actions={[,
         { label: '+ Add Holding', onClick: () => setEditRow({}),      variant: 'primary'   },
         { label: '🔄',            onClick: () => refreshPrices(),     variant: 'outline'   },
       ]}
@@ -260,7 +219,7 @@ export default function ZerodhaStocksPage() {
             data={rows}
             rowKey={r => r.id}
             loading={isLoading}
-            emptyText="No holdings — click 📥 Import CSV or + Add Holding"
+            emptyText="No holdings — click + Add Holding or import from Zerodha Overview"
           
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
@@ -273,22 +232,7 @@ export default function ZerodhaStocksPage() {
         <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />
       )}
 
-      <CsvImportModal
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        title="Import Zerodha Holdings"
-        hint="CSV must have: Instrument (or Symbol), Qty, Avg Cost. Current value is fetched live from NSE — no need to import it."
-        parse={parseZerodhaCsv}
-        columns={[
-          { key: 'instrument', header: 'Instrument' },
-          { key: 'qty',        header: 'Qty',      align: 'right' },
-          { key: 'avg_cost',   header: 'Avg Cost', align: 'right' },
-        ]}
-        renderCell={(row, key) =>
-          typeof row[key] === 'number' ? INR(row[key] as number) : String(row[key] ?? '—')
-        }
-        onImport={handleImport}
-      />
+
     </PageShell>
   )
 }

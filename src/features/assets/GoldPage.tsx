@@ -3,18 +3,15 @@ import { useQueryClient }    from '@tanstack/react-query'
 import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
 import { useYahooPrices }    from '../../hooks/useLivePrices'
-import { replaceAssets }     from '../../services/assetService'
 import { useToastStore }     from '../../store/toastStore'
 import { AssetPageLayout } from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
-import { CsvImportModal }    from '../../components/common/CsvImportModal'
 import { Modal }             from '../../components/ui/Modal'
 import { Button }            from '../../components/ui/Button'
 import { Input }             from '../../components/ui/Input'
 import { INR, calcGain }     from '../../lib/utils'
-import { parseCsvRows, cleanNum } from '../../lib/csvParser'
 import type { GoldHolding }  from '../../types/assets'
 
 // Known gold holdings: name fragment → { type, yahoo_symbol }
@@ -37,37 +34,6 @@ function lookupGold(name: string): { type: string; yahoo: string } {
   }
   // Default: if name has "fund" it's MF, else ETF
   return { type: /fund/i.test(name) ? 'MF' : 'ETF', yahoo: '' }
-}
-
-function parseGoldCsv(text: string): Omit<GoldHolding,'id'|'user_id'>[] | null {
-  const rows = parseCsvRows(text)
-  if (!rows.length) return null
-  const keys = Object.keys(rows[0])
-  const find = (...n: string[]) => keys.find(k => n.some(x => k.includes(x))) ?? null
-  const kName = find('name', 'holding', 'instrument')
-  const kType = find('type')
-  const kQty  = find('qty', 'units', 'quantity')
-  const kAvg  = find('avg', 'cost', 'nav')
-  const kSym  = find('symbol', 'yahoo')
-  if (!kName || !kQty || !kAvg) return null
-  return rows.map(r => {
-    const name = r[kName!] ?? ''
-    const qty  = cleanNum(r[kQty!] ?? '')
-    const avg  = cleanNum(r[kAvg!] ?? '')
-    const { type, yahoo } = lookupGold(name)
-    return {
-      holding_name: name,
-      // Use CSV type if explicitly provided, otherwise auto-detect
-      holding_type: kType && r[kType] ? r[kType].toUpperCase() : type,
-      qty,
-      avg_cost:     avg,
-      // Use CSV yahoo_symbol if provided, otherwise auto-detect
-      yahoo_symbol: (kSym && r[kSym]) ? r[kSym] : yahoo,
-    }
-  }).filter(r => {
-    if (!r.holding_name || r.qty <= 0) return false
-    return /gold/i.test(r.holding_name)
-  }) as Omit<GoldHolding,'id'|'user_id'>[]
 }
 
 function EditModal({ row, onClose, onSave }: { row: Partial<GoldHolding>; onClose: () => void; onSave: (d: Partial<GoldHolding>) => Promise<void> }) {
@@ -112,7 +78,6 @@ export default function GoldPage() {
   const symbols = useMemo(() => [...new Set(rows.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [rows])
   const { data: priceMap = {}, isFetching: pf, refetch } = useYahooPrices(symbols)
   const [editRow, setEditRow] = useState<Partial<GoldHolding> | null>(null)
-  const [showImport, setShowImport] = useState(false)
   const { upsertMutation, deleteMutation } = useAssets<GoldHolding>('gold_holdings')
   const getLTP = (r: GoldHolding) => r.yahoo_symbol ? (priceMap[r.yahoo_symbol.replace(/\.(NS|BO)$/,'')]?.price ?? null) : null
   const totalInvested = useMemo(() => rows.reduce((s, r) => s + r.qty * r.avg_cost, 0), [rows])
@@ -125,11 +90,6 @@ export default function GoldPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete?')) return
     try { await deleteMutation.mutateAsync(id); toast('Deleted', 'success') } catch (e) { toast((e as Error).message, 'error') }
-  }
-  const handleImport = async (parsed: Record<string, unknown>[]) => {
-    await replaceAssets('gold_holdings', userId, parsed.map(r => ({ ...r, user_id: userId })))
-    qc.invalidateQueries({ queryKey: ['gold_holdings', userId] })
-    toast(`${parsed.length} holdings imported ✅`, 'success')
   }
   const cols = [
     { key: 'holding_name', header: 'Name', render: (r: GoldHolding) => <span className="font-bold">{r.holding_name}</span> },
@@ -149,32 +109,20 @@ export default function GoldPage() {
   ]
   return (
     <PageShell title="Gold" subtitle={`${rows.length} holding${rows.length !== 1 ? 's' : ''}`}
-      actions={[
-        { label: '📥 Import CSV', onClick: () => setShowImport(true), variant: 'secondary' },
+      actions={[,
         { label: '+ Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
         { label: '🔄', onClick: () => refetch(), variant: 'outline' },
       ]}
     >
       <AssetPageLayout
         stats={<StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, loading: isLoading, liveLabel }).slice(0, 3)} cols={3} />}
-        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No gold holdings — click 📥 Import CSV or + Add Holding" 
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No gold holdings — import from Zerodha Overview or click + Add Holding" 
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
           />}
       />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
-      <CsvImportModal open={showImport} onClose={() => setShowImport(false)} title="Import Gold Holdings CSV"
-        hint="CSV: Name (or Holding), Qty (or Units), Avg Cost (or NAV). Optional: Type (ETF/MF), Yahoo Symbol."
-        parse={parseGoldCsv}
-        columns={[
-          { key: 'holding_name', header: 'Name' },
-          { key: 'holding_type', header: 'Type' },
-          { key: 'qty',          header: 'Qty',     align: 'right' },
-          { key: 'avg_cost',     header: 'Avg Cost', align: 'right' },
-        ]}
-        renderCell={(row, key) => typeof row[key] === 'number' ? INR(row[key] as number) : String(row[key] ?? '—')}
-        onImport={handleImport}
-      />
+
     </PageShell>
   )
 }

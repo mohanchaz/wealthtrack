@@ -4,14 +4,12 @@ import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
 import { useActualInvested } from '../../hooks/useActualInvested'
 import { useYahooPrices }    from '../../hooks/useLivePrices'
-import { replaceAssets }     from '../../services/assetService'
 import { useToastStore }     from '../../store/toastStore'
 import { AssetPageLayout }   from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
 import { ActualInvestedPanel } from '../../components/common/ActualInvestedPanel'
-import { CsvImportModal }    from '../../components/common/CsvImportModal'
 import { Modal }             from '../../components/ui/Modal'
 import { Button }            from '../../components/ui/Button'
 import { Input }             from '../../components/ui/Input'
@@ -58,60 +56,6 @@ function lookupSymbol(fundName: string): string | null {
     if (key.includes(mapKey) || mapKey.includes(key)) return sym
   }
   return null
-}
-
-// ── CSV parser: handles Zerodha combined holdings CSV ─────────
-// Mutual fund rows have a full-word name (contains spaces + mixed case)
-// Stock rows are ALL-CAPS short symbols
-function parseMfCsv(text: string): Omit<MfHolding, 'id' | 'user_id'>[] | null {
-  const rows = parseCsvRows(text)
-  if (!rows.length) return null
-
-  const keys = Object.keys(rows[0])
-  const find = (...n: string[]) => keys.find(k => n.some(x => k.toLowerCase().includes(x.toLowerCase()))) ?? null
-
-  const kName = find('instrument', 'fund name', 'scheme', 'name')
-  const kQty  = find('qty', 'units', 'quantity')
-  const kAvg  = find('avg. cost', 'avg cost', 'avg nav', 'average nav', 'avg')
-  if (!kName || !kQty || !kAvg) return null
-
-  const seen = new Map<string, { qty: number; avg_cost: number }>()
-
-  for (const r of rows) {
-    const rawName = (r[kName] ?? '').trim()
-    if (!rawName) continue
-
-    // Skip stock rows: all-uppercase short symbols (no spaces, no lowercase)
-    // MF names always have spaces and mixed case
-    const isStock = /^[A-Z0-9&\-\.]+$/.test(rawName)
-    if (isStock) continue
-
-    // Skip gold fund (handled separately)
-    if (/gold/i.test(rawName) && !/elss/i.test(rawName)) continue
-
-    const qty = cleanNum(r[kQty] ?? '')
-    const avg = cleanNum(r[kAvg] ?? '')
-    if (qty <= 0 && avg <= 0) continue
-
-    // Merge duplicate fund entries (same fund appearing twice — sum qty, weighted avg)
-    const existing = seen.get(rawName)
-    if (existing) {
-      const totalQty = existing.qty + qty
-      const weightedAvg = totalQty > 0
-        ? (existing.qty * existing.avg_cost + qty * avg) / totalQty
-        : avg
-      seen.set(rawName, { qty: totalQty, avg_cost: weightedAvg })
-    } else {
-      seen.set(rawName, { qty, avg_cost: avg })
-    }
-  }
-
-  return Array.from(seen.entries()).map(([fund_name, { qty, avg_cost }]) => ({
-    fund_name,
-    qty,
-    avg_cost,
-    nav_symbol: lookupSymbol(fund_name) ?? undefined,
-  })) as Omit<MfHolding, 'id' | 'user_id'>[]
 }
 
 // ── Edit modal ────────────────────────────────────────────────
@@ -209,7 +153,6 @@ export default function MutualFundsPage() {
   const { data: priceMap = {}, isFetching: pricesFetching, refetch } = useYahooPrices(symbols)
 
   const [editRow,    setEditRow]    = useState<Partial<MfHolding> | null>(null)
-  const [showImport, setShowImport] = useState(false)
   const { upsertMutation, deleteMutation } = useAssets<MfHolding>('mf_holdings')
 
   // Get live NAV for a row via nav_symbol
@@ -246,21 +189,6 @@ export default function MutualFundsPage() {
     if (!confirm('Delete this fund?')) return
     try { await deleteMutation.mutateAsync(id); toast('Deleted', 'success') }
     catch (e) { toast((e as Error).message, 'error') }
-  }
-
-  const handleImport = async (parsed: Record<string, unknown>[]) => {
-    // parsed rows already have fund_name, qty, avg_cost, nav_symbol from parseMfCsv
-    const inserts = parsed.map(r => ({
-      user_id:    userId,
-      fund_name:  r.fund_name,
-      qty:        r.qty,
-      avg_cost:   r.avg_cost,
-      nav_symbol: r.nav_symbol ?? null,
-    }))
-    await replaceAssets('mf_holdings', userId, inserts)
-    qc.invalidateQueries({ queryKey: ['mf_holdings', userId] })
-    const withSymbol = inserts.filter(r => r.nav_symbol).length
-    toast(`${parsed.length} funds imported · ${withSymbol} with live NAV ✅`, 'success')
   }
 
   const cols = [
@@ -334,15 +262,14 @@ export default function MutualFundsPage() {
     <PageShell
       title="Mutual Funds"
       subtitle={`${rows.length} fund${rows.length !== 1 ? 's' : ''}`}
-      actions={[
-        { label: '📥 Import CSV', onClick: () => setShowImport(true), variant: 'secondary' },
+      actions={[,
         { label: '+ Add Fund',   onClick: () => setEditRow({}),       variant: 'primary'   },
         { label: '🔄',           onClick: () => refetch(),            variant: 'outline'   },
       ]}
     >
       <AssetPageLayout
         stats={<StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, actual, loading: isLoading, liveLabel })} cols={5} />}
-        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No funds — click 📥 Import CSV or + Add Fund" 
+        mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No funds — import from Zerodha Overview or click + Add Fund" 
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
           />}
@@ -353,25 +280,7 @@ export default function MutualFundsPage() {
         <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />
       )}
 
-      <CsvImportModal
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        title="Import Mutual Funds CSV"
-        hint="Zerodha holdings CSV (stocks + MFs together is fine). Funds are auto-detected by name. Known funds get live NAV symbols automatically."
-        parse={parseMfCsv}
-        columns={[
-          { key: 'fund_name',  header: 'Fund Name' },
-          { key: 'qty',        header: 'Units',      align: 'right' },
-          { key: 'avg_cost',   header: 'Avg NAV',    align: 'right' },
-          { key: 'nav_symbol', header: 'NAV Symbol' },
-        ]}
-        renderCell={(row, key) => {
-          if (key === 'nav_symbol') return (row[key] as string) ?? <span className="text-textfade text-[10px]">not found</span>
-          if (typeof row[key] === 'number') return INR(row[key] as number)
-          return String(row[key] ?? '—')
-        }}
-        onImport={handleImport}
-      />
+
     </PageShell>
   )
 }

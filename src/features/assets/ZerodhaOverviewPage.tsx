@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore }   from '../../store/authStore'
 import { useAssets }      from '../../hooks/useAssets'
@@ -7,6 +7,7 @@ import { PageShell }      from '../../components/common/PageShell'
 import { useActualInvested } from '../../hooks/useActualInvested'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { INR, calcGain }  from '../../lib/utils'
+import { ZerodhaImportModal } from '../../components/common/ZerodhaImportModal'
 import type { StockHolding, MfHolding, GoldHolding } from '../../types/assets'
 
 interface SectionCardProps {
@@ -74,6 +75,7 @@ function SectionCard({ title, subtitle, invested, value, actual, liveLabel, load
 }
 
 export default function ZerodhaOverviewPage() {
+  const [importing, setImporting] = useState(false)
   const navigate = useNavigate()
   const userId   = useAuthStore(s => s.user?.id)!
 
@@ -137,7 +139,9 @@ export default function ZerodhaOverviewPage() {
   }).slice(0, 3) // only Invested, Current Value, Gain/Loss — no actual invested here
 
   return (
-    <PageShell title="Zerodha" subtitle="Overview of all Zerodha holdings">
+    <PageShell title="Zerodha" subtitle="Overview of all Zerodha holdings" actions={[
+        { label: 'Import from Zerodha', onClick: () => setImporting(true) }
+      ]}>
       {/* Overall summary */}
       <StatGrid items={overallStats} cols={3} />
 
@@ -173,6 +177,7 @@ export default function ZerodhaOverviewPage() {
           onClick={() => navigate('/assets/gold')}
         />
       </div>
+      {importing && <ZerodhaImportModal onClose={() => setImporting(false)} />}
     </PageShell>
   )
 }
