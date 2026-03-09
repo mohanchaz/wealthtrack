@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 export type ActualTable =
   | 'fd_actual_invested'
   | 'ef_actual_invested'
+  | 'amc_mf_actual_invested'
   | 'zerodha_actual_invested'
   | 'aionion_actual_invested'
   | 'aionion_gold_actual_invested'

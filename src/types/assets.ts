@@ -55,12 +55,12 @@ export interface AionionGoldHolding {
 export interface AmcMfHolding {
   id:            string
   user_id:       string
-  fund_name:     string
+  platform?:     string       // used as fund name / AMC name
   qty:           number
   prev_qty?:     number
   avg_cost:      number
-  invested?:     number
-  current_value?: number
+  nav_symbol?:   string
+  folio_number?: string
   created_at?:   string
 }
 
