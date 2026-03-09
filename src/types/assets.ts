@@ -42,6 +42,7 @@ export interface AionionGoldHolding {
   user_id:       string
   instrument:    string
   qty:           number
+  prev_qty?:     number
   avg_cost:      number
   yahoo_symbol?: string
   invested?:     number

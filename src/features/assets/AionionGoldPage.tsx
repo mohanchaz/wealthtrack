@@ -116,9 +116,19 @@ export default function AionionGoldPage() {
 
   const handleSave = async (d: Partial<AionionGoldHolding>) => {
     try {
-      // Only save DB columns — no yahoo_symbol
+      // Only save DB columns — no yahoo_symbol / invested / current_value
       const { yahoo_symbol, invested, current_value, ...clean } = d as AionionGoldHolding & { yahoo_symbol?: string; invested?: number; current_value?: number }
-      await upsertMutation.mutateAsync({ ...clean, user_id: userId } as Record<string, unknown>)
+      // Preserve old qty as prev_qty so diff badge works; new adds get prev_qty = qty
+      const existing = rows.find(r => r.id === clean.id)
+      const prev_qty = existing ? existing.qty : clean.qty
+      try {
+        await upsertMutation.mutateAsync({ ...clean, prev_qty, user_id: userId } as Record<string, unknown>)
+      } catch (e1) {
+        // If prev_qty column doesn't exist in DB yet, retry without it
+        if ((e1 as Error).message?.includes('prev_qty')) {
+          await upsertMutation.mutateAsync({ ...clean, user_id: userId } as Record<string, unknown>)
+        } else throw e1
+      }
       toast('Saved ✅', 'success')
       setEditRow(null)
     } catch (e) { toast((e as Error).message, 'error') }
@@ -139,7 +149,16 @@ export default function AionionGoldPage() {
     },
     {
       key: 'qty', header: 'Qty', align: 'right' as const,
-      render: (r: AionionGoldHolding) => r.qty.toLocaleString('en-IN', { maximumFractionDigits: 4 }),
+      render: (r: AionionGoldHolding) => (
+        <div>
+          <div>{r.qty.toLocaleString('en-IN', { maximumFractionDigits: 4 })}</div>
+          {r.prev_qty != null && r.prev_qty !== r.qty && (
+            <div className={`text-[10px] font-semibold ${r.qty > r.prev_qty ? 'text-green' : 'text-red'}`}>
+              {r.qty > r.prev_qty ? '+' : ''}{(r.qty - r.prev_qty).toLocaleString('en-IN', { maximumFractionDigits: 4 })}
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       key: 'avg_cost', header: 'Avg Cost', align: 'right' as const,
