@@ -118,13 +118,16 @@ export interface EfAsset {
 
 // ── Cash asset (cash_assets) ──────────────────────────────────
 export interface CashAsset {
-  id:            string
-  user_id:       string
-  name:          string
-  invested:      number
-  current_value?: number
-  notes?:        string
-  created_at?:   string
+  id:                 string
+  user_id:            string
+  category:           string
+  platform?:          string
+  account_number?:    string
+  sb_account_number?: string
+  invested:           number
+  current_value?:     number
+  notes?:             string
+  created_at?:        string
 }
 
 // ── Bond asset (bonds) ────────────────────────────────────────
