@@ -3,6 +3,7 @@ import ZerodhaOverviewPage from './ZerodhaOverviewPage'
 import ZerodhaStocksPage  from './ZerodhaStocksPage'
 import MutualFundsPage    from './MutualFundsPage'
 import GoldPage           from './GoldPage'
+import AionionOverviewPage from './AionionOverviewPage'
 import AionionStocksPage  from './AionionStocksPage'
 import AionionGoldPage    from './AionionGoldPage'
 import FdPage             from './FdPage'
@@ -18,6 +19,7 @@ const PAGE_MAP: Record<string, React.ComponentType> = {
   'zerodha-stocks': ZerodhaStocksPage,
   'mutual-funds':   MutualFundsPage,
   'gold':           GoldPage,
+  'aionion':        AionionOverviewPage,
   'aionion-stocks': AionionStocksPage,
   'aionion-gold':   AionionGoldPage,
   'fd':             FdPage,
