@@ -197,7 +197,6 @@ export default function BondsPage() {
     { label: 'Invested',       value: INR(totalInvested),  icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Face Value',     value: INR(totalFaceValue), icon: '◈', accentColor: '#0d9488', loading: isLoading },
     { label: 'Annual Interest', value: totalAnnualInt > 0 ? INR(totalAnnualInt) : '—', icon: '⊡', accentColor: '#059669', loading: isLoading },
-    { label: 'Bonds',          value: String(rows.length), icon: '⬡', accentColor: '#d97706', loading: isLoading },
   ]
 
   const cols = [
@@ -276,7 +275,7 @@ export default function BondsPage() {
         </div>
       )}
 
-      <StatGrid items={stats} cols={4} />
+      <StatGrid items={stats} cols={3} />
       <div className="card overflow-hidden mt-4">
         <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
           emptyText="No bonds — click + Add Bond"
