@@ -100,16 +100,23 @@ export default function GoldPage() {
     { key: 'holding_type', header: 'Type', render: (r: GoldHolding) => (
       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.holding_type === 'ETF' ? 'bg-amber/10 text-amber' : 'bg-teal/10 text-teal'}`}>{r.holding_type}</span>
     )},
-    { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: GoldHolding) => (
-      <div>
-        <div>{Number(r.qty).toLocaleString('en-IN', { maximumFractionDigits: 4 })}</div>
-        {r.prev_qty != null && Number(r.prev_qty) !== Number(r.qty) && (
-          <div className={`text-[10px] font-semibold ${Number(r.qty) > Number(r.prev_qty) ? 'text-green' : 'text-red'}`}>
-            {Number(r.qty) > Number(r.prev_qty) ? '+' : ''}{(Number(r.qty) - Number(r.prev_qty)).toLocaleString('en-IN', { maximumFractionDigits: 4 })}
-          </div>
-        )}
-      </div>
-    )},
+    { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: GoldHolding) => {
+      const qty  = Number(r.qty)
+      const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
+      return (
+        <div>
+          {qty === 0
+            ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red/10 text-red">EXITED</span>
+            : <div>{qty.toLocaleString('en-IN', { maximumFractionDigits: 4 })}</div>
+          }
+          {diff !== null && diff !== 0 && (
+            <div className={`text-[10px] font-semibold ${diff > 0 ? 'text-green' : 'text-red'}`}>
+              {diff > 0 ? '+' : ''}{diff.toLocaleString('en-IN', { maximumFractionDigits: 4 })}
+            </div>
+          )}
+        </div>
+      )
+    }},
     { key: 'avg_cost', header: 'Avg Cost',  align: 'right' as const, render: (r: GoldHolding) => INR(r.avg_cost) },
     { key: 'ltp',      header: 'Live Price', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span> }},
     { key: 'invested', header: 'Invested',  align: 'right' as const, render: (r: GoldHolding) => INR(r.qty * r.avg_cost) },

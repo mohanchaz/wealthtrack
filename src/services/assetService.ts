@@ -42,7 +42,12 @@ export async function deleteAsset(table: TableName, id: string): Promise<void> {
 }
 
 /** Replace all rows for user (used by CSV import).
- *  Reads existing qtys first so we can store prev_qty for diff display. */
+ *  Smart import logic for DIFF_TABLES:
+ *  - Rows present in new import → upsert with prev_qty = old qty
+ *  - Rows missing from new import → set qty=0, prev_qty=old qty (show as exited)
+ *  - Rows where both prev_qty=0 AND qty=0 → delete (confirmed gone for 2 imports)
+ *  - Non-diff tables → simple delete-all + insert
+ */
 export async function replaceAssets<T extends Record<string, unknown>>(
   table:  TableName,
   userId: string,
@@ -51,33 +56,90 @@ export async function replaceAssets<T extends Record<string, unknown>>(
   // Tables that support prev_qty diff tracking
   const DIFF_TABLES: TableName[] = ['zerodha_stocks', 'aionion_stocks', 'mf_holdings', 'gold_holdings']
 
-  let prevQtyMap: Record<string, number> = {}
+  if (!DIFF_TABLES.includes(table)) {
+    // Simple replace for non-diff tables
+    const { error: delErr } = await supabase.from(table).delete().eq('user_id', userId)
+    if (delErr) throw new Error(delErr.message)
+    if (rows.length) {
+      const { error: insErr } = await supabase.from(table).insert(rows)
+      if (insErr) throw new Error(insErr.message)
+    }
+    return
+  }
 
-  if (DIFF_TABLES.includes(table)) {
-    const { data: existing } = await supabase
-      .from(table).select('*').eq('user_id', userId)
-    if (existing) {
-      for (const row of existing as Record<string, unknown>[]) {
-        // key by instrument (stocks), fund_name (MFs), or holding_name (gold)
-        const key = (row.instrument ?? row.fund_name ?? row.holding_name) as string
-        if (key) prevQtyMap[key] = Number(row.qty ?? 0)
-      }
+  // ── Smart upsert for diff-tracked tables ───────────────────
+  // 1. Fetch all existing rows
+  const { data: existing, error: fetchErr } = await supabase
+    .from(table).select('*').eq('user_id', userId)
+  if (fetchErr) throw new Error(fetchErr.message)
+
+  const existingRows = (existing ?? []) as Record<string, unknown>[]
+
+  // Key function: instrument (stocks) | fund_name (MFs) | holding_name (gold)
+  const rowKey = (r: Record<string, unknown>): string =>
+    ((r.instrument ?? r.fund_name ?? r.holding_name) as string) ?? ''
+
+  // Build lookup maps
+  const existingByKey = new Map<string, Record<string, unknown>>()
+  for (const r of existingRows) {
+    const k = rowKey(r)
+    if (k) existingByKey.set(k, r)
+  }
+
+  const incomingByKey = new Map<string, T>()
+  for (const r of rows) {
+    const k = rowKey(r)
+    if (k) incomingByKey.set(k, r)
+  }
+
+  const toUpsert: Record<string, unknown>[] = []
+  const toDelete: string[] = []
+
+  // 2. For each incoming row — upsert with prev_qty = current qty
+  for (const [key, newRow] of incomingByKey) {
+    const old = existingByKey.get(key)
+    toUpsert.push({
+      ...newRow,
+      user_id:  userId,
+      id:       old?.id,          // keep existing id so it's an update, not insert
+      prev_qty: old ? Number(old.qty ?? 0) : 0,
+    })
+  }
+
+  // 3. For each existing row NOT in the new import
+  for (const [key, oldRow] of existingByKey) {
+    if (incomingByKey.has(key)) continue  // handled above
+
+    const oldQty  = Number(oldRow.qty     ?? 0)
+    const oldPrev = Number(oldRow.prev_qty ?? 0)
+
+    if (oldQty === 0 && oldPrev === 0) {
+      // Already zeroed out in a previous import — safe to delete
+      toDelete.push(oldRow.id as string)
+    } else {
+      // First time missing — zero it out, keep for visibility
+      toUpsert.push({ ...oldRow, qty: 0, prev_qty: oldQty })
     }
   }
 
-  const { error: delErr } = await supabase.from(table).delete().eq('user_id', userId)
-  if (delErr) throw new Error(delErr.message)
-  if (!rows.length) return
+  // 4. Execute deletes
+  if (toDelete.length) {
+    const { error } = await supabase.from(table).delete().in('id', toDelete)
+    if (error) throw new Error(error.message)
+  }
 
-  // Attach prev_qty to each row if the table supports it
-  const enriched = DIFF_TABLES.includes(table)
-    ? rows.map(r => {
-        const key = (r.instrument ?? r.fund_name ?? r.holding_name) as string
-        const prev = prevQtyMap[key] ?? 0
-        return { ...r, prev_qty: prev }
-      })
-    : rows
+  // 5. Execute upserts (insert new rows without id, update existing rows with id)
+  const toInsert = toUpsert.filter(r => !r.id)
+  const toUpdate = toUpsert.filter(r =>  r.id)
 
-  const { error: insErr } = await supabase.from(table).insert(enriched)
-  if (insErr) throw new Error(insErr.message)
+  if (toInsert.length) {
+    const clean = toInsert.map(({ id: _id, ...rest }) => rest)
+    const { error } = await supabase.from(table).insert(clean)
+    if (error) throw new Error(error.message)
+  }
+
+  if (toUpdate.length) {
+    const { error } = await supabase.from(table).upsert(toUpdate)
+    if (error) throw new Error(error.message)
+  }
 }
