@@ -54,7 +54,11 @@ export async function replaceAssets<T extends Record<string, unknown>>(
   rows:   T[],
 ): Promise<void> {
   // Tables that support prev_qty diff tracking
-  const DIFF_TABLES: TableName[] = ['zerodha_stocks', 'aionion_stocks', 'mf_holdings', 'gold_holdings']
+  const DIFF_TABLES: TableName[] = [
+    'zerodha_stocks', 'aionion_stocks', 'aionion_gold',
+    'mf_holdings', 'gold_holdings', 'amc_mf_holdings',
+    'foreign_stock_holdings', 'crypto_holdings',
+  ]
 
   if (!DIFF_TABLES.includes(table)) {
     // Simple replace for non-diff tables
@@ -75,9 +79,9 @@ export async function replaceAssets<T extends Record<string, unknown>>(
 
   const existingRows = (existing ?? []) as Record<string, unknown>[]
 
-  // Key function: instrument (stocks) | fund_name (MFs) | holding_name (gold)
+  // Key function: covers all diff-tracked tables
   const rowKey = (r: Record<string, unknown>): string =>
-    ((r.instrument ?? r.fund_name ?? r.holding_name) as string) ?? ''
+    ((r.instrument ?? r.fund_name ?? r.holding_name ?? r.symbol ?? r.yahoo_symbol) as string) ?? ''
 
   // Build lookup maps
   const existingByKey = new Map<string, Record<string, unknown>>()

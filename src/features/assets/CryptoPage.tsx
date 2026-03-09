@@ -77,7 +77,14 @@ export default function CryptoPage() {
     { label: 'Actual Gain',  value: actGain ? `${actGain.isPositive?'+':''}${INR(actGain.gain)}` : '—', icon: actGain?.isPositive?'▲':'▼', accentColor: actGain?.isPositive!==false?'#059669':'#dc2626', loading: isLoading },
   ]
 
-  const handleSave = async (d: Partial<CryptoHolding>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
+  const handleSave = async (d: Partial<CryptoHolding>) => {
+    try {
+      const existing = rows.find(r => r.id === d.id)
+      const prev_qty = existing ? existing.qty : d.qty
+      await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string,unknown>)
+      toast('Saved ✅','success'); setEditRow(null)
+    } catch (e) { toast((e as Error).message,'error') }
+  }
 
   const cols = [
     { key: 'ticker', header: 'Coin', render: (r: CryptoHolding) => (
@@ -86,7 +93,16 @@ export default function CryptoPage() {
         <div className="text-[10px] text-textmut font-mono">{r.yahoo_symbol}</div>
       </div>
     )},
-    { key: 'qty',           header: 'Qty',           align: 'right' as const, render: (r: CryptoHolding) => r.qty.toLocaleString('en-IN', { maximumFractionDigits: 8 }) },
+    { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: CryptoHolding) => {
+      const qty = Number(r.qty); const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
+      return (
+        <div className="text-right">
+          {qty === 0 ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red/10 text-red">EXITED</span>
+            : <div>{qty.toLocaleString('en-IN', { maximumFractionDigits: 8 })}</div>}
+          {diff !== null && diff !== 0 && <div className={`text-[10px] font-semibold ${diff > 0 ? 'text-green' : 'text-red'}`}>{diff > 0 ? '+' : ''}{diff.toLocaleString('en-IN', { maximumFractionDigits: 8 })}</div>}
+        </div>
+      )
+    }},
     { key: 'avg_price_gbp', header: 'Avg (£)',        align: 'right' as const, render: (r: CryptoHolding) => `£${r.avg_price_gbp.toFixed(2)}` },
     { key: 'ltp_gbp',       header: 'Live (£)',       align: 'right' as const, render: (r: CryptoHolding) => { const ltp=getLTPGbp(r); return <span className="font-bold">{ltp!=null?`£${ltp.toFixed(2)}`:'—'}</span> }},
     { key: 'invested_inr',  header: 'Invested (₹)',   align: 'right' as const, render: (r: CryptoHolding) => INR(gbpToInr(r.qty*r.avg_price_gbp)) },

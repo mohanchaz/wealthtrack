@@ -42,7 +42,14 @@ export default function AmcMfPage() {
   const totalInvested = useMemo(() => rows.reduce((s, r) => s + (r.invested ?? r.qty*r.avg_cost), 0), [rows])
   const totalValue    = useMemo(() => rows.reduce((s, r) => s + (r.current_value ?? r.invested ?? r.qty*r.avg_cost), 0), [rows])
   const { gain, gainPct, isPositive } = calcGain(totalValue, totalInvested)
-  const handleSave = async (d: Partial<AmcMfHolding>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
+  const handleSave = async (d: Partial<AmcMfHolding>) => {
+    try {
+      const existing = rows.find(r => r.id === d.id)
+      const prev_qty = existing ? existing.qty : d.qty
+      await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string,unknown>)
+      toast('Saved ✅','success'); setEditRow(null)
+    } catch (e) { toast((e as Error).message,'error') }
+  }
   const stats = [
     { label: 'Invested',     value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Current Value', value: INR(totalValue),   icon: '◈', accentColor: '#0d9488', loading: isLoading },
@@ -50,7 +57,16 @@ export default function AmcMfPage() {
   ]
   const cols = [
     { key: 'fund_name', header: 'Fund Name', render: (r: AmcMfHolding) => <span className="font-bold">{r.fund_name}</span> },
-    { key: 'qty',       header: 'Units',      align: 'right' as const, render: (r: AmcMfHolding) => r.qty.toLocaleString('en-IN', { maximumFractionDigits: 4 }) },
+    { key: 'qty', header: 'Units', align: 'right' as const, render: (r: AmcMfHolding) => {
+      const qty = Number(r.qty); const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
+      return (
+        <div className="text-right">
+          {qty === 0 ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red/10 text-red">EXITED</span>
+            : <div>{qty.toLocaleString('en-IN', { maximumFractionDigits: 4 })}</div>}
+          {diff !== null && diff !== 0 && <div className={`text-[10px] font-semibold ${diff > 0 ? 'text-green' : 'text-red'}`}>{diff > 0 ? '+' : ''}{diff.toLocaleString('en-IN', { maximumFractionDigits: 4 })}</div>}
+        </div>
+      )
+    }},
     { key: 'avg_cost',  header: 'Avg NAV',    align: 'right' as const, render: (r: AmcMfHolding) => INR(r.avg_cost) },
     { key: 'invested',  header: 'Invested',   align: 'right' as const, render: (r: AmcMfHolding) => INR(r.invested ?? r.qty*r.avg_cost) },
     { key: 'value',     header: 'Cur. Value', align: 'right' as const, render: (r: AmcMfHolding) => <span className={`font-bold ${(r.current_value??r.qty*r.avg_cost)>=(r.invested??r.qty*r.avg_cost)?"text-green":"text-red"}`}>{INR(r.current_value??r.invested??r.qty*r.avg_cost)}</span> },

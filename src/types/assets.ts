@@ -57,6 +57,7 @@ export interface AmcMfHolding {
   user_id:       string
   fund_name:     string
   qty:           number
+  prev_qty?:     number
   avg_cost:      number
   invested?:     number
   current_value?: number
@@ -69,6 +70,7 @@ export interface ForeignHolding {
   user_id:       string
   symbol:        string
   qty:           number
+  prev_qty?:     number
   avg_price:     number
   currency:      'USD' | 'GBP' | 'GBX' | string
   created_at?:   string
@@ -80,6 +82,7 @@ export interface CryptoHolding {
   user_id:         string
   yahoo_symbol:    string
   qty:             number
+  prev_qty?:       number
   avg_price_gbp:   number
   created_at?:     string
 }

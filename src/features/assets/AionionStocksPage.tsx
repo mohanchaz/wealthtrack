@@ -84,16 +84,16 @@ export default function AionionStocksPage() {
     { key: 'instrument', header: 'Instrument', render: (r: StockHolding) => (
       <div><div className="font-bold">{r.instrument}</div>{getName(r) && <div className="text-[10px] text-textmut">{getName(r)}</div>}</div>
     )},
-    { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: StockHolding) => (
-      <div>
-        <div>{r.qty.toLocaleString('en-IN')}</div>
-        {r.prev_qty != null && Number(r.prev_qty) !== Number(r.qty) && (
-          <div className={`text-[10px] font-semibold ${Number(r.qty) > Number(r.prev_qty) ? 'text-green' : 'text-red'}`}>
-            {Number(r.qty) > Number(r.prev_qty) ? '+' : ''}{Number(r.qty) - Number(r.prev_qty)}
-          </div>
-        )}
-      </div>
-    )},
+    { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: StockHolding) => {
+      const qty = Number(r.qty); const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
+      return (
+        <div className="text-right">
+          {qty === 0 ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red/10 text-red">EXITED</span>
+            : <div>{qty.toLocaleString('en-IN')}</div>}
+          {diff !== null && diff !== 0 && <div className={`text-[10px] font-semibold ${diff > 0 ? 'text-green' : 'text-red'}`}>{diff > 0 ? '+' : ''}{diff.toLocaleString('en-IN')}</div>}
+        </div>
+      )
+    }},
     { key: 'avg_cost', header: 'Avg Cost',   align: 'right' as const, render: (r: StockHolding) => INR(r.avg_cost) },
     { key: 'ltp',      header: 'LTP',        align: 'right' as const, render: (r: StockHolding) => {
       const ltp = getLTP(r); return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span>

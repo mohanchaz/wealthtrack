@@ -142,7 +142,14 @@ export default function ForeignStocksPage() {
     { label: 'Actual Gain',       value: actGain ? `${actGain.isPositive?'+':''}${INR(actGain.gain)}` : '—', icon: actGain?.isPositive?'▲':'▼', accentColor: actGain?.isPositive!==false?'#059669':'#dc2626', loading: isLoading },
   ]
 
-  const handleSave = async (d: Partial<ForeignHolding>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
+  const handleSave = async (d: Partial<ForeignHolding>) => {
+    try {
+      const existing = rows.find(r => r.id === d.id)
+      const prev_qty = existing ? existing.qty : d.qty
+      await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string,unknown>)
+      toast('Saved ✅','success'); setEditRow(null)
+    } catch (e) { toast((e as Error).message,'error') }
+  }
   const handleImport = async (parsed: Record<string, unknown>[]) => {
     await replaceAssets('foreign_stock_holdings', userId, parsed.map(r => ({ ...r, user_id: userId })))
     qc.invalidateQueries({ queryKey: ['foreign_stock_holdings', userId] }); toast(`${parsed.length} holdings imported ✅`,'success')
@@ -155,7 +162,16 @@ export default function ForeignStocksPage() {
         <span className={`ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.currency==='USD'?'bg-cyan/10 text-cyan':'bg-amber/10 text-amber'}`}>{r.currency}</span>
       </div>
     )},
-    { key: 'qty',       header: 'Qty',       align: 'right' as const, render: (r: ForeignHolding) => r.qty.toLocaleString('en-IN', { maximumFractionDigits: 4 }) },
+    { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: ForeignHolding) => {
+      const qty = Number(r.qty); const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
+      return (
+        <div className="text-right">
+          {qty === 0 ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red/10 text-red">EXITED</span>
+            : <div>{qty.toLocaleString('en-IN', { maximumFractionDigits: 4 })}</div>}
+          {diff !== null && diff !== 0 && <div className={`text-[10px] font-semibold ${diff > 0 ? 'text-green' : 'text-red'}`}>{diff > 0 ? '+' : ''}{diff.toLocaleString('en-IN', { maximumFractionDigits: 4 })}</div>}
+        </div>
+      )
+    }},
     { key: 'avg_price', header: 'Avg Price', align: 'right' as const, render: (r: ForeignHolding) => fmtForeign(r.avg_price, r.currency) },
     { key: 'ltp',       header: 'Live Price', align: 'right' as const, render: (r: ForeignHolding) => { const ltp=getLTP(r); return <span className="font-bold">{ltp!=null ? fmtForeign(ltp, r.currency) : '—'}</span> }},
     { key: 'invested_inr', header: 'Invested (₹)', align: 'right' as const, render: (r: ForeignHolding) => INR(toInr(r.qty*r.avg_price, r.currency)) },
