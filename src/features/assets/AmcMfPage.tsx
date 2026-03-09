@@ -15,97 +15,178 @@ import { Input }               from '../../components/ui/Input'
 import { INR, calcGain }       from '../../lib/utils'
 import type { AmcMfHolding }   from '../../types/assets'
 
-// ── Fund → BSE symbol map (same as MutualFundsPage) ──────────
-const FUND_SYMBOL_MAP: Record<string, string> = {
-  'aditya birla sun life large cap fund':          '0P0000XVWL.BO',
-  'axis small cap fund':                           '0P00011MAX.BO',
-  'groww elss tax saver fund':                     '0P0001BN7D.BO',
-  'hdfc elss tax saver fund':                      '0P0000XW8Z.BO',
-  'hdfc focused fund':                             '0P0000XW75.BO',
-  'hdfc nifty 100 index fund':                     '0P0001OF02.BO',
-  'icici prudential dividend yield equity fund':   '0P000134CI.BO',
-  'icici prudential nifty midcap 150 index fund':  '0P0001NYM0.BO',
-  'kotak elss tax saver fund':                     '0P0000XV6Q.BO',
-  'motilal oswal midcap fund':                     '0P00012ALS.BO',
-  'nippon india elss tax saver fund':              '0P00015E14.BO',
-  'nippon india growth mid cap fund':              '0P0000XVDP.BO',
-  'nippon india large cap fund':                   '0P0000XVG6.BO',
-  'nippon india nifty midcap 150 index fund':      '0P0001LMCS.BO',
-  'nippon india nifty smallcap 250 index fund':    '0P0001KR2R.BO',
-  'nippon india power & infra fund':               '0P0000XVD7.BO',
-  'nippon india small cap fund':                   '0P0000XVFY.BO',
-  'quant elss tax saver fund':                     '0P0000XW51.BO',
-  'quant flexi cap fund':                          '0P0001BA3U.BO',
-  'sbi contra fund':                               '0P0000XVJR.BO',
-  'sundaram elss tax saver fund':                  '0P0001BLNN.BO',
-  'sundaram large cap fund':                       '0P0001KN71.BO',
-  'tata elss fund':                                '0P00014GLS.BO',
-  'tata large & mid cap fund':                     '0P0000XVOJ.BO',
-  'tata nifty 50 index fund':                      '0P0000XVOZ.BO',
-  'mirae asset large cap fund':                    '0P0000XW1G.BO',
-  'mirae asset emerging bluechip fund':            '0P00012ALQ.BO',
-  'parag parikh flexi cap fund':                   '0P0000YQ3S.BO',
-  'dsp small cap fund':                            '0P0000XV4L.BO',
-  'franklin india smaller companies fund':         '0P0000XVK6.BO',
-  'uti nifty 50 index fund':                       '0P0000XVTB.BO',
+// ── Ticker → Fund name map  (symbol stored in DB, name derived at runtime) ──
+const SYMBOL_TO_FUND: Record<string, string> = {
+  '0P0000XVWL.BO': 'Aditya Birla Sun Life Large Cap Fund',
+  '0P00011MAX.BO': 'Axis Small Cap Fund',
+  '0P0001BN7D.BO': 'Groww ELSS Tax Saver Fund',
+  '0P0000XW8Z.BO': 'HDFC ELSS Tax Saver Fund',
+  '0P0000XW75.BO': 'HDFC Focused Fund',
+  '0P0001OF02.BO': 'HDFC Nifty 100 Index Fund',
+  '0P000134CI.BO': 'ICICI Prudential Dividend Yield Equity Fund',
+  '0P0001NYM0.BO': 'ICICI Prudential Nifty Midcap 150 Index Fund',
+  '0P0000XV6Q.BO': 'Kotak ELSS Tax Saver Fund',
+  '0P00012ALS.BO': 'Motilal Oswal Midcap Fund',
+  '0P00015E14.BO': 'Nippon India ELSS Tax Saver Fund',
+  '0P0000XVDS.BO': 'Nippon India Gold Savings Fund',
+  '0P0000XVDP.BO': 'Nippon India Growth Mid Cap Fund',
+  '0P0000XVG6.BO': 'Nippon India Large Cap Fund',
+  '0P0001LMCS.BO': 'Nippon India Nifty Midcap 150 Index Fund',
+  '0P0001KR2R.BO': 'Nippon India Nifty Smallcap 250 Index Fund',
+  '0P0000XVD7.BO': 'Nippon India Power & Infra Fund',
+  '0P0000XVFY.BO': 'Nippon India Small Cap Fund',
+  '0P0000XW51.BO': 'Quant ELSS Tax Saver Fund',
+  '0P0001BA3U.BO': 'Quant Flexi Cap Fund',
+  '0P0000XVJR.BO': 'SBI Contra Fund',
+  '0P0001BLNN.BO': 'Sundaram ELSS Tax Saver Fund',
+  '0P0001KN71.BO': 'Sundaram Large Cap Fund',
+  '0P00014GLS.BO': 'Tata ELSS Fund',
+  '0P0000XVOJ.BO': 'Tata Large & Mid Cap Fund',
+  '0P0000XVOZ.BO': 'Tata Nifty 50 Index Fund',
+  '0P0000XW1G.BO': 'Mirae Asset Large Cap Fund',
+  '0P00012ALQ.BO': 'Mirae Asset Emerging Bluechip Fund',
+  '0P0000YQ3S.BO': 'Parag Parikh Flexi Cap Fund',
+  '0P0000XV4L.BO': 'DSP Small Cap Fund',
+  '0P0000XVK6.BO': 'Franklin India Smaller Companies Fund',
+  '0P0000XVTB.BO': 'UTI Nifty 50 Index Fund',
+  '0P0001BFYH.BO': 'Canara Robeco Bluechip Equity Fund',
+  '0P0001GBZ6.BO': 'Navi Nifty 50 Index Fund',
+  '0P0001H0PK.BO': 'Zerodha Nifty Large Midcap 250 Index Fund',
 }
 
-function lookupSymbol(name: string): string | null {
-  const key = name.trim().toLowerCase()
-  if (FUND_SYMBOL_MAP[key]) return FUND_SYMBOL_MAP[key]
-  for (const [mapKey, sym] of Object.entries(FUND_SYMBOL_MAP)) {
-    if (key.includes(mapKey) || mapKey.includes(key)) return sym
+// Fund name → ticker (for search in form)
+const FUND_TO_SYMBOL = Object.fromEntries(
+  Object.entries(SYMBOL_TO_FUND).map(([sym, name]) => [name.toLowerCase(), sym])
+)
+
+function getFundName(symbol?: string | null): string {
+  if (!symbol) return '—'
+  return SYMBOL_TO_FUND[symbol] ?? symbol  // fallback to raw symbol if not in map
+}
+
+// AMC list derived from fund names
+const AMC_LIST = [
+  'Aditya Birla Sun Life', 'Axis', 'Canara Robeco', 'DSP', 'Franklin Templeton',
+  'Groww', 'HDFC', 'ICICI Prudential', 'Invesco', 'Kotak', 'LIC', 'Mirae Asset',
+  'Motilal Oswal', 'Navi', 'Nippon India', 'Parag Parikh', 'Quant', 'SBI',
+  'Sundaram', 'Tata', 'UTI', 'Zerodha', 'Other',
+]
+
+// ── Ticker Search Input ────────────────────────────────────────
+function TickerSearch({ value, onChange }: { value: string; onChange: (sym: string) => void }) {
+  const [query, setQuery] = useState(
+    value ? (SYMBOL_TO_FUND[value] ?? value) : ''
+  )
+  const [open, setOpen] = useState(false)
+
+  const results = useMemo(() => {
+    if (query.length < 2) return []
+    const q = query.toLowerCase()
+    return Object.entries(SYMBOL_TO_FUND)
+      .filter(([sym, name]) => name.toLowerCase().includes(q) || sym.toLowerCase().includes(q))
+      .slice(0, 8)
+  }, [query])
+
+  const select = (sym: string, name: string) => {
+    setQuery(name)
+    onChange(sym)
+    setOpen(false)
   }
-  return null
+
+  return (
+    <div className="flex flex-col gap-1 relative">
+      <label className="text-xs font-semibold text-textmut uppercase tracking-wide">Fund (search by name or ticker) *</label>
+      <input
+        className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/20"
+        value={query}
+        onChange={e => { setQuery(e.target.value); setOpen(true); if (!e.target.value) onChange('') }}
+        onFocus={() => setOpen(true)}
+        placeholder="e.g. Tata Nifty 50, 0P0000XVOZ.BO"
+      />
+      {/* Selected ticker badge */}
+      {value && SYMBOL_TO_FUND[value] && (
+        <div className="text-[10px] text-textmut font-mono">{value}</div>
+      )}
+      {/* Dropdown */}
+      {open && results.length > 0 && (
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border border-border bg-surface shadow-lg max-h-56 overflow-y-auto">
+          {results.map(([sym, name]) => (
+            <button key={sym} type="button"
+              className="w-full text-left px-3 py-2 hover:bg-bg text-sm flex flex-col gap-0.5 border-b border-border/50 last:border-0"
+              onClick={() => select(sym, name)}
+            >
+              <span className="font-semibold text-ink">{name}</span>
+              <span className="text-[10px] text-textmut font-mono">{sym}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {/* Manual entry hint */}
+      {open && results.length === 0 && query.length >= 2 && (
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border border-border bg-surface shadow-lg px-3 py-2 text-xs text-textmut">
+          Not in list — enter BSE ticker manually below
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ── Edit Modal ─────────────────────────────────────────────────
 function EditModal({ row, onClose, onSave }: {
   row: Partial<AmcMfHolding>; onClose: () => void; onSave: (d: Partial<AmcMfHolding>) => Promise<void>
 }) {
-  const [fundName,  setFundName]  = useState(row.platform     ?? '')
+  const [navSymbol, setNavSymbol] = useState(row.nav_symbol   ?? '')
+  const [platform,  setPlatform]  = useState(row.platform     ?? '')
   const [qty,       setQty]       = useState(String(row.qty   ?? ''))
   const [avg,       setAvg]       = useState(String(row.avg_cost ?? ''))
-  const [navSymbol, setNavSymbol] = useState(row.nav_symbol   ?? '')
   const [folio,     setFolio]     = useState(row.folio_number ?? '')
   const [saving,    setSaving]    = useState(false)
 
-  const handleFundNameBlur = () => {
-    if (!navSymbol) {
-      const sym = lookupSymbol(fundName)
-      if (sym) setNavSymbol(sym)
-    }
-  }
-
   const handleSave = async () => {
-    if (!fundName || !qty || !avg) return
+    if (!navSymbol || !qty || !avg) return
     setSaving(true)
     await onSave({
       ...row,
-      platform:      fundName,
-      qty:           parseFloat(qty),
-      avg_cost:      parseFloat(avg),
-      nav_symbol:    navSymbol.trim() || undefined,
-      folio_number:  folio.trim()     || undefined,
+      nav_symbol:   navSymbol.trim(),
+      platform:     platform.trim() || undefined,
+      qty:          parseFloat(qty),
+      avg_cost:     parseFloat(avg),
+      folio_number: folio.trim() || undefined,
     })
     setSaving(false)
   }
-
-  const autoSym = lookupSymbol(fundName)
 
   return (
     <Modal open onClose={onClose} title={row.id ? 'Edit Fund' : 'Add AMC MF'}
       footer={<><Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button><Button size="sm" onClick={handleSave} loading={saving}>💾 Save</Button></>}
     >
       <div className="flex flex-col gap-4">
-        <Input
-          label="Fund Name *"
-          value={fundName}
-          onChange={e => setFundName(e.target.value)}
-          onBlur={handleFundNameBlur}
-          placeholder="e.g. Mirae Asset Large Cap Fund"
-        />
 
+        {/* Ticker search */}
+        <TickerSearch value={navSymbol} onChange={setNavSymbol} />
+
+        {/* Manual ticker override */}
+        <Input label="BSE Ticker (manual override)" value={navSymbol}
+          onChange={e => setNavSymbol(e.target.value)}
+          placeholder="e.g. 0P0000XVOZ.BO"
+          helpText="Auto-filled from search above, or enter manually" />
+
+        {/* AMC + folio */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-textmut uppercase tracking-wide">AMC Name</label>
+            <select value={platform} onChange={e => setPlatform(e.target.value)}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/20"
+            >
+              <option value="">Select AMC…</option>
+              {AMC_LIST.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <Input label="Folio Number" value={folio}
+            onChange={e => setFolio(e.target.value)} placeholder="Optional" />
+        </div>
+
+        {/* Units + Avg NAV */}
         <div className="grid grid-cols-2 gap-3">
           <Input label="Units *" type="number" step="0.001"
             value={qty} onChange={e => setQty(e.target.value)} />
@@ -113,18 +194,6 @@ function EditModal({ row, onClose, onSave }: {
             value={avg} onChange={e => setAvg(e.target.value)} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="NAV Symbol (BSE)"
-            value={navSymbol}
-            onChange={e => setNavSymbol(e.target.value)}
-            placeholder={autoSym ?? 'e.g. 0P0000XW1G.BO'}
-            helpText={autoSym && !navSymbol ? `Auto: ${autoSym}` : 'For live NAV'}
-          />
-          <Input label="Folio Number" value={folio}
-            onChange={e => setFolio(e.target.value)}
-            placeholder="Optional" />
-        </div>
       </div>
     </Modal>
   )
@@ -139,7 +208,7 @@ export default function AmcMfPage() {
   const [editRow, setEditRow] = useState<Partial<AmcMfHolding> | null>(null)
   const { upsertMutation, deleteMutation } = useAssets<AmcMfHolding>('amc_mf_holdings')
 
-  // Live NAV
+  // Live NAV via nav_symbol
   const symbols = useMemo(() =>
     [...new Set(rows.map(r => r.nav_symbol).filter(Boolean) as string[])],
   [rows])
@@ -170,7 +239,6 @@ export default function AmcMfPage() {
       try {
         await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string, unknown>)
       } catch (e1) {
-        // Fallback: prev_qty column may not exist yet — run migration first
         if ((e1 as Error).message?.includes('prev_qty')) {
           await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string, unknown>)
         } else { throw e1 }
@@ -180,21 +248,22 @@ export default function AmcMfPage() {
   }
 
   const stats = [
-    { label: 'Invested',      value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
-    { label: 'Current Value', value: INR(totalValue),    icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
-    { label: 'Gain / Loss',   value: `${isPositive ? '+' : ''}${INR(gain)}`, sub: `${gainPct.toFixed(1)}%`, icon: isPositive ? '▲' : '▼', accentColor: isPositive ? '#059669' : '#dc2626', loading: isLoading },
+    { label: 'Invested',       value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
+    { label: 'Current Value',  value: INR(totalValue),    icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
+    { label: 'Gain / Loss',    value: `${isPositive ? '+' : ''}${INR(gain)}`, sub: `${gainPct.toFixed(1)}%`, icon: isPositive ? '▲' : '▼', accentColor: isPositive ? '#059669' : '#dc2626', loading: isLoading },
     { label: 'Actual Invested', value: actual ? INR(actual) : '—', icon: '⊡', accentColor: '#d97706', loading: isLoading },
   ]
 
   const cols = [
     {
-      key: 'platform', header: 'Fund',
+      key: 'nav_symbol', header: 'Fund',
       render: (r: AmcMfHolding) => (
         <div>
-          <div className="font-semibold text-ink">{r.platform ?? '—'}</div>
-          <div className="text-[10px] text-textmut font-mono mt-0.5 flex flex-col gap-0.5">
-            {r.nav_symbol    && <span><span className="text-[9px] font-bold uppercase tracking-wide not-italic">NAV  </span>{r.nav_symbol}</span>}
-            {r.folio_number  && <span><span className="text-[9px] font-bold uppercase tracking-wide not-italic">Folio </span>{r.folio_number}</span>}
+          <div className="font-semibold text-ink text-sm">{getFundName(r.nav_symbol)}</div>
+          <div className="text-[10px] text-textmut mt-0.5 flex flex-col gap-0.5 font-mono">
+            {r.nav_symbol   && <span><span className="not-italic font-bold text-[9px] uppercase tracking-wide">Ticker </span>{r.nav_symbol}</span>}
+            {r.platform     && <span><span className="not-italic font-bold text-[9px] uppercase tracking-wide">AMC    </span>{r.platform}</span>}
+            {r.folio_number && <span><span className="not-italic font-bold text-[9px] uppercase tracking-wide">Folio  </span>{r.folio_number}</span>}
           </div>
         </div>
       ),
