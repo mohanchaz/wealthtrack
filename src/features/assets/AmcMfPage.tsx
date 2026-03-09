@@ -15,121 +15,12 @@ import { Input }               from '../../components/ui/Input'
 import { INR, calcGain }       from '../../lib/utils'
 import type { AmcMfHolding }   from '../../types/assets'
 
-// ── Ticker → Fund name map  (symbol stored in DB, name derived at runtime) ──
-const SYMBOL_TO_FUND: Record<string, string> = {
-  '0P0000XVWL.BO': 'Aditya Birla Sun Life Large Cap Fund',
-  '0P00011MAX.BO': 'Axis Small Cap Fund',
-  '0P0001BN7D.BO': 'Groww ELSS Tax Saver Fund',
-  '0P0000XW8Z.BO': 'HDFC ELSS Tax Saver Fund',
-  '0P0000XW75.BO': 'HDFC Focused Fund',
-  '0P0001OF02.BO': 'HDFC Nifty 100 Index Fund',
-  '0P000134CI.BO': 'ICICI Prudential Dividend Yield Equity Fund',
-  '0P0001NYM0.BO': 'ICICI Prudential Nifty Midcap 150 Index Fund',
-  '0P0000XV6Q.BO': 'Kotak ELSS Tax Saver Fund',
-  '0P00012ALS.BO': 'Motilal Oswal Midcap Fund',
-  '0P00015E14.BO': 'Nippon India ELSS Tax Saver Fund',
-  '0P0000XVDS.BO': 'Nippon India Gold Savings Fund',
-  '0P0000XVDP.BO': 'Nippon India Growth Mid Cap Fund',
-  '0P0000XVG6.BO': 'Nippon India Large Cap Fund',
-  '0P0001LMCS.BO': 'Nippon India Nifty Midcap 150 Index Fund',
-  '0P0001KR2R.BO': 'Nippon India Nifty Smallcap 250 Index Fund',
-  '0P0000XVD7.BO': 'Nippon India Power & Infra Fund',
-  '0P0000XVFY.BO': 'Nippon India Small Cap Fund',
-  '0P0000XW51.BO': 'Quant ELSS Tax Saver Fund',
-  '0P0001BA3U.BO': 'Quant Flexi Cap Fund',
-  '0P0000XVJR.BO': 'SBI Contra Fund',
-  '0P0001BLNN.BO': 'Sundaram ELSS Tax Saver Fund',
-  '0P0001KN71.BO': 'Sundaram Large Cap Fund',
-  '0P00014GLS.BO': 'Tata ELSS Fund',
-  '0P0000XVOJ.BO': 'Tata Large & Mid Cap Fund',
-  '0P0000XVOZ.BO': 'Tata Nifty 50 Index Fund',
-  '0P0000XW1G.BO': 'Mirae Asset Large Cap Fund',
-  '0P00012ALQ.BO': 'Mirae Asset Emerging Bluechip Fund',
-  '0P0000YQ3S.BO': 'Parag Parikh Flexi Cap Fund',
-  '0P0000XV4L.BO': 'DSP Small Cap Fund',
-  '0P0000XVK6.BO': 'Franklin India Smaller Companies Fund',
-  '0P0000XVTB.BO': 'UTI Nifty 50 Index Fund',
-  '0P0001BFYH.BO': 'Canara Robeco Bluechip Equity Fund',
-  '0P0001GBZ6.BO': 'Navi Nifty 50 Index Fund',
-  '0P0001H0PK.BO': 'Zerodha Nifty Large Midcap 250 Index Fund',
-}
-
-// Fund name → ticker (for search in form)
-const FUND_TO_SYMBOL = Object.fromEntries(
-  Object.entries(SYMBOL_TO_FUND).map(([sym, name]) => [name.toLowerCase(), sym])
-)
-
-function getFundName(symbol?: string | null): string {
-  if (!symbol) return '—'
-  return SYMBOL_TO_FUND[symbol] ?? symbol  // fallback to raw symbol if not in map
-}
-
-// AMC list derived from fund names
 const AMC_LIST = [
   'Aditya Birla Sun Life', 'Axis', 'Canara Robeco', 'DSP', 'Franklin Templeton',
   'Groww', 'HDFC', 'ICICI Prudential', 'Invesco', 'Kotak', 'LIC', 'Mirae Asset',
   'Motilal Oswal', 'Navi', 'Nippon India', 'Parag Parikh', 'Quant', 'SBI',
   'Sundaram', 'Tata', 'UTI', 'Zerodha', 'Other',
 ]
-
-// ── Ticker Search Input ────────────────────────────────────────
-function TickerSearch({ value, onChange }: { value: string; onChange: (sym: string) => void }) {
-  const [query, setQuery] = useState(
-    value ? (SYMBOL_TO_FUND[value] ?? value) : ''
-  )
-  const [open, setOpen] = useState(false)
-
-  const results = useMemo(() => {
-    if (query.length < 2) return []
-    const q = query.toLowerCase()
-    return Object.entries(SYMBOL_TO_FUND)
-      .filter(([sym, name]) => name.toLowerCase().includes(q) || sym.toLowerCase().includes(q))
-      .slice(0, 8)
-  }, [query])
-
-  const select = (sym: string, name: string) => {
-    setQuery(name)
-    onChange(sym)
-    setOpen(false)
-  }
-
-  return (
-    <div className="flex flex-col gap-1 relative">
-      <label className="text-xs font-semibold text-textmut uppercase tracking-wide">Fund (search by name or ticker) *</label>
-      <input
-        className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/20"
-        value={query}
-        onChange={e => { setQuery(e.target.value); setOpen(true); if (!e.target.value) onChange('') }}
-        onFocus={() => setOpen(true)}
-        placeholder="e.g. Tata Nifty 50, 0P0000XVOZ.BO"
-      />
-      {/* Selected ticker badge */}
-      {value && SYMBOL_TO_FUND[value] && (
-        <div className="text-[10px] text-textmut font-mono">{value}</div>
-      )}
-      {/* Dropdown */}
-      {open && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border border-border bg-surface shadow-lg max-h-56 overflow-y-auto">
-          {results.map(([sym, name]) => (
-            <button key={sym} type="button"
-              className="w-full text-left px-3 py-2 hover:bg-bg text-sm flex flex-col gap-0.5 border-b border-border/50 last:border-0"
-              onClick={() => select(sym, name)}
-            >
-              <span className="font-semibold text-ink">{name}</span>
-              <span className="text-[10px] text-textmut font-mono">{sym}</span>
-            </button>
-          ))}
-        </div>
-      )}
-      {/* Manual entry hint */}
-      {open && results.length === 0 && query.length >= 2 && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border border-border bg-surface shadow-lg px-3 py-2 text-xs text-textmut">
-          Not in list — enter BSE ticker manually below
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ── Edit Modal ─────────────────────────────────────────────────
 function EditModal({ row, onClose, onSave }: {
@@ -141,6 +32,25 @@ function EditModal({ row, onClose, onSave }: {
   const [avg,       setAvg]       = useState(String(row.avg_cost ?? ''))
   const [folio,     setFolio]     = useState(row.folio_number ?? '')
   const [saving,    setSaving]    = useState(false)
+
+  // Live preview of fund name while typing ticker
+  const [previewName, setPreviewName] = useState<string | null>(null)
+  const [previewing,  setPreviewing]  = useState(false)
+
+  const fetchPreview = async (sym: string) => {
+    if (!sym || sym.length < 5) { setPreviewName(null); return }
+    setPreviewing(true)
+    try {
+      const res = await fetch(`/api/prices?symbols=${encodeURIComponent(sym)}`)
+      if (res.ok) {
+        const map = await res.json() as Record<string, { price: number; name: string | null }>
+        const key = sym.replace(/\.(BO|NS)$/, '')
+        const entry = map[key] ?? map[sym]
+        setPreviewName(entry?.name ?? null)
+      }
+    } catch { setPreviewName(null) }
+    finally { setPreviewing(false) }
+  }
 
   const handleSave = async () => {
     if (!navSymbol || !qty || !avg) return
@@ -162,14 +72,31 @@ function EditModal({ row, onClose, onSave }: {
     >
       <div className="flex flex-col gap-4">
 
-        {/* Ticker search */}
-        <TickerSearch value={navSymbol} onChange={setNavSymbol} />
-
-        {/* Manual ticker override */}
-        <Input label="BSE Ticker (manual override)" value={navSymbol}
-          onChange={e => setNavSymbol(e.target.value)}
-          placeholder="e.g. 0P0000XVOZ.BO"
-          helpText="Auto-filled from search above, or enter manually" />
+        {/* Ticker input with live name preview */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-textmut uppercase tracking-wide">BSE Ticker *</label>
+          <div className="flex gap-2 items-center">
+            <input
+              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/20 font-mono"
+              value={navSymbol}
+              onChange={e => { setNavSymbol(e.target.value); setPreviewName(null) }}
+              placeholder="e.g. 0P0000XVOZ.BO"
+            />
+            <Button variant="secondary" size="sm" onClick={() => fetchPreview(navSymbol)} loading={previewing}>
+              🔍 Lookup
+            </Button>
+          </div>
+          {/* Live name preview */}
+          {previewName && (
+            <div className="flex items-center gap-2 mt-1 px-3 py-2 rounded-lg bg-green/5 border border-green/20">
+              <span className="text-green text-xs">✓</span>
+              <span className="text-sm font-semibold text-ink">{previewName}</span>
+            </div>
+          )}
+          {previewName === null && navSymbol && !previewing && (
+            <p className="text-[10px] text-textmut">Enter ticker then click 🔍 Lookup to verify fund name</p>
+          )}
+        </div>
 
         {/* AMC + folio */}
         <div className="grid grid-cols-2 gap-3">
@@ -193,7 +120,6 @@ function EditModal({ row, onClose, onSave }: {
           <Input label="Avg NAV (₹) *" prefix="₹" type="number" step="0.01"
             value={avg} onChange={e => setAvg(e.target.value)} />
         </div>
-
       </div>
     </Modal>
   )
@@ -208,17 +134,19 @@ export default function AmcMfPage() {
   const [editRow, setEditRow] = useState<Partial<AmcMfHolding> | null>(null)
   const { upsertMutation, deleteMutation } = useAssets<AmcMfHolding>('amc_mf_holdings')
 
-  // Live NAV via nav_symbol
+  // Live NAV + names via nav_symbol
   const symbols = useMemo(() =>
     [...new Set(rows.map(r => r.nav_symbol).filter(Boolean) as string[])],
   [rows])
   const { data: priceMap = {}, isFetching: pricesFetching, refetch } = useYahooPrices(symbols)
 
-  const getLTP = (r: AmcMfHolding) => {
+  const getPriceEntry = (r: AmcMfHolding) => {
     if (!r.nav_symbol) return null
     const key = r.nav_symbol.replace(/\.(BO|NS)$/, '')
-    return priceMap[key]?.price ?? priceMap[r.nav_symbol]?.price ?? null
+    return priceMap[key] ?? priceMap[r.nav_symbol] ?? null
   }
+  const getLTP  = (r: AmcMfHolding) => getPriceEntry(r)?.price ?? null
+  const getName = (r: AmcMfHolding) => getPriceEntry(r)?.name  ?? null
 
   const totalInvested = useMemo(() => rows.reduce((s, r) => s + Number(r.qty) * Number(r.avg_cost), 0), [rows])
   const totalValue    = useMemo(() => rows.reduce((s, r) => {
@@ -257,16 +185,25 @@ export default function AmcMfPage() {
   const cols = [
     {
       key: 'nav_symbol', header: 'Fund',
-      render: (r: AmcMfHolding) => (
-        <div>
-          <div className="font-semibold text-ink text-sm">{getFundName(r.nav_symbol)}</div>
-          <div className="text-[10px] text-textmut mt-0.5 flex flex-col gap-0.5 font-mono">
-            {r.nav_symbol   && <span><span className="not-italic font-bold text-[9px] uppercase tracking-wide">Ticker </span>{r.nav_symbol}</span>}
-            {r.platform     && <span><span className="not-italic font-bold text-[9px] uppercase tracking-wide">AMC    </span>{r.platform}</span>}
-            {r.folio_number && <span><span className="not-italic font-bold text-[9px] uppercase tracking-wide">Folio  </span>{r.folio_number}</span>}
+      render: (r: AmcMfHolding) => {
+        const name = getName(r)
+        return (
+          <div>
+            {/* Fund name from live API, loading state while fetching */}
+            {pricesFetching && !name
+              ? <div className="h-3 w-48 bg-border/50 rounded animate-pulse mb-1" />
+              : name
+                ? <div className="font-semibold text-ink text-sm">{name}</div>
+                : <div className="font-semibold text-ink text-sm font-mono">{r.nav_symbol ?? '—'}</div>
+            }
+            <div className="text-[10px] text-textmut mt-0.5 flex flex-col gap-0.5 font-mono">
+              {r.nav_symbol    && <span><span className="not-italic font-bold text-[9px] uppercase tracking-wide">Ticker </span>{r.nav_symbol}</span>}
+              {r.platform      && <span><span className="not-italic font-bold text-[9px] uppercase tracking-wide">AMC    </span>{r.platform}</span>}
+              {r.folio_number  && <span><span className="not-italic font-bold text-[9px] uppercase tracking-wide">Folio  </span>{r.folio_number}</span>}
+            </div>
           </div>
-        </div>
-      ),
+        )
+      },
     },
     {
       key: 'qty', header: 'Units', align: 'right' as const,
