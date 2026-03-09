@@ -10,7 +10,7 @@ export type TableName =
 const ORDER_COL: Partial<Record<TableName, string>> = {
   mf_holdings:    'fund_name',      // no created_at — order alphabetically
   gold_holdings:  'holding_name',   // no created_at — order alphabetically
-  aionion_gold:   'holding_name',   // no created_at
+  aionion_gold:   'instrument',     // no created_at
   aionion_stocks: 'instrument',     // no created_at — uses imported_at
 }
 
