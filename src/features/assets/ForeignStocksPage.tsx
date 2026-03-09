@@ -326,64 +326,58 @@ export default function ForeignStocksPage() {
   const [showImport, setShowImport] = useState(false)
   const { upsertMutation, deleteMutation } = useAssets<ForeignHolding>('foreign_stock_holdings')
 
-  // Get live price in local currency
-  // Dynamically detect if a .L symbol is priced in pence (GBX) by checking magnitude.
-  // LSE stocks in GBX typically have prices > 100p; GBP stocks are < 100.
-  // Rule: if stored currency is GBX, OR if it's a .L symbol and raw price > 200
-  //       (a GBP stock above £200 is very rare; a GBX stock at 200p = £2 is common)
-  const isGbxLive = (r: ForeignHolding, rawPrice: number): boolean => {
-    if (r.currency === 'GBX') return true
-    // Auto-detect: .L symbol with raw price > 200 is almost certainly pence
+  // ── Price helpers ────────────────────────────────────────────
+  // getRawEntry: raw Yahoo price map entry for a holding
+  const getRawEntry = (r: ForeignHolding) => {
     const ySym = toYahooSymbol(r.symbol, r.currency)
-    return ySym.endsWith('.L') && rawPrice > 200
+    const key  = ySym.replace(/\.(L|US)$/, '')
+    return priceMap[key] ?? priceMap[ySym] ?? null
   }
 
-  const getLTP = (r: ForeignHolding): number | null => {
-    const ySym  = toYahooSymbol(r.symbol, r.currency)
-    const key   = ySym.replace(/\.(L|US)$/, '')
-    const entry = priceMap[key] ?? priceMap[ySym]
+  // isGbxLive: true if Yahoo is returning pence for this symbol
+  // — explicit GBX currency OR .L symbol with raw price > 200 (pence heuristic)
+  const isGbxLive = (r: ForeignHolding): boolean => {
+    if (r.currency === 'GBX') return true
+    const entry = getRawEntry(r)
+    if (!entry) return false
+    const ySym = toYahooSymbol(r.symbol, r.currency)
+    return ySym.endsWith('.L') && entry.price > 200
+  }
+
+  // getLtpInGbp: live price always in GBP (never pence, never USD)
+  // This is the single source of truth for current value calculations
+  const getLtpInGbp = (r: ForeignHolding): number | null => {
+    const entry = getRawEntry(r)
     if (!entry) return null
-    // Divide by 100 if GBX (pence) — either explicit or auto-detected by magnitude
-    return isGbxLive(r, entry.price) ? entry.price / 100 : entry.price
+    if (isGbxLive(r))        return entry.price / 100          // pence → GBP
+    if (r.currency === 'USD') return entry.price / gbpUsd       // USD   → GBP
+    return entry.price                                          // already GBP
   }
 
-  // Convert to INR — always route through GBP
-  const toInr = (localValue: number, currency: string): number => {
-    if (currency === 'USD') return localValue / gbpUsd * gbpInr  // USD→GBP→INR
-    if (currency === 'GBX') return (localValue / 100) * gbpInr   // pence→GBP→INR
-    return localValue * gbpInr                                    // GBP→INR
+  // getAvgInGbp: avg cost always in GBP
+  const getAvgInGbp = (r: ForeignHolding): number => {
+    if (r.currency === 'GBX') return r.avg_price / 100
+    if (r.currency === 'USD') return r.avg_price / gbpUsd
+    return r.avg_price
   }
 
-  const toGbp = (localValue: number, currency: string): number => {
-    if (currency === 'USD') return localValue / gbpUsd
-    if (currency === 'GBX') return localValue / 100
-    return localValue
-  }
+  // gbpToInr: final conversion
+  const gbpToInr = (gbp: number): number => gbp * gbpInr
 
-  // Totals
-  const totalInvestedInr = useMemo(() =>
-    rows.reduce((s, r) => s + toInr(r.qty * r.avg_price, r.currency), 0),
-  [rows, fx])
-
-  const totalValueInr = useMemo(() =>
-    rows.reduce((s, r) => {
-      const ltp = getLTP(r)
-      const val = ltp != null ? r.qty * ltp : r.qty * r.avg_price
-      return s + toInr(val, r.currency)
-    }, 0),
-  [rows, priceMap, fx])
-
+  // Totals — everything in GBP first, then × gbpInr
   const totalInvestedGbp = useMemo(() =>
-    rows.reduce((s, r) => s + toGbp(r.qty * r.avg_price, r.currency), 0),
+    rows.reduce((s, r) => s + r.qty * getAvgInGbp(r), 0),
   [rows, fx])
 
   const totalValueGbp = useMemo(() =>
     rows.reduce((s, r) => {
-      const ltp = getLTP(r)
-      const val = ltp != null ? r.qty * ltp : r.qty * r.avg_price
-      return s + toGbp(val, r.currency)
+      const ltpGbp = getLtpInGbp(r)
+      return s + r.qty * (ltpGbp ?? getAvgInGbp(r))
     }, 0),
   [rows, priceMap, fx])
+
+  const totalInvestedInr = useMemo(() => gbpToInr(totalInvestedGbp), [totalInvestedGbp, fx])
+  const totalValueInr    = useMemo(() => gbpToInr(totalValueGbp),    [totalValueGbp, fx])
 
   const { gain, gainPct, isPositive } = calcGain(totalValueInr, totalInvestedInr)
   const liveLabel = priceFetching
@@ -471,28 +465,25 @@ export default function ForeignStocksPage() {
       render: (r: ForeignHolding) => (
         <div className="text-right">
           <div>{fmtLocal(r.avg_price, r.currency)}</div>
-          <div className="text-[10px] text-textmut">{INR(toInr(r.avg_price, r.currency))} / unit</div>
+          <div className="text-[10px] text-textmut">{INR(gbpToInr(getAvgInGbp(r)))} / unit</div>
         </div>
       ),
     },
     {
       key: 'ltp', header: 'Live Price', align: 'right' as const,
       render: (r: ForeignHolding) => {
-        const rawEntry = (() => { const ySym = toYahooSymbol(r.symbol, r.currency); const k = ySym.replace(/\.(L|US)$/,''); return priceMap[k] ?? priceMap[ySym] })()
-        const ltp = getLTP(r)
-        if (ltp == null) return <span className="text-textmut">—</span>
-        const avgGbp = r.currency === 'GBX' ? r.avg_price / 100 : r.avg_price
-        const ltpGbp = ltp  // getLTP always returns GBP-equivalent for .L symbols
-        const change = ltpGbp - avgGbp
-        const changePct = avgGbp > 0 ? (change / avgGbp) * 100 : 0
-        // Display: show raw price in original currency
-        const displayPrice = rawEntry ? rawEntry.price : ltp
-        const displayCcy   = rawEntry && isGbxLive(r, rawEntry.price) ? 'GBX' : r.currency
+        const entry    = getRawEntry(r)
+        const ltpGbp   = getLtpInGbp(r)
+        if (ltpGbp == null || !entry) return <span className="text-textmut">—</span>
+        const avgGbp   = getAvgInGbp(r)
+        const changePct = avgGbp > 0 ? ((ltpGbp - avgGbp) / avgGbp) * 100 : 0
+        // Display the raw price in its native unit (pence for GBX, $ for USD, £ for GBP)
+        const displayCcy = isGbxLive(r) ? 'GBX' : r.currency
         return (
           <div className="text-right">
-            <div className="font-bold">{fmtLocal(displayPrice, displayCcy)}</div>
-            <div className={`text-[10px] font-semibold ${change >= 0 ? 'text-green' : 'text-red'}`}>
-              {change >= 0 ? '+' : ''}{changePct.toFixed(1)}%
+            <div className="font-bold">{fmtLocal(entry.price, displayCcy)}</div>
+            <div className={`text-[10px] font-semibold ${changePct >= 0 ? 'text-green' : 'text-red'}`}>
+              {changePct >= 0 ? '+' : ''}{changePct.toFixed(1)}%
             </div>
           </div>
         )
@@ -500,25 +491,33 @@ export default function ForeignStocksPage() {
     },
     {
       key: 'invested', header: 'Invested', align: 'right' as const,
-      render: (r: ForeignHolding) => (
-        <div className="text-right">
-          <div>{fmtLocal(r.qty * r.avg_price, r.currency)}</div>
-          <div className="text-[10px] text-textmut">{INR(toInr(r.qty * r.avg_price, r.currency))}</div>
-        </div>
-      ),
+      render: (r: ForeignHolding) => {
+        const localVal = r.qty * r.avg_price
+        const inrVal   = gbpToInr(r.qty * getAvgInGbp(r))
+        return (
+          <div className="text-right">
+            <div>{fmtLocal(localVal, r.currency)}</div>
+            <div className="text-[10px] text-textmut">{INR(inrVal)}</div>
+          </div>
+        )
+      },
     },
     {
       key: 'value', header: 'Cur. Value', align: 'right' as const,
       render: (r: ForeignHolding) => {
-        const ltp = getLTP(r)
-        const localVal  = ltp != null ? r.qty * (r.currency === 'GBX' ? ltp * 100 : ltp) : r.qty * r.avg_price
-        const localCost = r.qty * r.avg_price
-        const inrVal  = toInr(ltp != null ? r.qty * ltp : r.qty * r.avg_price, r.currency)
-        const inrCost = toInr(r.qty * r.avg_price, r.currency)
+        const entry    = getRawEntry(r)
+        const ltpGbp   = getLtpInGbp(r)
+        const avgGbp   = getAvgInGbp(r)
+        const valGbp   = r.qty * (ltpGbp ?? avgGbp)
+        const costGbp  = r.qty * avgGbp
+        const inrVal   = gbpToInr(valGbp)
+        // Display in native local currency using raw Yahoo price
+        const localVal = entry ? r.qty * entry.price : r.qty * r.avg_price
+        const isUp     = valGbp >= costGbp
         return (
           <div className="text-right">
-            <div className={`font-bold ${localVal >= localCost ? 'text-green' : 'text-red'}`}>
-              {fmtLocal(localVal, r.currency)}
+            <div className={`font-bold ${isUp ? 'text-green' : 'text-red'}`}>
+              {fmtLocal(localVal, isGbxLive(r) ? 'GBX' : r.currency)}
             </div>
             <div className="text-[10px] text-textmut">{INR(inrVal)}</div>
           </div>
@@ -528,10 +527,11 @@ export default function ForeignStocksPage() {
     {
       key: 'gain', header: 'Gain / Loss', align: 'right' as const,
       render: (r: ForeignHolding) => {
-        const ltp  = getLTP(r)
-        const inv  = toInr(r.qty * r.avg_price, r.currency)
-        const val  = toInr(ltp != null ? r.qty * ltp : r.qty * r.avg_price, r.currency)
-        const { gain, gainPct, isPositive } = calcGain(val, inv)
+        const ltpGbp  = getLtpInGbp(r)
+        const avgGbp  = getAvgInGbp(r)
+        const invInr  = gbpToInr(r.qty * avgGbp)
+        const valInr  = gbpToInr(r.qty * (ltpGbp ?? avgGbp))
+        const { gain, gainPct, isPositive } = calcGain(valInr, invInr)
         return (
           <span className={`font-bold ${isPositive ? 'text-green' : 'text-red'}`}>
             {isPositive ? '+' : ''}{INR(gain)}
