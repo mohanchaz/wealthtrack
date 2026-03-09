@@ -29,6 +29,7 @@ interface CardProps {
   label:     string
   sublabel?: string
   invested:  number
+  actual:    number   // actual invested (or falls back to invested)
   value:     number
   count:     number
   unit:      string
@@ -39,9 +40,10 @@ interface CardProps {
   delay?:    number
 }
 
-function AssetCard({ icon, label, sublabel, invested, value, count, unit, live, loading, accent, path, delay = 0 }: CardProps) {
+function AssetCard({ icon, label, sublabel, invested, actual, value, count, unit, live, loading, accent, path, delay = 0 }: CardProps) {
   const navigate = useNavigate()
   const { gain, gainPct, isPositive } = calcGain(value, invested)
+  const { gain: actGain, gainPct: actGainPct, isPositive: actPos } = calcGain(value, actual)
   const style = { animationDelay: `${delay}ms` }
 
   return (
@@ -81,10 +83,10 @@ function AssetCard({ icon, label, sublabel, invested, value, count, unit, live, 
         </div>
       </div>
 
-      {/* Gain row */}
+      {/* Gain rows */}
       <div className="flex items-center justify-between mt-2">
         <div className="text-[10px] text-textmut">
-          Invested <span className="text-textsec font-medium">{loading ? '…' : INR(invested)}</span>
+          Avg cost <span className="text-textsec font-medium">{loading ? '…' : INR(invested)}</span>
         </div>
         {!loading && (
           <div className={`text-xs font-bold ${isPositive ? 'text-green' : 'text-red'}`}>
@@ -92,8 +94,18 @@ function AssetCard({ icon, label, sublabel, invested, value, count, unit, live, 
           </div>
         )}
       </div>
+      {!loading && actual !== invested && (
+        <div className="flex items-center justify-between mt-1">
+          <div className="text-[10px] text-textmut">
+            Actual <span className="text-textsec font-medium">{INR(actual)}</span>
+          </div>
+          <div className={`text-xs font-bold ${actPos ? 'text-green' : 'text-red'}`}>
+            {actPos ? '+' : ''}{actGainPct.toFixed(1)}%
+          </div>
+        </div>
+      )}
 
-      <MiniBar pct={gainPct} positive={isPositive} />
+      <MiniBar pct={actGainPct} positive={actPos} />
 
       {/* Arrow */}
       <div className="mt-3 flex items-center gap-1 text-[10px] text-textfade group-hover:text-textmut transition-colors">
@@ -185,6 +197,21 @@ export default function AssetsOverviewPage() {
   const { data: bonds    = [], isLoading: l10 } = useAssets<BondAsset>('bonds')
   const { data: foreign  = [], isLoading: l11 } = useAssets<ForeignHolding>('foreign_stock_holdings')
   const { data: crypto   = [], isLoading: l12 } = useAssets<CryptoHolding>('crypto_holdings')
+
+  // ── Actual invested hooks ───────────────────────────────────
+  const actZStocks  = useActualInvested('zerodha_actual_invested')
+  const actZMf      = useActualInvested('mf_actual_invested')
+  const actZGold    = useActualInvested('gold_actual_invested')
+  const actAiStocks = useActualInvested('aionion_actual_invested')
+  const actAiGold   = useActualInvested('aionion_gold_actual_invested')
+  const actAmcMf    = useActualInvested('amc_mf_actual_invested')
+  const actFd       = useActualInvested('fd_actual_invested')
+  const actEf       = useActualInvested('ef_actual_invested')
+  const actForeign  = useActualInvested('foreign_actual_invested')
+  const actCrypto   = useActualInvested('crypto_actual_invested')
+
+  const sum = (hook: ReturnType<typeof useActualInvested>) =>
+    hook.data?.reduce((s, e) => s + e.amount, 0) ?? null
 
   // ── Live prices ──────────────────────────────────────────────
   const zInstruments  = useMemo(() => zStocks.map(r => r.instrument), [zStocks])
@@ -295,6 +322,38 @@ export default function AssetsOverviewPage() {
   const totalVal = zerodhaTotalVal + aionionTotalVal + amcMfVal + cashVal + fdVal + efVal + bondsVal + foreignVal + cryptoVal
   const { gain: totalGain, gainPct: totalGainPct, isPositive: totalPos } = calcGain(totalVal, totalInv)
 
+  // ── Actual invested per section (null = not applicable → use invested) ──
+  const actZStocksAmt  = sum(actZStocks)
+  const actZMfAmt      = sum(actZMf)
+  const actZGoldAmt    = sum(actZGold)
+  const actAiStocksAmt = sum(actAiStocks)
+  const actAiGoldAmt   = sum(actAiGold)
+  const actAmcMfAmt    = sum(actAmcMf)
+  const actFdAmt       = sum(actFd)
+  const actEfAmt       = sum(actEf)
+  const actForeignAmt  = sum(actForeign)
+  const actCryptoAmt   = sum(actCrypto)
+  // No actual tables: cash, bonds, aionion gold → use invested as actual
+  const cashActual     = cashInv
+  const bondsActual    = bondsInv
+
+  // Grand actual total: use actual where available, else invested
+  const totalActual =
+    (actZStocksAmt  ?? zStocksInv) +
+    (actZMfAmt      ?? zMfInv) +
+    (actZGoldAmt    ?? zGoldInv) +
+    (actAiStocksAmt ?? aiStocksInv) +
+    (actAiGoldAmt   ?? aiGoldInv) +
+    (actAmcMfAmt    ?? amcMfInv) +
+    cashActual +
+    (actFdAmt       ?? fdInv) +
+    (actEfAmt       ?? efInv) +
+    bondsActual +
+    (actForeignAmt  ?? foreignInv) +
+    (actCryptoAmt   ?? cryptoInv)
+
+  const { gain: actualGain, gainPct: actualGainPct, isPositive: actualPos } = calcGain(totalVal, totalActual)
+
   const anyLoading = l1||l2||l3||l4||l5||l6||l7||l8||l9||l10||l11||l12
   const anyLive    = !nFetching && !yFetching && Object.keys(nsePrices).length > 0
 
@@ -345,7 +404,7 @@ export default function AssetsOverviewPage() {
           <div className="absolute inset-0 opacity-[0.03]"
             style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, #fff 0%, transparent 50%), radial-gradient(circle at 20% 80%, #fff 0%, transparent 40%)' }} />
 
-          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="relative grid grid-cols-2 md:grid-cols-5 gap-6">
             <div>
               <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Total Portfolio</div>
               {anyLoading
@@ -362,7 +421,7 @@ export default function AssetsOverviewPage() {
               }
             </div>
             <div>
-              <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Total Gain / Loss</div>
+              <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Gain (Avg Cost)</div>
               {anyLoading
                 ? <div className="h-9 w-32 bg-white/10 rounded-lg animate-pulse" />
                 : (
@@ -372,6 +431,23 @@ export default function AssetsOverviewPage() {
                     </div>
                     <div className={`text-sm font-semibold mt-0.5 ${totalPos ? 'text-green/70' : 'text-red/70'}`}>
                       {totalPos ? '+' : ''}{totalGainPct.toFixed(2)}%
+                    </div>
+                  </div>
+                )
+              }
+            </div>
+            <div>
+              <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Gain (Actual)</div>
+              {anyLoading
+                ? <div className="h-9 w-32 bg-white/10 rounded-lg animate-pulse" />
+                : (
+                  <div>
+                    <div className="text-[10px] text-white/30 mb-1">Actual <span className="text-white/50 font-mono">{INR(totalActual)}</span></div>
+                    <div className={`font-bold text-2xl tracking-tight ${actualPos ? 'text-green' : 'text-red'}`}>
+                      {actualPos ? '+' : ''}{INR(actualGain)}
+                    </div>
+                    <div className={`text-sm font-semibold mt-0.5 ${actualPos ? 'text-green/70' : 'text-red/70'}`}>
+                      {actualPos ? '+' : ''}{actualGainPct.toFixed(2)}%
                     </div>
                   </div>
                 )
@@ -402,27 +478,27 @@ export default function AssetsOverviewPage() {
         <section className="mb-8">
           <GroupHeader label="Equity & Mutual Funds" invested={zerodhaTotalInv + aionionTotalInv + amcMfInv} value={zerodhaTotalVal + aionionTotalVal + amcMfVal} loading={anyLoading} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <AssetCard icon="📈" label="Zerodha Stocks" sublabel="NSE · Live" invested={zStocksInv} value={zStocksVal}
+            <AssetCard icon="📈" label="Zerodha Stocks" sublabel="NSE · Live" invested={zStocksInv} actual={actZStocksAmt ?? zStocksInv} value={zStocksVal}
               count={zStocks.filter(r => Number(r.qty) > 0).length} unit="stocks"
               live={Object.keys(nsePrices).length > 0} loading={l1} accent="#1A7A3C"
               path="/assets/zerodha-stocks" delay={0} />
-            <AssetCard icon="◈" label="Zerodha MF" sublabel="BSE NAV · Live" invested={zMfInv} value={zMfVal}
+            <AssetCard icon="◈" label="Zerodha MF" sublabel="BSE NAV · Live" invested={zMfInv} actual={actZMfAmt ?? zMfInv} value={zMfVal}
               count={zMfs.filter(r => Number(r.qty) > 0).length} unit="funds"
               live={Object.keys(yahooPrices).length > 0} loading={l2} accent="#0891b2"
               path="/assets/mutual-funds" delay={60} />
-            <AssetCard icon="⬡" label="Zerodha Gold" sublabel="ETF / MF" invested={zGoldInv} value={zGoldVal}
+            <AssetCard icon="⬡" label="Zerodha Gold" sublabel="ETF / MF" invested={zGoldInv} actual={actZGoldAmt ?? zGoldInv} value={zGoldVal}
               count={zGold.filter(r => Number(r.qty) > 0).length} unit="holdings"
               live={Object.keys(yahooPrices).length > 0} loading={l3} accent="#D97706"
               path="/assets/gold" delay={120} />
-            <AssetCard icon="📊" label="Aionion Stocks" sublabel="NSE · Live" invested={aiStocksInv} value={aiStocksVal}
+            <AssetCard icon="📊" label="Aionion Stocks" sublabel="NSE · Live" invested={aiStocksInv} actual={actAiStocksAmt ?? aiStocksInv} value={aiStocksVal}
               count={aiStocks.filter(r => Number(r.qty) > 0).length} unit="stocks"
               live={Object.keys(nsePrices).length > 0} loading={l4} accent="#7C3AED"
               path="/assets/aionion-stocks" delay={180} />
-            <AssetCard icon="◎" label="Aionion Gold" sublabel="SGB / Gold" invested={aiGoldInv} value={aiGoldVal}
+            <AssetCard icon="◎" label="Aionion Gold" sublabel="SGB / Gold" invested={aiGoldInv} actual={actAiGoldAmt ?? aiGoldInv} value={aiGoldVal}
               count={aiGold.filter(r => Number(r.qty) > 0).length} unit="holdings"
               loading={l5} accent="#F59E0B"
               path="/assets/aionion-gold" delay={240} />
-            <AssetCard icon="◆" label="AMC Mutual Funds" sublabel="Direct · Live NAV" invested={amcMfInv} value={amcMfVal}
+            <AssetCard icon="◆" label="AMC Mutual Funds" sublabel="Direct · Live NAV" invested={amcMfInv} actual={actAmcMfAmt ?? amcMfInv} value={amcMfVal}
               count={amcMf.filter(r => Number(r.qty) > 0).length} unit="funds"
               live={Object.keys(yahooPrices).length > 0} loading={l6} accent="#DB2777"
               path="/assets/amc-mf" delay={300} />
@@ -433,16 +509,16 @@ export default function AssetsOverviewPage() {
         <section className="mb-8">
           <GroupHeader label="Fixed Income & Savings" invested={cashInv + fdInv + efInv + bondsInv} value={cashVal + fdVal + efVal + bondsVal} loading={anyLoading} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <AssetCard icon="💰" label="Cash" sublabel="Savings / Wallets" invested={cashInv} value={cashVal}
+            <AssetCard icon="💰" label="Cash" sublabel="Savings / Wallets" invested={cashInv} actual={cashActual} value={cashVal}
               count={cash.length} unit="accounts" loading={l7} accent="#059669"
               path="/assets/cash" delay={0} />
-            <AssetCard icon="🏦" label="Fixed Deposits" sublabel="Bank / NBFC" invested={fdInv} value={fdVal}
+            <AssetCard icon="🏦" label="Fixed Deposits" sublabel="Bank / NBFC" invested={fdInv} actual={actFdAmt ?? fdInv} value={fdVal}
               count={fds.length} unit="FDs" loading={l8} accent="#0891b2"
               path="/assets/fd" delay={60} />
-            <AssetCard icon="🛡" label="Emergency Fund" sublabel="Liquid safety net" invested={efInv} value={efVal}
+            <AssetCard icon="🛡" label="Emergency Fund" sublabel="Liquid safety net" invested={efInv} actual={actEfAmt ?? efInv} value={efVal}
               count={ef.length} unit="entries" loading={l9} accent="#6366F1"
               path="/assets/ef" delay={120} />
-            <AssetCard icon="📜" label="Bonds" sublabel="G-Sec / NCD / SGB" invested={bondsInv} value={bondsVal}
+            <AssetCard icon="📜" label="Bonds" sublabel="G-Sec / NCD / SGB" invested={bondsInv} actual={bondsActual} value={bondsVal}
               count={bonds.length} unit="bonds" loading={l10} accent="#B45309"
               path="/assets/bonds" delay={180} />
           </div>
@@ -452,11 +528,11 @@ export default function AssetsOverviewPage() {
         <section className="mb-8">
           <GroupHeader label="Global Assets" invested={foreignInv + cryptoInv} value={foreignVal + cryptoVal} loading={anyLoading} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <AssetCard icon="🌐" label="Foreign Stocks" sublabel="USD / GBP · Live" invested={foreignInv} value={foreignVal}
+            <AssetCard icon="🌐" label="Foreign Stocks" sublabel="USD / GBP · Live" invested={foreignInv} actual={actForeignAmt ?? foreignInv} value={foreignVal}
               count={foreign.filter(r => Number(r.qty) > 0).length} unit="stocks"
               live={Object.keys(yahooPrices).length > 0} loading={l11} accent="#DB2777"
               path="/assets/foreign-stocks" delay={0} />
-            <AssetCard icon="₿" label="Crypto" sublabel="GBP pairs · Live" invested={cryptoInv} value={cryptoVal}
+            <AssetCard icon="₿" label="Crypto" sublabel="GBP pairs · Live" invested={cryptoInv} actual={actCryptoAmt ?? cryptoInv} value={cryptoVal}
               count={crypto.filter(r => Number(r.qty) > 0).length} unit="coins"
               live={Object.keys(yahooPrices).length > 0} loading={l12} accent="#F59E0B"
               path="/assets/crypto" delay={60} />
