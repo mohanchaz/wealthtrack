@@ -138,14 +138,19 @@ export interface CashAsset {
 
 // ── Bond asset (bonds) ────────────────────────────────────────
 export interface BondAsset {
-  id:           string
-  user_id:      string
-  name:         string
-  invested:     number
-  face_value?:  number
-  coupon_rate?: number
-  maturity?:    string
-  created_at?:  string
+  id:                 string
+  user_id:            string
+  name:               string
+  platform?:          string
+  isin?:              string
+  bond_id?:           string
+  sb_account_number?: string
+  invested:           number
+  face_value?:        number
+  interest_rate?:     number
+  purchase_date?:     string
+  maturity_date?:     string
+  created_at?:        string
 }
 
 // ── Actual invested entry ──────────────────────────────────────
