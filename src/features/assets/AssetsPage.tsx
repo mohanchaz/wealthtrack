@@ -13,6 +13,7 @@ import BondsPage          from './BondsPage'
 import ForeignStocksPage  from './ForeignStocksPage'
 import CryptoPage         from './CryptoPage'
 import AmcMfPage          from './AmcMfPage'
+import AssetsOverviewPage  from './AssetsOverviewPage'
 
 const PAGE_MAP: Record<string, React.ComponentType> = {
   'zerodha':        ZerodhaOverviewPage,
@@ -29,11 +30,12 @@ const PAGE_MAP: Record<string, React.ComponentType> = {
   'foreign-stocks': ForeignStocksPage,
   'crypto':         CryptoPage,
   'amc-mf':         AmcMfPage,
+  'overview':        AssetsOverviewPage,
 }
 
 export default function AssetsPage() {
   const { assetClass } = useParams<{ assetClass: string }>()
-  if (!assetClass) return <Navigate to="/assets/zerodha-stocks" replace />
+  if (!assetClass) return <Navigate to="/assets/overview" replace />
 
   const Page = PAGE_MAP[assetClass]
   if (!Page) return <Navigate to="/assets/zerodha-stocks" replace />

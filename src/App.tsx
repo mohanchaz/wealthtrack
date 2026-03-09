@@ -46,7 +46,7 @@ export default function App() {
           <Route path="/dashboard"          element={<DashboardPage />} />
           <Route path="/allocation"         element={<AllocationPage />} />
           <Route path="/assets/:assetClass" element={<AssetsPage />} />
-          <Route path="/assets"             element={<Navigate to="/assets/zerodha-stocks" replace />} />
+          <Route path="/assets"             element={<Navigate to="/assets/overview" replace />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
