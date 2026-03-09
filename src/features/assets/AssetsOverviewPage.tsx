@@ -399,10 +399,7 @@ export default function AssetsOverviewPage() {
         </div>
 
         {/* ── HERO BANNER ─────────────────────────────────────── */}
-        <div className="animate-fade-up rounded-2xl p-6 mb-8 relative overflow-hidden">
-          {/* Warm parchment background with left accent stripe */}
-          <div className="absolute inset-0 rounded-2xl border border-border2" style={{ background: 'linear-gradient(135deg, #EDEADE 0%, #E8E5DC 60%, #EDE8DF 100%)' }} />
-          <div className="absolute left-0 top-4 bottom-4 w-1 rounded-full bg-ink/20" />
+        <div className="animate-fade-up rounded-2xl p-6 mb-8 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #EDEBE8 0%, #E6E4E0 100%)', border: '1px solid #C8C4BE' }}>
 
           <div className="relative grid grid-cols-2 md:grid-cols-5 gap-6">
             <div>
