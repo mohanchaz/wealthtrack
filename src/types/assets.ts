@@ -81,10 +81,11 @@ export interface CryptoHolding {
   id:              string
   user_id:         string
   yahoo_symbol:    string
+  platform:        string
   qty:             number
   prev_qty?:       number
   avg_price_gbp:   number
-  created_at?:     string
+  updated_at?:     string
 }
 
 // ── Bank FD (bank_fd_assets) ──────────────────────────────────

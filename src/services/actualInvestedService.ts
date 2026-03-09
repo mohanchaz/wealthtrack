@@ -10,7 +10,7 @@ export type ActualTable =
   | 'mf_actual_invested'
   | 'gold_actual_invested'
   // foreign_actual_invested has custom schema (gbp_amount+inr_rate) — handled in ForeignStocksPage directly
-  | 'crypto_actual_invested'
+  // crypto_actual_invested has custom schema (gbp_amount+inr_rate) — handled in CryptoPage directly
 
 export interface ActualEntry {
   id:           string
