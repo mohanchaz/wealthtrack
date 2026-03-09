@@ -89,17 +89,19 @@ export interface CryptoHolding {
 
 // ── Bank FD (bank_fd_assets) ──────────────────────────────────
 export interface FdAsset {
-  id:               string
-  user_id:          string
-  category?:        string
-  platform?:        string
-  account_number?:  string
-  invested:         number
-  invested_date?:   string
-  interest_rate?:   number
-  maturity_date?:   string
-  maturity_amount?: number
-  created_at?:      string
+  id:                 string
+  user_id:            string
+  category:           string
+  platform?:          string
+  account_number?:    string
+  sb_account_number?: string
+  invested:           number
+  invested_date?:     string
+  interest_rate?:     number
+  maturity_date?:     string
+  maturity_amount?:   number
+  notes?:             string
+  created_at?:        string
 }
 
 // ── Emergency Fund (emergency_funds) ─────────────────────────
