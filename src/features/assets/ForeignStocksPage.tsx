@@ -610,7 +610,12 @@ export default function ForeignStocksPage() {
   return (
     <PageShell title="Foreign Stocks"
       subtitle={`${rows.filter(r => Number(r.qty) > 0).length} holdings`}
-      badge={<span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 tabular-nums">£1 = ₹{gbpInr.toFixed(2)}</span>}
+      badge={
+        <span style={{display:'inline-flex',alignItems:'stretch',borderRadius:'20px',overflow:'hidden',fontSize:'11px',fontWeight:700,border:'1px solid #059669'}}>
+          <span style={{background:'#059669',color:'#fff',padding:'2px 8px',fontFamily:'DM Sans,sans-serif',letterSpacing:'0.05em',display:'flex',alignItems:'center'}}>GBP→INR</span>
+          <span style={{background:'#ECFDF5',color:'#065F46',padding:'2px 9px',fontFamily:'DM Mono,monospace',display:'flex',alignItems:'center'}}>₹{gbpInr.toFixed(2)}</span>
+        </span>
+      }
       actions={[
         { label: '📥 Import CSV', onClick: () => setShowImport(true), variant: 'secondary' },
         { label: '+ Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
