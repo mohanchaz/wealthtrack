@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQueryClient }    from '@tanstack/react-query'
 import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
@@ -322,6 +322,15 @@ export default function ForeignStocksPage() {
   const usdInr = fx?.usdInr ?? 83.5
   const gbpInr = fx?.gbpInr ?? gbpUsd * usdInr
 
+  // Actual invested entries — fetched at page level for stats
+  const [actualEntries, setActualEntries] = useState<{gbp_amount: number; inr_rate: number}[]>([])
+  useEffect(() => {
+    supabase.from('foreign_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
+      .then(({ data }) => setActualEntries((data ?? []) as {gbp_amount: number; inr_rate: number}[]))
+  }, [userId])
+  const actualGbp = actualEntries.reduce((s, e) => s + Number(e.gbp_amount), 0)
+  const actualInr = actualEntries.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate), 0)
+
   // Build yahoo symbols list
   const yahooSymbols = useMemo(() =>
     [...new Set(rows.map(r => toYahooSymbol(r.symbol, r.currency)))],
@@ -389,23 +398,32 @@ export default function ForeignStocksPage() {
     ? '🔄 Fetching…'
     : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
 
-  const gainGbp    = totalValueGbp - totalInvestedGbp
-  const gainPctGbp = totalInvestedGbp > 0 ? (gainGbp / totalInvestedGbp) * 100 : 0
-  const isUpGbp    = gainGbp >= 0
+  const gainGbp     = totalValueGbp - totalInvestedGbp
+  const gainPctGbp  = totalInvestedGbp > 0 ? (gainGbp / totalInvestedGbp) * 100 : 0
+  const isUpGbp     = gainGbp >= 0
+  const gainInr     = totalValueInr - totalInvestedInr
+  const isUpInr     = gainInr >= 0
 
-  const stats = [
-    { label: 'Invested (£)',      value: fmtGbp(totalInvestedGbp),          icon: '£', accentColor: '#B45309', loading: isLoading },
-    { label: 'Invested (₹)',      value: INR(totalInvestedInr),              icon: '₹', accentColor: '#0891b2', loading: isLoading },
-    { label: 'Current Value (£)', value: fmtGbp(totalValueGbp),             icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
-    { label: 'Current Value (₹)', value: INR(totalValueInr),                 icon: '◈', accentColor: '#0d9488', loading: isLoading },
-    { label: 'Gain / Loss (£)',
-      value: `${isUpGbp ? '+' : ''}${fmtGbp(gainGbp)}`,
-      sub: `${isUpGbp ? '+' : ''}${gainPctGbp.toFixed(1)}%`,
-      icon: isUpGbp ? '▲' : '▼',
-      accentColor: isUpGbp ? '#059669' : '#dc2626',
-      loading: isLoading,
-    },
-    { label: 'GBP→INR Rate', value: `₹${gbpInr.toFixed(2)}`, icon: '⇄', accentColor: '#7C3AED', loading: !fx },
+  // Actual gain
+  const actGainGbp    = actualGbp > 0 ? totalValueGbp - actualGbp : null
+  const actGainInr    = actualInr > 0 ? totalValueInr - actualInr : null
+  const actGainPctGbp = actualGbp > 0 ? ((totalValueGbp - actualGbp) / actualGbp) * 100 : null
+  const actIsUp       = actGainGbp != null ? actGainGbp >= 0 : true
+
+  // Row 1: ₹  |  Row 2: £  — 4 cols each
+  const statsRow1 = [
+    { label: 'Invested (₹)',       value: INR(totalInvestedInr),                                         icon: '₹', accentColor: '#0891b2', loading: isLoading },
+    { label: 'Current Value (₹)',  value: INR(totalValueInr),                                            icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
+    { label: 'Gain / Loss (₹)',    value: `${isUpInr?'+':''}${INR(gainInr)}`,                            icon: isUpInr?'▲':'▼', accentColor: isUpInr?'#059669':'#dc2626', loading: isLoading },
+    { label: 'Actual Invested (₹)',value: actualInr > 0 ? INR(actualInr) : '—',                          icon: '⊡', accentColor: '#d97706', loading: isLoading },
+    { label: 'Actual Gain (₹)',    value: actGainInr != null ? `${actIsUp?'+':''}${INR(actGainInr)}` : '—', sub: actGainPctGbp != null ? `${actIsUp?'+':''}${actGainPctGbp.toFixed(1)}%` : undefined, icon: actIsUp?'▲':'▼', accentColor: actIsUp?'#059669':'#dc2626', loading: isLoading },
+  ]
+  const statsRow2 = [
+    { label: 'Invested (£)',       value: fmtGbp(totalInvestedGbp),                                      icon: '£', accentColor: '#B45309', loading: isLoading },
+    { label: 'Current Value (£)',  value: fmtGbp(totalValueGbp),                                         icon: '◈', accentColor: '#0d9488', loading: isLoading },
+    { label: 'Gain / Loss (£)',    value: `${isUpGbp?'+':''}${fmtGbp(gainGbp)}`, sub: `${isUpGbp?'+':''}${gainPctGbp.toFixed(1)}%`, icon: isUpGbp?'▲':'▼', accentColor: isUpGbp?'#059669':'#dc2626', loading: isLoading },
+    { label: 'Actual Invested (£)',value: actualGbp > 0 ? fmtGbp(actualGbp) : '—',                      icon: '⊡', accentColor: '#d97706', loading: isLoading },
+    { label: 'GBP→INR Rate',       value: `₹${gbpInr.toFixed(2)}`,                                      icon: '⇄', accentColor: '#7C3AED', loading: !fx },
   ]
 
   const handleSave = async (d: Partial<ForeignHolding>) => {
@@ -596,7 +614,12 @@ export default function ForeignStocksPage() {
       ]}
     >
       <AssetPageLayout
-        stats={<StatGrid items={stats} cols={3} />}
+        stats={
+          <div className="flex flex-col gap-3">
+            <StatGrid items={statsRow1} cols={5} />
+            <StatGrid items={statsRow2} cols={5} />
+          </div>
+        }
         mainTable={
           <AssetTable columns={cols} data={sortedRows} rowKey={r => r.id} loading={isLoading}
             emptyText="No foreign holdings — click 📥 Import CSV or + Add"
