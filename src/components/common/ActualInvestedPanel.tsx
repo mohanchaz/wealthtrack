@@ -3,18 +3,20 @@ import { useActualInvested } from '../../hooks/useActualInvested'
 import type { ActualTable } from '../../services/actualInvestedService'
 import { INR, formatDate } from '../../lib/utils'
 import { Button } from '../ui/Button'
+import { ConfirmModal } from '../ui/ConfirmModal'
 import { Input }  from '../ui/Input'
 
 interface Props { table: ActualTable }
 
 export function ActualInvestedPanel({ table }: Props) {
   const { data = [], addMutation, deleteMutation } = useActualInvested(table)
-  const [showForm,  setShowForm]  = useState(false)
-  const [amount,    setAmount]    = useState('')
-  const [entryDate, setEntryDate] = useState('')
-  const [error,     setError]     = useState('')
-  const [selected,  setSelected]  = useState<Set<string>>(new Set())
-  const [deleting,  setDeleting]  = useState(false)
+  const [showForm,    setShowForm]    = useState(false)
+  const [amount,      setAmount]      = useState('')
+  const [entryDate,   setEntryDate]   = useState('')
+  const [error,       setError]       = useState('')
+  const [selected,    setSelected]    = useState<Set<string>>(new Set())
+  const [deleting,    setDeleting]    = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const total    = data.reduce((s, r) => s + r.amount, 0)
   const allIds   = data.map(e => e.id)
@@ -37,7 +39,12 @@ export function ActualInvestedPanel({ table }: Props) {
   }
 
   const handleDeleteSelected = async () => {
-    if (!confirm(`Delete ${selected.size} entr${selected.size > 1 ? 'ies' : 'y'}?`)) return
+    if (selected.size === 0) return
+    setConfirmOpen(true)
+  }
+
+  const doDelete = async () => {
+    setConfirmOpen(false)
     setDeleting(true)
     try {
       for (const id of selected) await deleteMutation.mutateAsync(id)
@@ -118,6 +125,13 @@ export function ActualInvestedPanel({ table }: Props) {
           </>
         )}
       </div>
+      {confirmOpen && (
+        <ConfirmModal
+          message={`Delete ${selected.size} entr${selected.size > 1 ? 'ies' : 'y'}? This cannot be undone.`}
+          onConfirm={doDelete}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   )
 }

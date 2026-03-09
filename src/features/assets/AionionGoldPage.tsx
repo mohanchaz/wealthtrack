@@ -44,7 +44,6 @@ export default function AionionGoldPage() {
   const actual = aiHook.data?.reduce((s, e) => s + e.amount, 0)
   const liveLabel = pf ? '🔄 Fetching…' : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
   const handleSave = async (d: Partial<AionionGoldHolding>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
-  const handleDelete = async (id: string) => { if (!confirm('Delete?')) return; try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') } }
   const cols = [
     { key: 'instrument', header: 'Instrument', render: (r: AionionGoldHolding) => <span className="font-bold">{r.instrument}</span> },
     { key: 'qty',      header: 'Qty',       align: 'right' as const, render: (r: AionionGoldHolding) => r.qty.toLocaleString('en-IN', { maximumFractionDigits: 4 }) },

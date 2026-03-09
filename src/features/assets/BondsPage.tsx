@@ -47,7 +47,6 @@ export default function BondsPage() {
   const totalInvested = useMemo(() => rows.reduce((s, r) => s + r.invested, 0), [rows])
   const totalFace     = useMemo(() => rows.reduce((s, r) => s + (r.face_value ?? r.invested), 0), [rows])
   const handleSave = async (d: Partial<BondAsset>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
-  const handleDelete = async (id: string) => { if (!confirm('Delete?')) return; try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') } }
   const stats = [
     { label: 'Invested',    value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Face Value',  value: INR(totalFace),     icon: '◈', accentColor: '#0d9488', loading: isLoading },

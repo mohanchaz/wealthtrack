@@ -131,8 +131,7 @@ export default function ZerodhaStocksPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this holding?')) return
-    try {
+        try {
       await deleteMutation.mutateAsync(id)
       toast('Deleted', 'success')
     } catch (e) { toast((e as Error).message, 'error') }

@@ -143,7 +143,6 @@ export default function ForeignStocksPage() {
   ]
 
   const handleSave = async (d: Partial<ForeignHolding>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
-  const handleDelete = async (id: string) => { if (!confirm('Delete?')) return; try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') } }
   const handleImport = async (parsed: Record<string, unknown>[]) => {
     await replaceAssets('foreign_stock_holdings', userId, parsed.map(r => ({ ...r, user_id: userId })))
     qc.invalidateQueries({ queryKey: ['foreign_stock_holdings', userId] }); toast(`${parsed.length} holdings imported ✅`,'success')

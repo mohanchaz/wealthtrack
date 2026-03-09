@@ -78,7 +78,6 @@ export default function CryptoPage() {
   ]
 
   const handleSave = async (d: Partial<CryptoHolding>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
-  const handleDelete = async (id: string) => { if (!confirm('Delete?')) return; try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') } }
 
   const cols = [
     { key: 'ticker', header: 'Coin', render: (r: CryptoHolding) => (

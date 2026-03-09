@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { ConfirmModal } from '../ui/ConfirmModal'
 
 export interface Column<T> {
   key:        string
@@ -20,8 +21,9 @@ interface Props<T> {
 }
 
 export function AssetTable<T>({ columns, data, rowKey, emptyText = 'No data', loading, onEditRow, onDeleteRows }: Props<T>) {
-  const [selected,  setSelected]  = useState<Set<string>>(new Set())
-  const [deleting,  setDeleting]  = useState(false)
+  const [selected,    setSelected]    = useState<Set<string>>(new Set())
+  const [deleting,    setDeleting]    = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const allIds     = data.map(rowKey)
   const allChecked = allIds.length > 0 && allIds.every(id => selected.has(id))
@@ -42,7 +44,12 @@ export function AssetTable<T>({ columns, data, rowKey, emptyText = 'No data', lo
 
   const handleDeleteSelected = async () => {
     if (!onDeleteRows || selected.size === 0) return
-    if (!confirm(`Delete ${selected.size} selected item${selected.size > 1 ? 's' : ''}?`)) return
+    setConfirmOpen(true)
+  }
+
+  const doDelete = async () => {
+    if (!onDeleteRows) return
+    setConfirmOpen(false)
     setDeleting(true)
     try {
       await onDeleteRows([...selected])
@@ -173,6 +180,13 @@ export function AssetTable<T>({ columns, data, rowKey, emptyText = 'No data', lo
           })}
         </tbody>
       </table>
+      {confirmOpen && (
+        <ConfirmModal
+          message={`Delete ${selected.size} selected item${selected.size > 1 ? 's' : ''}? This cannot be undone.`}
+          onConfirm={doDelete}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   )
 }

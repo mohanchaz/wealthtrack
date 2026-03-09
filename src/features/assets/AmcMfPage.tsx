@@ -43,7 +43,6 @@ export default function AmcMfPage() {
   const totalValue    = useMemo(() => rows.reduce((s, r) => s + (r.current_value ?? r.invested ?? r.qty*r.avg_cost), 0), [rows])
   const { gain, gainPct, isPositive } = calcGain(totalValue, totalInvested)
   const handleSave = async (d: Partial<AmcMfHolding>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
-  const handleDelete = async (id: string) => { if (!confirm('Delete?')) return; try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') } }
   const stats = [
     { label: 'Invested',     value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Current Value', value: INR(totalValue),   icon: '◈', accentColor: '#0d9488', loading: isLoading },

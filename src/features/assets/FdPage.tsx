@@ -61,7 +61,6 @@ export default function FdPage() {
   const actual = aiHook.data?.reduce((s, e) => s + e.amount, 0)
   const { gain, gainPct, isPositive } = calcGain(totalValue, totalInvested)
   const handleSave = async (d: Partial<FdAsset>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
-  const handleDelete = async (id: string) => { if (!confirm('Delete this FD?')) return; try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') } }
   const stats = [
     { label: 'Invested',       value: INR(totalInvested), icon: '₹',  accentColor: '#0891b2', loading: isLoading },
     { label: 'Maturity Value', value: INR(totalValue),    icon: '◈',  accentColor: '#0d9488', loading: isLoading },

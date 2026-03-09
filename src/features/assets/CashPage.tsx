@@ -45,7 +45,6 @@ export default function CashPage() {
   const totalInvested = useMemo(() => rows.reduce((s, r) => s + r.invested, 0), [rows])
   const totalValue    = useMemo(() => rows.reduce((s, r) => s + (r.current_value ?? r.invested), 0), [rows])
   const handleSave = async (d: Partial<CashAsset>) => { try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) } catch (e) { toast((e as Error).message,'error') } }
-  const handleDelete = async (id: string) => { if (!confirm('Delete?')) return; try { await deleteMutation.mutateAsync(id); toast('Deleted','success') } catch (e) { toast((e as Error).message,'error') } }
   const stats = [
     { label: 'Total Deposited', value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Current Balance', value: INR(totalValue),    icon: '◈', accentColor: '#0d9488', loading: isLoading },
