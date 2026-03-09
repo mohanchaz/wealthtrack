@@ -71,8 +71,14 @@ function parseForeignCsv(text: string): Omit<ForeignHolding, 'id' | 'user_id'>[]
 
 // ── Helpers ───────────────────────────────────────────────────
 function fmtLocal(v: number, currency: string) {
-  if (currency === 'USD')             return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  if (currency === 'GBX')             return `${v.toFixed(2)}p`
+  if (currency === 'USD') return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  if (currency === 'GBX') return `${v.toFixed(2)}p`
+  // GBP
+  return `£${v.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+// Format in GBP (£) — used for invested/value/gain columns
+function fmtGbp(v: number) {
   return `£${v.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
@@ -379,21 +385,24 @@ export default function ForeignStocksPage() {
   const totalInvestedInr = useMemo(() => gbpToInr(totalInvestedGbp), [totalInvestedGbp, fx])
   const totalValueInr    = useMemo(() => gbpToInr(totalValueGbp),    [totalValueGbp, fx])
 
-  const { gain, gainPct, isPositive } = calcGain(totalValueInr, totalInvestedInr)
   const liveLabel = priceFetching
     ? '🔄 Fetching…'
     : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
 
+  const gainGbp    = totalValueGbp - totalInvestedGbp
+  const gainPctGbp = totalInvestedGbp > 0 ? (gainGbp / totalInvestedGbp) * 100 : 0
+  const isUpGbp    = gainGbp >= 0
+
   const stats = [
-    { label: 'Invested (£)',      value: `£${totalInvestedGbp.toFixed(2)}`, icon: '£', accentColor: '#B45309', loading: isLoading },
+    { label: 'Invested (£)',      value: fmtGbp(totalInvestedGbp),          icon: '£', accentColor: '#B45309', loading: isLoading },
     { label: 'Invested (₹)',      value: INR(totalInvestedInr),              icon: '₹', accentColor: '#0891b2', loading: isLoading },
-    { label: 'Current Value (£)', value: `£${totalValueGbp.toFixed(2)}`,    icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
+    { label: 'Current Value (£)', value: fmtGbp(totalValueGbp),             icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
     { label: 'Current Value (₹)', value: INR(totalValueInr),                 icon: '◈', accentColor: '#0d9488', loading: isLoading },
-    { label: 'Gain / Loss',
-      value: `${isPositive ? '+' : ''}${INR(gain)}`,
-      sub: `${isPositive ? '+' : ''}${gainPct.toFixed(1)}%`,
-      icon: isPositive ? '▲' : '▼',
-      accentColor: isPositive ? '#059669' : '#dc2626',
+    { label: 'Gain / Loss (£)',
+      value: `${isUpGbp ? '+' : ''}${fmtGbp(gainGbp)}`,
+      sub: `${isUpGbp ? '+' : ''}${gainPctGbp.toFixed(1)}%`,
+      icon: isUpGbp ? '▲' : '▼',
+      accentColor: isUpGbp ? '#059669' : '#dc2626',
       loading: isLoading,
     },
     { label: 'GBP→INR Rate', value: `₹${gbpInr.toFixed(2)}`, icon: '⇄', accentColor: '#7C3AED', loading: !fx },
@@ -462,26 +471,34 @@ export default function ForeignStocksPage() {
     },
     {
       key: 'avg_price', header: 'Avg Price', align: 'right' as const,
-      render: (r: ForeignHolding) => (
-        <div className="text-right">
-          <div>{fmtLocal(r.avg_price, r.currency)}</div>
-          <div className="text-[10px] text-textmut">{INR(gbpToInr(getAvgInGbp(r)))} / unit</div>
-        </div>
-      ),
+      render: (r: ForeignHolding) => {
+        const avgGbp = getAvgInGbp(r)
+        return (
+          <div className="text-right">
+            <div>{fmtLocal(r.avg_price, r.currency)}</div>
+            {r.currency !== 'GBP' && (
+              <div className="text-[10px] text-textmut">{fmtGbp(avgGbp)} / unit</div>
+            )}
+          </div>
+        )
+      },
     },
     {
       key: 'ltp', header: 'Live Price', align: 'right' as const,
       render: (r: ForeignHolding) => {
-        const entry    = getRawEntry(r)
-        const ltpGbp   = getLtpInGbp(r)
-        if (ltpGbp == null || !entry) return <span className="text-textmut">—</span>
-        const avgGbp   = getAvgInGbp(r)
+        const ltpGbp  = getLtpInGbp(r)
+        if (ltpGbp == null) return <span className="text-textmut">—</span>
+        const avgGbp  = getAvgInGbp(r)
         const changePct = avgGbp > 0 ? ((ltpGbp - avgGbp) / avgGbp) * 100 : 0
-        // Display the raw price in its native unit (pence for GBX, $ for USD, £ for GBP)
-        const displayCcy = isGbxLive(r) ? 'GBX' : r.currency
+        // Convert GBP price back to display currency for consistency with avg_price column
+        const displayPrice = r.currency === 'USD'
+          ? ltpGbp * gbpUsd         // GBP → USD for display
+          : r.currency === 'GBX'
+            ? ltpGbp * 100          // GBP → pence for display
+            : ltpGbp                // already GBP
         return (
           <div className="text-right">
-            <div className="font-bold">{fmtLocal(entry.price, displayCcy)}</div>
+            <div className="font-bold">{fmtLocal(displayPrice, r.currency)}</div>
             <div className={`text-[10px] font-semibold ${changePct >= 0 ? 'text-green' : 'text-red'}`}>
               {changePct >= 0 ? '+' : ''}{changePct.toFixed(1)}%
             </div>
@@ -493,11 +510,13 @@ export default function ForeignStocksPage() {
       key: 'invested', header: 'Invested', align: 'right' as const,
       render: (r: ForeignHolding) => {
         const localVal = r.qty * r.avg_price
-        const inrVal   = gbpToInr(r.qty * getAvgInGbp(r))
+        const gbpVal   = r.qty * getAvgInGbp(r)
         return (
           <div className="text-right">
             <div>{fmtLocal(localVal, r.currency)}</div>
-            <div className="text-[10px] text-textmut">{INR(inrVal)}</div>
+            {r.currency !== 'GBP' && (
+              <div className="text-[10px] text-textmut">{fmtGbp(gbpVal)}</div>
+            )}
           </div>
         )
       },
@@ -505,21 +524,25 @@ export default function ForeignStocksPage() {
     {
       key: 'value', header: 'Cur. Value', align: 'right' as const,
       render: (r: ForeignHolding) => {
-        const entry    = getRawEntry(r)
-        const ltpGbp   = getLtpInGbp(r)
-        const avgGbp   = getAvgInGbp(r)
-        const valGbp   = r.qty * (ltpGbp ?? avgGbp)
-        const costGbp  = r.qty * avgGbp
-        const inrVal   = gbpToInr(valGbp)
-        // Display in native local currency using raw Yahoo price
-        const localVal = entry ? r.qty * entry.price : r.qty * r.avg_price
-        const isUp     = valGbp >= costGbp
+        const ltpGbp  = getLtpInGbp(r)
+        const avgGbp  = getAvgInGbp(r)
+        const valGbp  = r.qty * (ltpGbp ?? avgGbp)
+        const costGbp = r.qty * avgGbp
+        const isUp    = valGbp >= costGbp
+        // Convert GBP value back to display currency
+        const localVal = r.currency === 'USD'
+          ? valGbp * gbpUsd
+          : r.currency === 'GBX'
+            ? valGbp * 100
+            : valGbp
         return (
           <div className="text-right">
             <div className={`font-bold ${isUp ? 'text-green' : 'text-red'}`}>
-              {fmtLocal(localVal, isGbxLive(r) ? 'GBX' : r.currency)}
+              {fmtLocal(localVal, r.currency)}
             </div>
-            <div className="text-[10px] text-textmut">{INR(inrVal)}</div>
+            {r.currency !== 'GBP' && (
+              <div className="text-[10px] text-textmut">{fmtGbp(valGbp)}</div>
+            )}
           </div>
         )
       },
@@ -529,14 +552,16 @@ export default function ForeignStocksPage() {
       render: (r: ForeignHolding) => {
         const ltpGbp  = getLtpInGbp(r)
         const avgGbp  = getAvgInGbp(r)
-        const invInr  = gbpToInr(r.qty * avgGbp)
-        const valInr  = gbpToInr(r.qty * (ltpGbp ?? avgGbp))
-        const { gain, gainPct, isPositive } = calcGain(valInr, invInr)
+        const valGbp  = r.qty * (ltpGbp ?? avgGbp)
+        const costGbp = r.qty * avgGbp
+        const gainGbp = valGbp - costGbp
+        const gainPct = costGbp > 0 ? (gainGbp / costGbp) * 100 : 0
+        const isUp    = gainGbp >= 0
         return (
-          <span className={`font-bold ${isPositive ? 'text-green' : 'text-red'}`}>
-            {isPositive ? '+' : ''}{INR(gain)}
+          <span className={`font-bold ${isUp ? 'text-green' : 'text-red'}`}>
+            {isUp ? '+' : ''}{fmtGbp(gainGbp)}
             <br />
-            <span className="text-[10px] font-medium opacity-80">{isPositive ? '+' : ''}{gainPct.toFixed(1)}%</span>
+            <span className="text-[10px] font-medium opacity-80">{isUp ? '+' : ''}{gainPct.toFixed(1)}%</span>
           </span>
         )
       },
