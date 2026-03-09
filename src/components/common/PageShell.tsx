@@ -21,13 +21,15 @@ export function PageShell({ title, subtitle, badge, actions = [], children }: Pr
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-base sm:text-lg font-bold text-textprim tracking-tight">{title}</h1>
+            {subtitle && (
+              <span className="text-xs font-semibold text-textmut bg-surface2 border border-border px-2 py-0.5 rounded-full tabular-nums">
+                {subtitle}
+              </span>
+            )}
             {badge}
           </div>
-          {subtitle && (
-            <p className="text-xs text-textmut mt-0.5">{subtitle}</p>
-          )}
         </div>
         {actions.length > 0 && (
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">

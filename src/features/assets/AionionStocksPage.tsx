@@ -109,7 +109,7 @@ export default function AionionStocksPage() {
     }},
   ]
   return (
-    <PageShell title="Aionion Stocks" subtitle={`${rows.length} holding${rows.length!==1?'s':''}`}
+    <PageShell title="Aionion Stocks" subtitle={`${rows.length} stock${rows.length!==1?'s':''}`}
       actions={[
         { label: '📥 Import CSV', onClick: () => setShowImport(true), variant: 'secondary' },
         { label: '+ Add Holding', onClick: () => setEditRow({}), variant: 'primary' },

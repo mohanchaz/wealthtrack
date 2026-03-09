@@ -205,7 +205,7 @@ export default function ZerodhaStocksPage() {
   return (
     <PageShell
       title="Zerodha Stocks"
-      subtitle={`${rows.length} holding${rows.length !== 1 ? 's' : ''}`}
+      subtitle={`${rows.length} stock${rows.length !== 1 ? 's' : ''}`}
       actions={[
         { label: '+ Add Holding', onClick: () => setEditRow({}),      variant: 'primary'   },
         { label: '🔄',            onClick: () => refreshPrices(),     variant: 'outline'   },
