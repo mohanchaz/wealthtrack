@@ -221,8 +221,9 @@ export default function EfPage() {
             : null}
           {r.platform && <div className="text-xs font-semibold text-ink mt-0.5">{r.platform}</div>}
           {(r.account_number || r.sb_account_number) && (
-            <div className="text-[10px] text-textmut mt-0.5 font-mono">
-              {[r.account_number, r.sb_account_number].filter(Boolean).join(' · ')}
+            <div className="text-[10px] text-textmut mt-0.5 font-mono flex flex-col gap-0.5">
+              {r.account_number    && <span><span className="text-[9px] font-bold uppercase tracking-wide not-italic">A/C </span>{r.account_number}</span>}
+              {r.sb_account_number && <span><span className="text-[9px] font-bold uppercase tracking-wide not-italic">SB&nbsp; </span>{r.sb_account_number}</span>}
             </div>
           )}
         </div>
