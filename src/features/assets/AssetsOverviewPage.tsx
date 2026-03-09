@@ -261,15 +261,15 @@ export default function AssetsOverviewPage() {
 
   // FDs
   const fdInv = useMemo(() => fds.reduce((s, r) => s + Number(r.invested), 0), [fds])
-  const fdVal = useMemo(() => fds.reduce((s, r) => s + Number(r.maturity_amount ?? r.invested), 0), [fds])
+  const fdVal = fdInv  // current value = invested (interest only realised at maturity)
 
   // EF
   const efInv = useMemo(() => ef.reduce((s, r) => s + Number(r.invested), 0), [ef])
-  const efVal = useMemo(() => ef.reduce((s, r) => s + Number(r.maturity_amount ?? r.invested), 0), [ef])
+  const efVal = efInv  // current value = invested (interest only realised at maturity)
 
   // Bonds
   const bondsInv = useMemo(() => bonds.reduce((s, r) => s + Number(r.invested), 0), [bonds])
-  const bondsVal = bondsInv // face value, not live
+  const bondsVal = useMemo(() => bonds.reduce((s, r) => s + Number(r.face_value ?? r.invested), 0), [bonds])
 
   // Foreign
   const foreignInv = useMemo(() => foreign.reduce((s, r) => {
