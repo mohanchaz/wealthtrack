@@ -70,7 +70,14 @@ export default function AionionStocksPage() {
   const actual    = aiHook.data?.reduce((s, e) => s + e.amount, 0)
   const liveLabel = pf ? '🔄 Fetching…' : Object.keys(priceMap).length ? `🟢 Live NSE · ${new Date().toLocaleTimeString('en-IN')}` : undefined
   const handleSave = async (d: Partial<StockHolding>) => {
-    try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅','success'); setEditRow(null) }
+    try {
+      // When editing, preserve old qty as prev_qty so diff badge shows correctly.
+      // When adding new, prev_qty = qty (no diff to show on first save).
+      const existing = rows.find(r => r.id === d.id)
+      const prev_qty = existing ? existing.qty : d.qty
+      await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string,unknown>)
+      toast('Saved ✅','success'); setEditRow(null)
+    }
     catch (e) { toast((e as Error).message, 'error') }
   }
   const cols = [
