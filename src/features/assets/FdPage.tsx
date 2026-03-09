@@ -40,7 +40,12 @@ function daysUntil(dateStr?: string): number | null {
 function MaturityBadge({ dateStr }: { dateStr?: string }) {
   const d = daysUntil(dateStr)
   if (d === null) return <span className="text-textmut text-xs">—</span>
-  if (d < 0)  return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-textmut/10 text-textmut">Matured</span>
+  if (d < 0)  return (
+    <div className="text-right">
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-textmut/10 text-textmut">Matured</span>
+      <div className="text-[10px] text-textmut mt-0.5">{formatDate(dateStr)}</div>
+    </div>
+  )
   if (d <= 30) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red/10 text-red">In {d}d</span>
   if (d <= 90) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber/10 text-amber">In {d}d</span>
   return <span className="text-xs text-textmut">{formatDate(dateStr)}</span>
