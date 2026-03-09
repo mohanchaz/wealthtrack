@@ -84,7 +84,12 @@ export default function GoldPage() {
   const totalValue    = useMemo(() => rows.reduce((s, r) => { const ltp = getLTP(r); return s + (ltp != null ? r.qty * ltp : r.qty * r.avg_cost) }, 0), [rows, priceMap])
   const liveLabel = pf ? '🔄 Fetching…' : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
   const handleSave = async (d: Partial<GoldHolding>) => {
-    try { await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string,unknown>); toast('Saved ✅', 'success'); setEditRow(null) }
+    try {
+      const existing = rows.find(r => r.id === d.id)
+      const prev_qty = existing ? existing.qty : d.qty
+      await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string,unknown>)
+      toast('Saved ✅', 'success'); setEditRow(null)
+    }
     catch (e) { toast((e as Error).message, 'error') }
   }
   const handleDelete = async (id: string) => {
@@ -95,7 +100,16 @@ export default function GoldPage() {
     { key: 'holding_type', header: 'Type', render: (r: GoldHolding) => (
       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.holding_type === 'ETF' ? 'bg-amber/10 text-amber' : 'bg-teal/10 text-teal'}`}>{r.holding_type}</span>
     )},
-    { key: 'qty',      header: 'Qty',       align: 'right' as const, render: (r: GoldHolding) => r.qty.toLocaleString('en-IN', { maximumFractionDigits: 4 }) },
+    { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: GoldHolding) => (
+      <div>
+        <div>{Number(r.qty).toLocaleString('en-IN', { maximumFractionDigits: 4 })}</div>
+        {r.prev_qty != null && Number(r.prev_qty) !== Number(r.qty) && (
+          <div className={`text-[10px] font-semibold ${Number(r.qty) > Number(r.prev_qty) ? 'text-green' : 'text-red'}`}>
+            {Number(r.qty) > Number(r.prev_qty) ? '+' : ''}{(Number(r.qty) - Number(r.prev_qty)).toLocaleString('en-IN', { maximumFractionDigits: 4 })}
+          </div>
+        )}
+      </div>
+    )},
     { key: 'avg_cost', header: 'Avg Cost',  align: 'right' as const, render: (r: GoldHolding) => INR(r.avg_cost) },
     { key: 'ltp',      header: 'Live Price', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span> }},
     { key: 'invested', header: 'Invested',  align: 'right' as const, render: (r: GoldHolding) => INR(r.qty * r.avg_cost) },

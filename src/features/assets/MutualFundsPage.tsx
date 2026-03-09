@@ -206,7 +206,7 @@ export default function MutualFundsPage() {
     {
       key: 'qty', header: 'UNITS', align: 'right' as const,
       render: (r: MfHolding) => {
-        const diff = r.prev_qty != null ? r.qty - r.prev_qty : null
+        const diff = r.prev_qty != null ? Number(r.qty) - Number(r.prev_qty) : null
         return (
           <div className="text-right">
             <div>{r.qty.toLocaleString('en-IN', { maximumFractionDigits: 3 })}</div>

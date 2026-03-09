@@ -49,18 +49,17 @@ export async function replaceAssets<T extends Record<string, unknown>>(
   rows:   T[],
 ): Promise<void> {
   // Tables that support prev_qty diff tracking
-  const DIFF_TABLES: TableName[] = ['zerodha_stocks', 'aionion_stocks', 'mf_holdings']
+  const DIFF_TABLES: TableName[] = ['zerodha_stocks', 'aionion_stocks', 'mf_holdings', 'gold_holdings']
 
   let prevQtyMap: Record<string, number> = {}
 
   if (DIFF_TABLES.includes(table)) {
-    // Fetch current rows to capture existing qtys before we delete them
     const { data: existing } = await supabase
       .from(table).select('*').eq('user_id', userId)
     if (existing) {
       for (const row of existing as Record<string, unknown>[]) {
-        // key by instrument (stocks) or fund_name (MFs)
-        const key = (row.instrument ?? row.fund_name) as string
+        // key by instrument (stocks), fund_name (MFs), or holding_name (gold)
+        const key = (row.instrument ?? row.fund_name ?? row.holding_name) as string
         if (key) prevQtyMap[key] = Number(row.qty ?? 0)
       }
     }
@@ -73,7 +72,7 @@ export async function replaceAssets<T extends Record<string, unknown>>(
   // Attach prev_qty to each row if the table supports it
   const enriched = DIFF_TABLES.includes(table)
     ? rows.map(r => {
-        const key = (r.instrument ?? r.fund_name) as string
+        const key = (r.instrument ?? r.fund_name ?? r.holding_name) as string
         const prev = prevQtyMap[key] ?? 0
         return { ...r, prev_qty: prev }
       })

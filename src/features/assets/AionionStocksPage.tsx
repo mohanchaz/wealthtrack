@@ -87,9 +87,9 @@ export default function AionionStocksPage() {
     { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: StockHolding) => (
       <div>
         <div>{r.qty.toLocaleString('en-IN')}</div>
-        {r.prev_qty != null && r.prev_qty !== r.qty && (
-          <div className={`text-[10px] font-semibold ${r.qty > r.prev_qty ? 'text-green' : 'text-red'}`}>
-            {r.qty > r.prev_qty ? '+' : ''}{r.qty - r.prev_qty}
+        {r.prev_qty != null && Number(r.prev_qty) !== Number(r.qty) && (
+          <div className={`text-[10px] font-semibold ${Number(r.qty) > Number(r.prev_qty) ? 'text-green' : 'text-red'}`}>
+            {Number(r.qty) > Number(r.prev_qty) ? '+' : ''}{Number(r.qty) - Number(r.prev_qty)}
           </div>
         )}
       </div>
