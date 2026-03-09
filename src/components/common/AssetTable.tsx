@@ -73,7 +73,7 @@ export function AssetTable<T>({ columns, data, rowKey, emptyText = 'No data', lo
   }
 
   return (
-    <div className="w-full overflow-hidden">
+    <div className="w-full overflow-x-auto -webkit-overflow-scrolling-touch">
       {/* Delete bar — appears when rows selected */}
       {anyChecked && onDeleteRows && (
         <div className="flex items-center gap-3 px-4 py-2 bg-red/5 border-b border-red/20">
@@ -94,7 +94,7 @@ export function AssetTable<T>({ columns, data, rowKey, emptyText = 'No data', lo
         </div>
       )}
 
-      <table className="w-full text-xs border-collapse">
+      <table className="w-full min-w-[540px] text-xs border-collapse">
         <thead>
           <tr className="border-b border-border bg-surface2/60">
             {/* Checkbox header */}

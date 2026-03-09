@@ -35,7 +35,7 @@ function SectionCard({ title, subtitle, invested, value, actual, liveLabel, load
         </div>
         <span className="text-textfade group-hover:text-textmut transition-colors text-lg">→</span>
       </div>
-      <div className={`grid gap-3 ${actual != null ? 'grid-cols-5' : 'grid-cols-3'}`}>
+      <div className={`grid gap-3 ${actual != null ? 'grid-cols-3 md:grid-cols-5' : 'grid-cols-3'}`}>
         <div>
           <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Invested</div>
           <div className="font-bold text-textprim text-sm">{loading ? '…' : INR(invested)}</div>
@@ -59,7 +59,7 @@ function SectionCard({ title, subtitle, invested, value, actual, liveLabel, load
               <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Actual Invested</div>
               <div className="font-bold text-textprim text-sm">{loading ? '…' : INR(actual)}</div>
             </div>
-            <div>
+            <div className="hidden md:block">
               <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Actual Gain</div>
               <div className={`font-bold text-sm ${actGain?.isPositive ? 'text-green' : 'text-red'}`}>
                 {loading ? '…' : `${actGain?.isPositive ? '+' : ''}${INR(actGain?.gain ?? 0)}`}

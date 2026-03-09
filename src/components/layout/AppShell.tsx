@@ -25,7 +25,7 @@ export function AppShell() {
           transition-transform duration-200 lg:transition-none
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
-          style={{ paddingTop: sidebarOpen ? '56px' : '0', height: sidebarOpen ? '100%' : 'auto' }}
+          style={{ paddingTop: sidebarOpen ? '56px' : '0', height: sidebarOpen ? '100dvh' : 'auto' }}
         >
           <div className="h-full">
             <Sidebar onClose={() => setSidebarOpen(false)} />

@@ -22,7 +22,7 @@ export function PageShell({ title, subtitle, badge, actions = [], children }: Pr
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-textprim tracking-tight">{title}</h1>
+            <h1 className="text-base sm:text-lg font-bold text-textprim tracking-tight">{title}</h1>
             {badge}
           </div>
           {subtitle && (
@@ -30,7 +30,7 @@ export function PageShell({ title, subtitle, badge, actions = [], children }: Pr
           )}
         </div>
         {actions.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
             {actions.map((a, i) => (
               <Button
                 key={i}
