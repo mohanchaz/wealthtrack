@@ -435,20 +435,39 @@ export default function ForeignStocksPage() {
     toast(`${parsed.length} holdings imported ✅`, 'success')
   }
 
+  // Sort rows by instrument name from priceMap, fallback to symbol
+  const getInstrumentName = (r: ForeignHolding): string => {
+    const ySym  = toYahooSymbol(r.symbol, r.currency)
+    const key   = ySym.replace(/\.(L|US)$/, '')
+    return priceMap[key]?.name ?? priceMap[ySym]?.name ?? r.symbol
+  }
+
+  const sortedRows = useMemo(() =>
+    [...rows].sort((a, b) => getInstrumentName(a).localeCompare(getInstrumentName(b))),
+  [rows, priceMap])
+
   const cols = [
     {
       key: 'symbol', header: 'Symbol',
-      render: (r: ForeignHolding) => (
-        <div className="flex items-center gap-2">
-          <div>
-            <div className="font-bold text-ink">{r.symbol}</div>
-            {r.currency === 'GBX' && (
-              <div className="text-[9px] text-textmut">priced in pence</div>
-            )}
+      render: (r: ForeignHolding) => {
+        const name = getInstrumentName(r)
+        return (
+          <div className="flex items-start gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-ink">{r.symbol}</span>
+                <CurrencyBadge currency={r.currency} />
+              </div>
+              {name !== r.symbol && (
+                <div className="text-[10px] text-textmut truncate max-w-[180px]" title={name}>{name}</div>
+              )}
+              {r.currency === 'GBX' && (
+                <div className="text-[9px] text-textfade">priced in pence</div>
+              )}
+            </div>
           </div>
-          <CurrencyBadge currency={r.currency} />
-        </div>
-      ),
+        )
+      },
     },
     {
       key: 'qty', header: 'Qty', align: 'right' as const,
@@ -579,7 +598,7 @@ export default function ForeignStocksPage() {
       <AssetPageLayout
         stats={<StatGrid items={stats} cols={3} />}
         mainTable={
-          <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
+          <AssetTable columns={cols} data={sortedRows} rowKey={r => r.id} loading={isLoading}
             emptyText="No foreign holdings — click 📥 Import CSV or + Add"
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => {
