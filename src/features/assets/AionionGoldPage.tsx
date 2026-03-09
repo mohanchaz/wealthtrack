@@ -1,14 +1,12 @@
 import { useState, useMemo } from 'react'
 import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
-import { useActualInvested } from '../../hooks/useActualInvested'
 import { useYahooPrices }    from '../../hooks/useLivePrices'
 import { useToastStore }     from '../../store/toastStore'
 import { AssetPageLayout }   from '../../components/common/AssetPageLayout'
 import { PageShell }         from '../../components/common/PageShell'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { AssetTable }        from '../../components/common/AssetTable'
-import { ActualInvestedPanel } from '../../components/common/ActualInvestedPanel'
 import { Modal }             from '../../components/ui/Modal'
 import { Button }            from '../../components/ui/Button'
 import { Input }             from '../../components/ui/Input'
@@ -88,7 +86,6 @@ export default function AionionGoldPage() {
   const toast  = useToastStore(s => s.show)
 
   const { data: rows = [], isLoading } = useAssets<AionionGoldHolding>('aionion_gold')
-  const aiHook  = useActualInvested('aionion_gold_actual_invested')
 
   // Derive yahoo symbols from instrument names at runtime
   const symbols = useMemo(() =>
@@ -110,7 +107,6 @@ export default function AionionGoldPage() {
     const ltp = getLTP(r); return s + (ltp != null ? r.qty * ltp : r.qty * r.avg_cost)
   }, 0), [rows, priceMap])
 
-  const actual    = aiHook.data?.reduce((s, e) => s + e.amount, 0)
   const liveLabel = pf ? '🔄 Fetching…'
     : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
 
@@ -209,8 +205,8 @@ export default function AionionGoldPage() {
       <AssetPageLayout
         stats={
           <StatGrid
-            items={buildInvestedStats({ invested: totalInvested, value: totalValue, actual, loading: isLoading, liveLabel })}
-            cols={5}
+            items={buildInvestedStats({ invested: totalInvested, value: totalValue, loading: isLoading, liveLabel }).slice(0, 3)}
+            cols={3}
           />
         }
         mainTable={
@@ -227,7 +223,7 @@ export default function AionionGoldPage() {
             }}
           />
         }
-        actualInvested={<ActualInvestedPanel table="aionion_gold_actual_invested" />}
+        actualInvested={undefined}
       />
       {editRow !== null && (
         <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />
