@@ -399,31 +399,30 @@ export default function AssetsOverviewPage() {
         </div>
 
         {/* ── HERO BANNER ─────────────────────────────────────── */}
-        <div className="animate-fade-up bg-ink rounded-2xl p-6 mb-8 relative overflow-hidden">
-          {/* Subtle ink texture */}
-          <div className="absolute inset-0 opacity-[0.03]"
-            style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, #fff 0%, transparent 50%), radial-gradient(circle at 20% 80%, #fff 0%, transparent 40%)' }} />
+        <div className="animate-fade-up bg-surface border border-border rounded-2xl p-6 mb-8 relative overflow-hidden shadow-card">
+          {/* Decorative top border accent */}
+          <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-border2 to-transparent" />
 
           <div className="relative grid grid-cols-2 md:grid-cols-5 gap-6">
             <div>
-              <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Total Portfolio</div>
+              <div className="text-[10px] text-textmut uppercase tracking-widest mb-1">Total Portfolio</div>
               {anyLoading
-                ? <div className="h-9 w-40 bg-white/10 rounded-lg animate-pulse" />
-                : <div className="font-bold text-3xl text-white tracking-tight">{INR(totalVal)}</div>
+                ? <div className="h-9 w-40 bg-border/60 rounded-lg animate-pulse" />
+                : <div className="font-bold text-3xl text-ink tracking-tight">{INR(totalVal)}</div>
               }
-              {!anyLoading && anyLive && <div className="text-[10px] text-white/30 mt-1">Live valuation</div>}
+              {!anyLoading && anyLive && <div className="text-[10px] text-textfade mt-1">Live valuation</div>}
             </div>
             <div>
-              <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Total Invested</div>
+              <div className="text-[10px] text-textmut uppercase tracking-widest mb-1">Total Invested</div>
               {anyLoading
-                ? <div className="h-9 w-36 bg-white/10 rounded-lg animate-pulse" />
-                : <div className="font-bold text-3xl text-white/80 tracking-tight">{INR(totalInv)}</div>
+                ? <div className="h-9 w-36 bg-border/60 rounded-lg animate-pulse" />
+                : <div className="font-bold text-3xl text-textsec tracking-tight">{INR(totalInv)}</div>
               }
             </div>
             <div>
-              <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Gain (Avg Cost)</div>
+              <div className="text-[10px] text-textmut uppercase tracking-widest mb-1">Gain (Avg Cost)</div>
               {anyLoading
-                ? <div className="h-9 w-32 bg-white/10 rounded-lg animate-pulse" />
+                ? <div className="h-9 w-32 bg-border/60 rounded-lg animate-pulse" />
                 : (
                   <div>
                     <div className={`font-bold text-3xl tracking-tight ${totalPos ? 'text-green' : 'text-red'}`}>
@@ -437,12 +436,12 @@ export default function AssetsOverviewPage() {
               }
             </div>
             <div>
-              <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Gain (Actual)</div>
+              <div className="text-[10px] text-textmut uppercase tracking-widest mb-1">Gain (Actual)</div>
               {anyLoading
-                ? <div className="h-9 w-32 bg-white/10 rounded-lg animate-pulse" />
+                ? <div className="h-9 w-32 bg-border/60 rounded-lg animate-pulse" />
                 : (
                   <div>
-                    <div className="text-[10px] text-white/30 mb-1">Actual <span className="text-white/50 font-mono">{INR(totalActual)}</span></div>
+                    <div className="text-[10px] text-textmut mb-1">Actual <span className="text-textsec font-mono">{INR(totalActual)}</span></div>
                     <div className={`font-bold text-2xl tracking-tight ${actualPos ? 'text-green' : 'text-red'}`}>
                       {actualPos ? '+' : ''}{INR(actualGain)}
                     </div>
@@ -454,7 +453,7 @@ export default function AssetsOverviewPage() {
               }
             </div>
             <div>
-              <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Allocation</div>
+              <div className="text-[10px] text-textmut uppercase tracking-widest mb-2">Allocation</div>
               <div className="flex items-center gap-3">
                 <AllocationRing slices={allocSlices} />
                 <div className="flex flex-col gap-1">
