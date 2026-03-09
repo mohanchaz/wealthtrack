@@ -15,14 +15,32 @@ import { Input }             from '../../components/ui/Input'
 import { INR, calcGain }     from '../../lib/utils'
 import type { AionionGoldHolding } from '../../types/assets'
 
+// Derive yahoo symbol from instrument name — no DB column needed
+const GOLD_LOOKUP: { match: RegExp; yahoo: string }[] = [
+  { match: /goldbees/i,     yahoo: 'GOLDBEES.NS'    },
+  { match: /nippon.*gold/i, yahoo: '0P0000XVDS.BO'  },
+  { match: /axis.*gold/i,   yahoo: 'AXISGOLD.NS'    },
+  { match: /hdfc.*gold/i,   yahoo: 'HDFCGOLD.NS'    },
+  { match: /icici.*gold/i,  yahoo: 'ICICIGOLD.NS'   },
+  { match: /kotak.*gold/i,  yahoo: 'KOTAKGOLD.NS'   },
+  { match: /sbi.*gold/i,    yahoo: 'SBIGOLD.NS'     },
+  { match: /quantum.*gold/i,yahoo: '0P0000XV6Q.BO'  },
+]
+
+function resolveYahoo(instrument: string): string {
+  for (const e of GOLD_LOOKUP) if (e.match.test(instrument)) return e.yahoo
+  return ''
+}
+
 // ── Add / Edit modal ─────────────────────────────────────────
 function EditModal({ row, onClose, onSave }: {
-  row: Partial<AionionGoldHolding>; onClose: () => void; onSave: (d: Partial<AionionGoldHolding>) => Promise<void>
+  row: Partial<AionionGoldHolding>
+  onClose: () => void
+  onSave:  (d: Partial<AionionGoldHolding>) => Promise<void>
 }) {
-  const [inst,   setInst]   = useState(row.instrument    ?? '')
+  const [inst,   setInst]   = useState(row.instrument ?? '')
   const [qty,    setQty]    = useState(String(row.qty      ?? ''))
   const [avg,    setAvg]    = useState(String(row.avg_cost ?? ''))
-  const [sym,    setSym]    = useState(row.yahoo_symbol  ?? '')
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
@@ -30,32 +48,41 @@ function EditModal({ row, onClose, onSave }: {
     setSaving(true)
     await onSave({
       ...row,
-      instrument:   inst.trim().toUpperCase(),
-      qty:          parseFloat(qty),
-      avg_cost:     parseFloat(avg),
-      yahoo_symbol: sym.trim() || undefined,
+      instrument: inst.trim(),
+      qty:        parseFloat(qty),
+      avg_cost:   parseFloat(avg),
     })
     setSaving(false)
   }
 
+  const preview = resolveYahoo(inst)
+
   return (
     <Modal open onClose={onClose} title={row.id ? 'Edit Holding' : 'Add Holding'}
-      footer={<><Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button><Button size="sm" onClick={handleSave} loading={saving}>Save</Button></>}
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={handleSave} loading={saving} disabled={!inst || !qty || !avg}>Save</Button>
+        </>
+      }
     >
       <div className="flex flex-col gap-4">
-        <Input label="Instrument / Name" value={inst} onChange={e => setInst(e.target.value)} placeholder="e.g. GOLDBEES" />
+        <Input
+          label="Instrument / Name"
+          value={inst}
+          onChange={e => setInst(e.target.value)}
+          placeholder="e.g. GOLDBEES or Nippon India Gold Fund"
+        />
+        {/* Live symbol preview */}
+        {inst.length > 2 && (
+          <div className={`text-xs px-3 py-2 rounded-lg ${preview ? 'bg-green/10 text-green' : 'bg-surface2 text-textmut'}`}>
+            {preview
+              ? <>🟢 Live price via <span className="font-mono font-semibold">{preview}</span></>
+              : '⚠ No symbol match — live price unavailable. Rename to include e.g. "GOLDBEES" or "Nippon India Gold".'}
+          </div>
+        )}
         <Input label="Qty / Units" type="number" step="0.0001" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g. 100" />
         <Input label="Avg Cost / NAV (₹)" prefix="₹" type="number" step="0.01" value={avg} onChange={e => setAvg(e.target.value)} placeholder="e.g. 6500.00" />
-        <Input
-          label="Yahoo Symbol (for live price)"
-          value={sym}
-          onChange={e => setSym(e.target.value)}
-          placeholder="e.g. GOLDBEES.NS or 0P0000XVDS.BO"
-        />
-        <p className="text-xs text-textmut -mt-2">
-          Use <span className="font-mono">SYMBOL.NS</span> for NSE ETFs,&nbsp;
-          <span className="font-mono">SYMBOL.BO</span> for BSE funds. Leave blank to skip live pricing.
-        </p>
       </div>
     </Modal>
   )
@@ -68,16 +95,19 @@ export default function AionionGoldPage() {
 
   const { data: rows = [], isLoading } = useAssets<AionionGoldHolding>('aionion_gold')
   const aiHook  = useActualInvested('aionion_gold_actual_invested')
+
+  // Derive yahoo symbols from instrument names at runtime
   const symbols = useMemo(() =>
-    [...new Set(rows.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [rows])
+    [...new Set(rows.map(r => resolveYahoo(r.instrument)).filter(Boolean))], [rows])
   const { data: priceMap = {}, isFetching: pf, refetch } = useYahooPrices(symbols)
 
   const [editRow, setEditRow] = useState<Partial<AionionGoldHolding> | null>(null)
   const { upsertMutation, deleteMutation } = useAssets<AionionGoldHolding>('aionion_gold')
 
   const getLTP = (r: AionionGoldHolding) => {
-    if (!r.yahoo_symbol) return null
-    const key = r.yahoo_symbol.replace(/\.(NS|BO)$/, '')
+    const yahoo = resolveYahoo(r.instrument)
+    if (!yahoo) return null
+    const key = yahoo.replace(/\.(NS|BO)$/, '')
     return priceMap[key]?.price ?? null
   }
 
@@ -92,7 +122,9 @@ export default function AionionGoldPage() {
 
   const handleSave = async (d: Partial<AionionGoldHolding>) => {
     try {
-      await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string, unknown>)
+      // Only save DB columns — no yahoo_symbol
+      const { yahoo_symbol, invested, current_value, ...clean } = d as AionionGoldHolding & { yahoo_symbol?: string; invested?: number; current_value?: number }
+      await upsertMutation.mutateAsync({ ...clean, user_id: userId } as Record<string, unknown>)
       toast('Saved ✅', 'success')
       setEditRow(null)
     } catch (e) { toast((e as Error).message, 'error') }
@@ -101,12 +133,15 @@ export default function AionionGoldPage() {
   const cols = [
     {
       key: 'instrument', header: 'Instrument',
-      render: (r: AionionGoldHolding) => (
-        <div>
-          <div className="font-bold">{r.instrument}</div>
-          {r.yahoo_symbol && <div className="text-[10px] text-textmut font-mono">{r.yahoo_symbol}</div>}
-        </div>
-      ),
+      render: (r: AionionGoldHolding) => {
+        const yahoo = resolveYahoo(r.instrument)
+        return (
+          <div>
+            <div className="font-bold">{r.instrument}</div>
+            {yahoo && <div className="text-[10px] text-textmut font-mono">{yahoo}</div>}
+          </div>
+        )
+      },
     },
     {
       key: 'qty', header: 'Qty', align: 'right' as const,
@@ -161,8 +196,8 @@ export default function AionionGoldPage() {
       <AssetPageLayout
         stats={
           <StatGrid
-            items={buildInvestedStats({ invested: totalInvested, value: totalValue, actual, loading: isLoading, liveLabel }).slice(0, 3)}
-            cols={3}
+            items={buildInvestedStats({ invested: totalInvested, value: totalValue, actual, loading: isLoading, liveLabel })}
+            cols={5}
           />
         }
         mainTable={
