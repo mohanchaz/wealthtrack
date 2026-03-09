@@ -167,7 +167,14 @@ export default function AmcMfPage() {
     try {
       const existing = rows.find(r => r.id === d.id)
       const prev_qty = existing ? existing.qty : d.qty
-      await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string, unknown>)
+      try {
+        await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string, unknown>)
+      } catch (e1) {
+        // Fallback: prev_qty column may not exist yet — run migration first
+        if ((e1 as Error).message?.includes('prev_qty')) {
+          await upsertMutation.mutateAsync({ ...d, user_id: userId } as Record<string, unknown>)
+        } else { throw e1 }
+      }
       toast('Saved ✅', 'success'); setEditRow(null)
     } catch (e) { toast((e as Error).message, 'error') }
   }
