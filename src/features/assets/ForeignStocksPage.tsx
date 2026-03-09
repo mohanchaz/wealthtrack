@@ -340,14 +340,14 @@ export default function ForeignStocksPage() {
     return priceMap[key] ?? priceMap[ySym] ?? null
   }
 
-  // isGbxLive: true if Yahoo is returning pence for this symbol
-  // — explicit GBX currency OR .L symbol with raw price > 200 (pence heuristic)
+  // isGbxLive: true if Yahoo is reporting this price in pence (GBp)
+  // Yahoo uses "GBp" (lowercase p) for pence-denominated LSE stocks
+  // This replaces the unreliable price-magnitude heuristic
   const isGbxLive = (r: ForeignHolding): boolean => {
-    if (r.currency === 'GBX') return true
+    if (r.currency === 'GBX') return true          // user explicitly set GBX
     const entry = getRawEntry(r)
-    if (!entry) return false
-    const ySym = toYahooSymbol(r.symbol, r.currency)
-    return ySym.endsWith('.L') && entry.price > 200
+    if (!entry?.currency) return false
+    return entry.currency === 'GBp'                // Yahoo's pence marker
   }
 
   // getLtpInGbp: live price always in GBP (never pence, never USD)

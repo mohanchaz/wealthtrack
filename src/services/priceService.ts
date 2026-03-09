@@ -1,4 +1,4 @@
-export interface PriceEntry { price: number; name: string | null }
+export interface PriceEntry { price: number; name: string | null; currency: string | null }
 export type PriceMap = Record<string, PriceEntry>
 
 /** Fetch prices from Cloudflare Pages Function (/api/prices) */

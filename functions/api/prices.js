@@ -21,16 +21,18 @@ export async function onRequestGet(context) {
             });
             if (!res.ok) throw new Error(`${sym}: HTTP ${res.status}`);
             const data = await res.json();
-            const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-            const name  = data?.chart?.result?.[0]?.meta?.longName || data?.chart?.result?.[0]?.meta?.shortName || null;
+            const meta     = data?.chart?.result?.[0]?.meta;
+            const price    = meta?.regularMarketPrice;
+            const name     = meta?.longName || meta?.shortName || null;
+            const currency = meta?.currency || null;   // e.g. "GBp", "USD", "GBP"
             if (!price) throw new Error(`${sym}: no price`);
-            return { sym: sym.replace(/\.(NS|BO|L)$/, '').replace(/-(GBP|USD|EUR|USDT)$/i, ''), price, name };
+            return { sym: sym.replace(/\.(NS|BO|L)$/, '').replace(/-(GBP|USD|EUR|USDT)$/i, ''), price, name, currency };
         })
     );
 
     const priceMap = {};
     settled.forEach(r => {
-        if (r.status === 'fulfilled') priceMap[r.value.sym] = { price: r.value.price, name: r.value.name };
+        if (r.status === 'fulfilled') priceMap[r.value.sym] = { price: r.value.price, name: r.value.name, currency: r.value.currency };
         else console.error('[prices fn]', r.reason?.message ?? r.reason);
     });
 
