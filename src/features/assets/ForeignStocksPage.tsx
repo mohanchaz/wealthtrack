@@ -57,8 +57,8 @@ function parseForeignCsv(text: string): Omit<ForeignHolding, 'id' | 'user_id'>[]
       const sym = (r[kSym!] ?? '').toUpperCase().trim()
       // Use explicit currency if present, else auto-detect
       const currency = kCur
-        ? (r[kCur] ?? '').toUpperCase() || detectCurrency(sym)
-        : detectCurrency(sym)
+        ? (r[kCur] ?? '').toUpperCase() || 'USD'
+        : 'USD'
       return {
         symbol:    sym,
         qty:       cleanNum(r[kQty!] ?? ''),
