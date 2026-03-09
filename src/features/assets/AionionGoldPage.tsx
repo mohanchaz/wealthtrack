@@ -13,6 +13,7 @@ import { Modal }             from '../../components/ui/Modal'
 import { Button }            from '../../components/ui/Button'
 import { Input }             from '../../components/ui/Input'
 import { INR, calcGain }     from '../../lib/utils'
+import { GoldInstrumentInput } from '../../components/common/GoldInstrumentInput'
 import type { AionionGoldHolding } from '../../types/assets'
 
 // Derive yahoo symbol from instrument name — no DB column needed
@@ -55,8 +56,6 @@ function EditModal({ row, onClose, onSave }: {
     setSaving(false)
   }
 
-  const preview = resolveYahoo(inst)
-
   return (
     <Modal open onClose={onClose} title={row.id ? 'Edit Holding' : 'Add Holding'}
       footer={
@@ -67,20 +66,15 @@ function EditModal({ row, onClose, onSave }: {
       }
     >
       <div className="flex flex-col gap-4">
-        <Input
-          label="Instrument / Name"
+        <GoldInstrumentInput
           value={inst}
-          onChange={e => setInst(e.target.value)}
-          placeholder="e.g. GOLDBEES or Nippon India Gold Fund"
+          onChange={setInst}
+          onLive={r => {
+            // Auto-fill live price into avg cost only on new add
+            if (!row.id && r.status === 'found' && r.price && !avg)
+              setAvg(r.price.toFixed(2))
+          }}
         />
-        {/* Live symbol preview */}
-        {inst.length > 2 && (
-          <div className={`text-xs px-3 py-2 rounded-lg ${preview ? 'bg-green/10 text-green' : 'bg-surface2 text-textmut'}`}>
-            {preview
-              ? <>🟢 Live price via <span className="font-mono font-semibold">{preview}</span></>
-              : '⚠ No symbol match — live price unavailable. Rename to include e.g. "GOLDBEES" or "Nippon India Gold".'}
-          </div>
-        )}
         <Input label="Qty / Units" type="number" step="0.0001" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g. 100" />
         <Input label="Avg Cost / NAV (₹)" prefix="₹" type="number" step="0.01" value={avg} onChange={e => setAvg(e.target.value)} placeholder="e.g. 6500.00" />
       </div>
