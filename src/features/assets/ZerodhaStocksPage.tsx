@@ -13,6 +13,7 @@ import { ActualInvestedPanel } from '../../components/common/ActualInvestedPanel
 import { Modal }             from '../../components/ui/Modal'
 import { Button }            from '../../components/ui/Button'
 import { Input }             from '../../components/ui/Input'
+import { NseSymbolInput }    from '../../components/common/NseSymbolInput'
 import { INR, calcGain }     from '../../lib/utils'
 import { parseCsvRows, cleanNum } from '../../lib/csvParser'
 import type { StockHolding } from '../../types/assets'
@@ -75,14 +76,21 @@ function EditModal({ row, onClose, onSave }: {
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} loading={saving}>💾 Save</Button>
+          <Button size="sm" onClick={handleSave} loading={saving} disabled={!instrument || !qty || !avgCost}>💾 Save</Button>
         </>
       }
     >
       <div className="flex flex-col gap-4">
-        <Input label="NSE Symbol" value={instrument} onChange={e => setInstrument(e.target.value)} placeholder="e.g. RELIANCE" />
-        <Input label="Quantity"   type="number" value={qty}     onChange={e => setQty(e.target.value)} />
-        <Input label="Avg Cost (₹)" prefix="₹" type="number" step="0.01" value={avgCost} onChange={e => setAvgCost(e.target.value)} />
+        <NseSymbolInput
+          value={instrument}
+          onChange={setInstrument}
+          onLive={r => {
+            if (!row.id && r.status === 'found' && r.price && !avgCost)
+              setAvgCost(r.price.toFixed(2))
+          }}
+        />
+        <Input label="Quantity"     type="number" value={qty}     onChange={e => setQty(e.target.value)} placeholder="e.g. 10" />
+        <Input label="Avg Cost (₹)" prefix="₹" type="number" step="0.01" value={avgCost} onChange={e => setAvgCost(e.target.value)} placeholder="e.g. 1500.00" />
       </div>
     </Modal>
   )

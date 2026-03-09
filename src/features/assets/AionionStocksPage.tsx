@@ -12,29 +12,40 @@ import { ActualInvestedPanel } from '../../components/common/ActualInvestedPanel
 import { Modal }             from '../../components/ui/Modal'
 import { Button }            from '../../components/ui/Button'
 import { Input }             from '../../components/ui/Input'
+import { NseSymbolInput }    from '../../components/common/NseSymbolInput'
 import { INR, calcGain }     from '../../lib/utils'
 import type { StockHolding } from '../../types/assets'
 
 function EditModal({ row, onClose, onSave }: {
   row: Partial<StockHolding>; onClose: () => void; onSave: (d: Partial<StockHolding>) => Promise<void>
 }) {
-  const [inst, setInst] = useState(row.instrument ?? '')
-  const [qty,  setQty]  = useState(String(row.qty      ?? ''))
-  const [avg,  setAvg]  = useState(String(row.avg_cost ?? ''))
+  const [inst,   setInst]   = useState(row.instrument ?? '')
+  const [qty,    setQty]    = useState(String(row.qty      ?? ''))
+  const [avg,    setAvg]    = useState(String(row.avg_cost ?? ''))
   const [saving, setSaving] = useState(false)
+
   const handleSave = async () => {
     if (!inst.trim() || !qty || !avg) return
     setSaving(true)
     await onSave({ ...row, instrument: inst.trim().toUpperCase(), qty: parseFloat(qty), avg_cost: parseFloat(avg) })
     setSaving(false)
   }
+
   return (
     <Modal open onClose={onClose} title={row.id ? 'Edit Holding' : 'Add Holding'}
-      footer={<><Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button><Button size="sm" onClick={handleSave} loading={saving}>Save</Button></>}
+      footer={<><Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button><Button size="sm" onClick={handleSave} loading={saving} disabled={!inst || !qty || !avg}>Save</Button></>}
     >
       <div className="flex flex-col gap-4">
-        <Input label="NSE Symbol"   value={inst} onChange={e => setInst(e.target.value)} placeholder="e.g. INFY" />
-        <Input label="Quantity"     type="number" value={qty}  onChange={e => setQty(e.target.value)} placeholder="e.g. 10" />
+        <NseSymbolInput
+          value={inst}
+          onChange={setInst}
+          onLive={r => {
+            // Auto-fill LTP as avg cost only when adding new (not editing)
+            if (!row.id && r.status === 'found' && r.price && !avg)
+              setAvg(r.price.toFixed(2))
+          }}
+        />
+        <Input label="Quantity" type="number" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g. 10" />
         <Input label="Avg Cost (₹)" prefix="₹" type="number" step="0.01" value={avg} onChange={e => setAvg(e.target.value)} placeholder="e.g. 1500.00" />
       </div>
     </Modal>
