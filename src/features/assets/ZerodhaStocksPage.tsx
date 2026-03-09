@@ -29,6 +29,9 @@ const GOLD_ETF_SYMBOLS = new Set([
 
 // Known ETF/MF symbols that look like stocks but are funds
 const ETF_PATTERN = /BEES$|ETF$|FUND$|INDEX$/i
+// NCD/Bond symbols start with digits (e.g. 1075MML027, 12ACAPL27B, 985ACAPL26)
+// Also Sovereign Gold Bonds (SGBSEP28, SGBMAR29)
+const NCD_BOND_PATTERN = /^\d+[A-Z]|^SGB[A-Z]/i
 
 function isStockRow(rawName: string): boolean {
   const name = rawName.trim()
@@ -40,6 +43,8 @@ function isStockRow(rawName: string): boolean {
   if (GOLD_ETF_SYMBOLS.has(upper)) return false
   // Symbols ending in BEES, ETF, FUND, INDEX
   if (ETF_PATTERN.test(upper)) return false
+  // NCD/Bond instruments start with digits or SGB prefix
+  if (NCD_BOND_PATTERN.test(upper)) return false
   return true
 }
 

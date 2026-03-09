@@ -76,12 +76,18 @@ const GOLD_ETF_SYMBOLS = new Set([
   'SILVERBEES','SILVERETF','SILVER','SILVERIETF',
 ])
 const ETF_PATTERN = /BEES$|ETF$|FUND$|INDEX$/i
+
+// NCD/Bond symbols from Zerodha start with digits (e.g. 1075MML027, 12ACAPL27B, 985ACAPL26)
+// Also filter Sovereign Gold Bonds (SGBSEP28, SGBMAR29, etc.)
+const NCD_BOND_PATTERN = /^\d+[A-Z]|^SGB[A-Z]/i
+
 function isStockRow(rawName: string): boolean {
   const name = rawName.trim()
   if (!name || name.includes(' ')) return false
   const upper = name.toUpperCase()
   if (GOLD_ETF_SYMBOLS.has(upper)) return false
   if (ETF_PATTERN.test(upper)) return false
+  if (NCD_BOND_PATTERN.test(upper)) return false   // skip NCDs, bonds, SGBs
   return true
 }
 
