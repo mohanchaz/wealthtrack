@@ -42,7 +42,7 @@ function MaturityBadge({ dateStr }: { dateStr?: string }) {
   if (d === null) return <span className="text-textmut text-xs">—</span>
   if (d < 0)  return (
     <div className="text-right">
-      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-textmut/10 text-textmut">Matured</span>
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal/10 text-teal">✓ Matured</span>
       <div className="text-[10px] text-textmut mt-0.5">{formatDate(dateStr)}</div>
     </div>
   )
