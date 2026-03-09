@@ -9,7 +9,7 @@ export type ActualTable =
   | 'aionion_gold_actual_invested'
   | 'mf_actual_invested'
   | 'gold_actual_invested'
-  | 'foreign_actual_invested'
+  // foreign_actual_invested has custom schema (gbp_amount+inr_rate) — handled in ForeignStocksPage directly
   | 'crypto_actual_invested'
 
 export interface ActualEntry {

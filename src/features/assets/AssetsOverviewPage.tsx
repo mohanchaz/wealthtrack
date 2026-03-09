@@ -207,7 +207,8 @@ export default function AssetsOverviewPage() {
   const actAmcMf    = useActualInvested('amc_mf_actual_invested')
   const actFd       = useActualInvested('fd_actual_invested')
   const actEf       = useActualInvested('ef_actual_invested')
-  const actForeign  = useActualInvested('foreign_actual_invested')
+  // foreign_actual_invested uses custom schema (gbp_amount+inr_rate) — not wired to overview yet
+  // const actForeign  = useActualInvested('foreign_actual_invested')
   const actCrypto   = useActualInvested('crypto_actual_invested')
 
   const sum = (hook: ReturnType<typeof useActualInvested>) =>
@@ -331,7 +332,7 @@ export default function AssetsOverviewPage() {
   const actAmcMfAmt    = sum(actAmcMf)
   const actFdAmt       = sum(actFd)
   const actEfAmt       = sum(actEf)
-  const actForeignAmt  = sum(actForeign)
+  const actForeignAmt  = null // custom schema — see ForeignStocksPage
   const actCryptoAmt   = sum(actCrypto)
   // No actual tables: cash, bonds, aionion gold → use invested as actual
   const cashActual     = cashInv
