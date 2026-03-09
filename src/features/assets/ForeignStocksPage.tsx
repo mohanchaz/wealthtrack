@@ -22,14 +22,6 @@ import type { ForeignHolding } from '../../types/assets'
 
 // ── Symbol intelligence ───────────────────────────────────────
 // Known London Stock Exchange symbols (traded in GBX pence)
-const GBX_SYMBOLS = new Set([
-  'MKS','BARC','LLOY','HSBA','BP','SHEL','GSK','AZN','VOD','BT',
-  'RIO','AAL','GLEN','ANTO','BHP','EVR','FRES','HMB','IHG','IMB',
-  'JD','KGF','LAND','LGEN','MNG','NWG','PSON','REL','RKT','RMV',
-  'SGE','SKG','SMDS','SMIN','SPX','SSE','STJ','SVT','TSCO','UU',
-  'SPXS','CNDX','IGLN', // ETFs
-])
-
 // Yahoo Finance symbol overrides
 const YAHOO_MAP: Record<string, string> = {
   BRK:  'BRK-B',
@@ -46,11 +38,6 @@ function toYahooSymbol(symbol: string, currency: string): string {
 }
 
 // Auto-detect currency from symbol — no currency column in the CSV
-function detectCurrency(symbol: string): 'USD' | 'GBX' | 'GBP' {
-  if (GBX_SYMBOLS.has(symbol.toUpperCase())) return 'GBX'
-  return 'USD'
-}
-
 // ── CSV parser ────────────────────────────────────────────────
 function parseForeignCsv(text: string): Omit<ForeignHolding, 'id' | 'user_id'>[] | null {
   const rows = parseCsvRows(text)
@@ -340,13 +327,24 @@ export default function ForeignStocksPage() {
   const { upsertMutation, deleteMutation } = useAssets<ForeignHolding>('foreign_stock_holdings')
 
   // Get live price in local currency
+  // Dynamically detect if a .L symbol is priced in pence (GBX) by checking magnitude.
+  // LSE stocks in GBX typically have prices > 100p; GBP stocks are < 100.
+  // Rule: if stored currency is GBX, OR if it's a .L symbol and raw price > 200
+  //       (a GBP stock above £200 is very rare; a GBX stock at 200p = £2 is common)
+  const isGbxLive = (r: ForeignHolding, rawPrice: number): boolean => {
+    if (r.currency === 'GBX') return true
+    // Auto-detect: .L symbol with raw price > 200 is almost certainly pence
+    const ySym = toYahooSymbol(r.symbol, r.currency)
+    return ySym.endsWith('.L') && rawPrice > 200
+  }
+
   const getLTP = (r: ForeignHolding): number | null => {
     const ySym  = toYahooSymbol(r.symbol, r.currency)
     const key   = ySym.replace(/\.(L|US)$/, '')
     const entry = priceMap[key] ?? priceMap[ySym]
     if (!entry) return null
-    // GBX (pence) → divide by 100 to get £ for consistent conversion
-    return GBX_SYMBOLS.has(r.symbol) ? entry.price / 100 : entry.price
+    // Divide by 100 if GBX (pence) — either explicit or auto-detected by magnitude
+    return isGbxLive(r, entry.price) ? entry.price / 100 : entry.price
   }
 
   // Convert to INR — always route through GBP
@@ -417,7 +415,19 @@ export default function ForeignStocksPage() {
   }
 
   const handleImport = async (parsed: Record<string, unknown>[]) => {
-    await replaceAssets('foreign_stock_holdings', userId, parsed.map(r => ({ ...r, user_id: userId })))
+    // Preserve manually-edited currency for existing symbols — never overwrite on re-import
+    const existingCurrencyMap = new Map(rows.map(r => [r.symbol.toUpperCase(), r.currency]))
+    const merged = parsed.map(r => {
+      const sym = String(r.symbol ?? '').toUpperCase()
+      const preservedCurrency = existingCurrencyMap.get(sym)
+      return {
+        ...r,
+        user_id:  userId,
+        // Keep existing currency if symbol already in DB, else use parsed/auto-detected value
+        currency: preservedCurrency ?? r.currency,
+      }
+    })
+    await replaceAssets('foreign_stock_holdings', userId, merged)
     qc.invalidateQueries({ queryKey: ['foreign_stock_holdings', userId] })
     toast(`${parsed.length} holdings imported ✅`, 'success')
   }
@@ -468,13 +478,19 @@ export default function ForeignStocksPage() {
     {
       key: 'ltp', header: 'Live Price', align: 'right' as const,
       render: (r: ForeignHolding) => {
+        const rawEntry = (() => { const ySym = toYahooSymbol(r.symbol, r.currency); const k = ySym.replace(/\.(L|US)$/,''); return priceMap[k] ?? priceMap[ySym] })()
         const ltp = getLTP(r)
         if (ltp == null) return <span className="text-textmut">—</span>
-        const change = ltp - (r.currency === 'GBX' ? r.avg_price / 100 : r.avg_price)
-        const changePct = r.avg_price > 0 ? ((ltp - (r.currency === 'GBX' ? r.avg_price / 100 : r.avg_price)) / (r.currency === 'GBX' ? r.avg_price / 100 : r.avg_price)) * 100 : 0
+        const avgGbp = r.currency === 'GBX' ? r.avg_price / 100 : r.avg_price
+        const ltpGbp = ltp  // getLTP always returns GBP-equivalent for .L symbols
+        const change = ltpGbp - avgGbp
+        const changePct = avgGbp > 0 ? (change / avgGbp) * 100 : 0
+        // Display: show raw price in original currency
+        const displayPrice = rawEntry ? rawEntry.price : ltp
+        const displayCcy   = rawEntry && isGbxLive(r, rawEntry.price) ? 'GBX' : r.currency
         return (
           <div className="text-right">
-            <div className="font-bold">{fmtLocal(r.currency === 'GBX' ? ltp * 100 : ltp, r.currency)}</div>
+            <div className="font-bold">{fmtLocal(displayPrice, displayCcy)}</div>
             <div className={`text-[10px] font-semibold ${change >= 0 ? 'text-green' : 'text-red'}`}>
               {change >= 0 ? '+' : ''}{changePct.toFixed(1)}%
             </div>
