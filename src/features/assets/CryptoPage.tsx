@@ -23,7 +23,7 @@ import type { CryptoHolding } from '../../types/assets'
 const cryptoTicker  = (s: string) => s.replace(/-GBP$/i, '').replace(/-USD$/i, '')
 const fmtGbp        = (v: number) => `£${v.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-const PLATFORMS = ['Platform 1', 'Platform 2', 'Platform 3', 'Coinbase', 'Binance', 'Kraken', 'Ledger', 'Other']
+const PLATFORMS = ['Kraken', 'Revolut', 'Coinbase', 'Binance', 'Bybit', 'Ledger', 'Trezor', 'Other']
 
 // ── CSV parser ────────────────────────────────────────────────
 // Expected: yahoo_symbol (or symbol/coin), qty, avg_price_gbp (or avg_price/price), platform (optional)
@@ -46,7 +46,7 @@ function parseCryptoCsv(text: string): Omit<CryptoHolding, 'id' | 'user_id'>[] |
     const yahoo_symbol = /-(GBP|USD|EUR|USDT)$/i.test(sym) ? sym : `${sym}-GBP`
     return {
       yahoo_symbol,
-      platform:      kPlat ? (r[kPlat] ?? 'Platform 1') : 'Platform 1',
+      platform:      kPlat ? (r[kPlat] ?? 'Kraken') : 'Kraken',
       qty:           cleanNum(r[kQty!] ?? ''),
       avg_price_gbp: cleanNum(r[kAvg!] ?? ''),
     }
@@ -197,7 +197,7 @@ function EditModal({ row, onClose, onSave }: {
   row: Partial<CryptoHolding>; onClose: () => void; onSave: (d: Partial<CryptoHolding>) => Promise<void>
 }) {
   const [sym,      setSym]      = useState(row.yahoo_symbol ?? '')
-  const [platform, setPlatform] = useState(row.platform ?? 'Platform 1')
+  const [platform, setPlatform] = useState(row.platform ?? 'Kraken')
   const [qty,      setQty]      = useState(String(row.qty ?? ''))
   const [avgGbp,   setAvgGbp]   = useState(String(row.avg_price_gbp ?? ''))
   const [saving,   setSaving]   = useState(false)
@@ -309,7 +309,7 @@ export default function CryptoPage() {
     const existingPlatformMap = new Map(rows.map(r => [r.yahoo_symbol.toUpperCase(), r.platform]))
     const merged = parsed.map(r => {
       const sym = String(r.yahoo_symbol ?? '').toUpperCase()
-      return { ...r, user_id: userId, platform: existingPlatformMap.get(sym) ?? r.platform ?? 'Platform 1' }
+      return { ...r, user_id: userId, platform: existingPlatformMap.get(sym) ?? r.platform ?? 'Kraken' }
     })
     await replaceAssets('crypto_holdings', userId, merged)
     qc.invalidateQueries({ queryKey: ['crypto_holdings', userId] })

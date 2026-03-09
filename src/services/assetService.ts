@@ -12,13 +12,14 @@ const ORDER_COL: Partial<Record<TableName, string>> = {
   gold_holdings:  'holding_name',   // no created_at — order alphabetically
   aionion_gold:   'instrument',     // no created_at
   aionion_stocks: 'instrument',     // no created_at — uses imported_at
+  crypto_holdings: 'updated_at',      // uses updated_at not created_at
 }
 
 export async function fetchAssets<T = Record<string, unknown>>(
   table:  TableName,
   userId: string,
 ): Promise<T[]> {
-  const col = table in ORDER_COL ? ORDER_COL[table]! : 'created_at'
+  const col = (table in ORDER_COL ? ORDER_COL[table] : 'created_at') ?? 'created_at'
   const { data, error } = await supabase
     .from(table)
     .select('*')
