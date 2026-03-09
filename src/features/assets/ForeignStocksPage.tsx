@@ -418,12 +418,14 @@ export default function ForeignStocksPage() {
     { label: 'Actual Invested (₹)',value: actualInr > 0 ? INR(actualInr) : '—',                          icon: '⊡', accentColor: '#d97706', loading: isLoading },
     { label: 'Actual Gain (₹)',    value: actGainInr != null ? `${actIsUp?'+':''}${INR(actGainInr)}` : '—', sub: actGainPctGbp != null ? `${actIsUp?'+':''}${actGainPctGbp.toFixed(1)}%` : undefined, icon: actIsUp?'▲':'▼', accentColor: actIsUp?'#059669':'#dc2626', loading: isLoading },
   ]
+  const actGainPctActual = actualGbp > 0 ? ((totalValueGbp - actualGbp) / actualGbp) * 100 : null
+
   const statsRow2 = [
-    { label: 'Invested (£)',       value: fmtGbp(totalInvestedGbp),                                      icon: '£', accentColor: '#B45309', loading: isLoading },
-    { label: 'Current Value (£)',  value: fmtGbp(totalValueGbp),                                         icon: '◈', accentColor: '#0d9488', loading: isLoading },
-    { label: 'Gain / Loss (£)',    value: `${isUpGbp?'+':''}${fmtGbp(gainGbp)}`, sub: `${isUpGbp?'+':''}${gainPctGbp.toFixed(1)}%`, icon: isUpGbp?'▲':'▼', accentColor: isUpGbp?'#059669':'#dc2626', loading: isLoading },
-    { label: 'Actual Invested (£)',value: actualGbp > 0 ? fmtGbp(actualGbp) : '—',                      icon: '⊡', accentColor: '#d97706', loading: isLoading },
-    { label: 'GBP→INR Rate',       value: `₹${gbpInr.toFixed(2)}`,                                      icon: '⇄', accentColor: '#7C3AED', loading: !fx },
+    { label: 'Invested (£)',       value: fmtGbp(totalInvestedGbp),                                                                                      icon: '£', accentColor: '#B45309', loading: isLoading },
+    { label: 'Current Value (£)',  value: fmtGbp(totalValueGbp),                                                                                         icon: '◈', accentColor: '#0d9488', loading: isLoading },
+    { label: 'Gain / Loss (£)',    value: `${isUpGbp?'+':''}${fmtGbp(gainGbp)}`,    sub: `${isUpGbp?'+':''}${gainPctGbp.toFixed(1)}%`,                    icon: isUpGbp?'▲':'▼', accentColor: isUpGbp?'#059669':'#dc2626', loading: isLoading },
+    { label: 'Actual Invested (£)',value: actualGbp > 0 ? fmtGbp(actualGbp) : '—',                                                                       icon: '⊡', accentColor: '#d97706', loading: isLoading },
+    { label: 'Actual Gain (£)',    value: actGainGbp != null ? `${actIsUp?'+':''}${fmtGbp(actGainGbp)}` : '—', sub: actGainPctActual != null ? `${actIsUp?'+':''}${actGainPctActual.toFixed(1)}%` : undefined, icon: actIsUp?'▲':'▼', accentColor: actIsUp?'#059669':'#dc2626', loading: isLoading },
   ]
 
   const handleSave = async (d: Partial<ForeignHolding>) => {
@@ -606,7 +608,9 @@ export default function ForeignStocksPage() {
   ]
 
   return (
-    <PageShell title="Foreign Stocks" subtitle={`${rows.filter(r => Number(r.qty) > 0).length} holdings · USD & GBP via £→₹`}
+    <PageShell title="Foreign Stocks"
+      subtitle={`${rows.filter(r => Number(r.qty) > 0).length} holdings`}
+      badge={<span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 tabular-nums">£1 = ₹{gbpInr.toFixed(2)}</span>}
       actions={[
         { label: '📥 Import CSV', onClick: () => setShowImport(true), variant: 'secondary' },
         { label: '+ Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
