@@ -106,16 +106,20 @@ export interface FdAsset {
 
 // ── Emergency Fund (emergency_funds) ─────────────────────────
 export interface EfAsset {
-  id:               string
-  user_id:          string
-  category?:        string
-  platform?:        string
-  invested:         number
-  invested_date?:   string
-  interest_rate?:   number
-  maturity_date?:   string
-  maturity_amount?: number
-  created_at?:      string
+  id:                 string
+  user_id:            string
+  category?:          string
+  platform?:          string
+  account_number?:    string
+  sb_account_number?: string
+  invested:           number
+  invested_date?:     string
+  interest_rate?:     number
+  maturity_date?:     string
+  maturity_amount?:   number
+  notes?:             string
+  created_at?:        string
+  updated_at?:        string
 }
 
 // ── Cash asset (cash_assets) ──────────────────────────────────
