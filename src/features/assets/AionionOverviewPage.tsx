@@ -5,6 +5,7 @@ import { useNsePrices, useYahooPrices } from '../../hooks/useLivePrices'
 import { PageShell }        from '../../components/common/PageShell'
 import { StatGrid, buildInvestedStats } from '../../components/common/StatGrid'
 import { INR, calcGain }    from '../../lib/utils'
+import { useActualInvested } from '../../hooks/useActualInvested'
 import { GOLD_OPTIONS }     from '../../components/common/GoldInstrumentInput'
 import type { StockHolding, AionionGoldHolding } from '../../types/assets'
 
@@ -14,13 +15,15 @@ interface SectionCardProps {
   subtitle:   string
   invested:   number
   value:      number
+  actual?:    number
   liveLabel?: string
   loading:    boolean
   onClick:    () => void
 }
 
-function SectionCard({ title, subtitle, invested, value, liveLabel, loading, onClick }: SectionCardProps) {
+function SectionCard({ title, subtitle, invested, value, actual, liveLabel, loading, onClick }: SectionCardProps) {
   const { gain, gainPct, isPositive } = calcGain(value, invested)
+  const actGain = actual != null ? calcGain(value, actual) : null
   return (
     <button
       onClick={onClick}
@@ -33,7 +36,7 @@ function SectionCard({ title, subtitle, invested, value, liveLabel, loading, onC
         </div>
         <span className="text-textfade group-hover:text-textmut transition-colors text-lg">→</span>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className={`grid gap-3 ${actual != null ? 'grid-cols-3 md:grid-cols-5' : 'grid-cols-3'}`}>
         <div>
           <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Invested</div>
           <div className="font-bold text-textprim text-sm">{loading ? '…' : INR(invested)}</div>
@@ -57,6 +60,25 @@ function SectionCard({ title, subtitle, invested, value, liveLabel, loading, onC
             )}
           </div>
         </div>
+        {actual != null && (
+          <>
+            <div>
+              <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Actual Invested</div>
+              <div className="font-bold text-textprim text-sm">{loading ? '…' : INR(actual)}</div>
+            </div>
+            <div className="hidden md:block">
+              <div className="text-[10px] text-textmut uppercase tracking-wider mb-1">Actual Gain</div>
+              <div className={`font-bold text-sm ${actGain?.isPositive ? 'text-green' : 'text-red'}`}>
+                {loading ? '…' : `${actGain?.isPositive ? '+' : ''}${INR(actGain?.gain ?? 0)}`}
+                {!loading && actGain && (
+                  <span className="text-[10px] font-medium ml-1 opacity-80">
+                    {actGain.isPositive ? '+' : ''}{actGain.gainPct.toFixed(1)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </button>
   )
@@ -87,7 +109,9 @@ export default function AionionOverviewPage() {
     [...new Set(gold.map(r => resolveYahoo(r.instrument)).filter(Boolean))], [gold])
   const { data: goldPrices = {}, isFetching: goldFetching } = useYahooPrices(goldSymbols)
 
-  // ── Stocks totals ────────────────────────────────────────────
+  // Actual invested (stocks only — no actual invested for gold)
+  const stocksActual     = useActualInvested('aionion_actual_invested')
+  const stocksActualTotal = stocksActual.data?.reduce((s, e) => s + e.amount, 0)
   const stocksInvested = useMemo(() =>
     stocks.reduce((s, r) => s + r.qty * r.avg_cost, 0), [stocks])
   const stocksValue = useMemo(() =>
@@ -138,6 +162,7 @@ export default function AionionOverviewPage() {
           subtitle={`${stocks.length} stock${stocks.length !== 1 ? 's' : ''}`}
           invested={stocksInvested}
           value={stocksValue}
+          actual={stocksActualTotal}
           liveLabel={Object.keys(stockPrices).length > 0 ? 'live' : undefined}
           loading={stocksLoading}
           onClick={() => navigate('/assets/aionion-stocks')}
