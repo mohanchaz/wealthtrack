@@ -182,11 +182,14 @@ export default function AmcMfPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
+  const actualGain = actual && actual > 0 ? calcGain(totalValue, actual) : null
+
   const stats = [
-    { label: 'Invested',       value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
-    { label: 'Current Value',  value: INR(totalValue),    icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
-    { label: 'Gain / Loss',    value: `${isPositive ? '+' : ''}${INR(gain)}`, sub: `${gainPct.toFixed(1)}%`, icon: isPositive ? '▲' : '▼', accentColor: isPositive ? '#059669' : '#dc2626', loading: isLoading },
+    { label: 'Invested',        value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
+    { label: 'Current Value',   value: INR(totalValue),    icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
+    { label: 'Gain / Loss',     value: `${isPositive ? '+' : ''}${INR(gain)}`, sub: `${gainPct.toFixed(1)}%`, icon: isPositive ? '▲' : '▼', accentColor: isPositive ? '#059669' : '#dc2626', loading: isLoading },
     { label: 'Actual Invested', value: actual ? INR(actual) : '—', icon: '⊡', accentColor: '#d97706', loading: isLoading },
+    { label: 'Actual Gain',     value: actualGain ? `${actualGain.isPositive ? '+' : ''}${INR(actualGain.gain)}` : '—', sub: actualGain ? `${actualGain.isPositive ? '+' : ''}${actualGain.gainPct.toFixed(1)}%` : undefined, icon: actualGain?.isPositive ? '▲' : '▼', accentColor: actualGain?.isPositive ? '#059669' : '#dc2626', loading: isLoading },
   ]
 
   const cols = [
@@ -292,7 +295,7 @@ export default function AmcMfPage() {
       ]}
     >
       <AssetPageLayout
-        stats={<StatGrid items={stats} cols={4} />}
+        stats={<StatGrid items={stats} cols={5} />}
         mainTable={
           <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
             emptyText="No AMC MF holdings — click + Add Fund"
