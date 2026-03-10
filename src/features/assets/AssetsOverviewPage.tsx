@@ -394,8 +394,8 @@ export default function AssetsOverviewPage() {
   const actCryptoAmt   = actCryptoInr > 0 ? actCryptoInr : null
   const actBankAmt     = actBankInr > 0 ? actBankInr : null
   // No actual tables: cash, bonds, aionion gold → use invested as actual
-  const cashActual     = cashVal   // cash has no separate actual; use current value
-  const bondsActual    = bondsVal  // bonds same
+  const cashActual     = cashInv   // deposited = actual invested for cash
+  const bondsActual    = bondsInv  // same for bonds
 
   // Grand actual total: use actual where available, else invested
   const totalActual =
