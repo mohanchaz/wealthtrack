@@ -339,12 +339,6 @@ export default function BankSavingsPage() {
     rows.filter(r => { const d = daysUntil(r.maturity_date); return d !== null && d >= 0 && d <= 90 })
   , [rows])
 
-  const stats = [
-    { label: 'Total (£)',     value: `£${totalGbp.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sub: `${rows.length} account${rows.length !== 1 ? 's' : ''}` },
-    { label: 'Total (₹)',     value: INR(totalInr),  sub: `@ ₹${gbpInr.toFixed(2)}/£` },
-    { label: 'Actual Inv (£)', value: actGbp > 0 ? `£${actGbp.toFixed(2)}` : '—', sub: actInr > 0 ? INR(actInr) : 'No entries' },
-  ]
-
   const cols = [
     {
       key: 'platform', header: 'Account',
@@ -406,13 +400,39 @@ export default function BankSavingsPage() {
       <AssetPageLayout
         stats={
           <div className="grid grid-cols-3 gap-3">
-            {stats.map(s => (
-              <div key={s.label} className="bg-surface rounded-2xl border border-border p-4">
-                <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">{s.label}</div>
-                <div className="text-xl font-extrabold text-textprim font-mono">{s.value}</div>
-                {s.sub && <div className="text-[10px] text-textmut mt-0.5">{s.sub}</div>}
+            <div className="bg-surface rounded-2xl border border-border p-4">
+              <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-2">Holdings</div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-textmut">£</span>
+                <span className="text-sm font-extrabold font-mono text-textprim">£{totalGbp.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-            ))}
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[10px] text-textmut">₹</span>
+                <span className="text-sm font-extrabold font-mono text-teal">{INR(totalInr)}</span>
+              </div>
+              <div className="text-[10px] text-textmut mt-1.5">{rows.length} account{rows.length !== 1 ? 's' : ''} · @ ₹{gbpInr.toFixed(2)}/£</div>
+            </div>
+            <div className="bg-surface rounded-2xl border border-border p-4">
+              <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-2">Actual Invested</div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-textmut">£</span>
+                <span className="text-sm font-extrabold font-mono text-textprim">{actGbp > 0 ? `£${actGbp.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</span>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[10px] text-textmut">₹</span>
+                <span className="text-sm font-extrabold font-mono text-teal">{actInr > 0 ? INR(actInr) : '—'}</span>
+              </div>
+            </div>
+            <div className="bg-surface rounded-2xl border border-border p-4">
+              <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-2">Accounts</div>
+              <div className="text-xl font-extrabold text-textprim">{rows.length}</div>
+              <div className="text-[10px] text-textmut mt-1">
+                {rows.filter(r => r.maturity_date).length} with maturity date
+              </div>
+              <div className="text-[10px] text-textmut mt-0.5">
+                {upcoming.length > 0 ? <span className="text-amber font-semibold">⏰ {upcoming.length} maturing soon</span> : 'None maturing soon'}
+              </div>
+            </div>
           </div>
         }
         mainTable={
