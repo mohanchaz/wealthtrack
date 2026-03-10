@@ -76,8 +76,10 @@ function EditModal({ row, name, onClose, onSave }: {
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-textmut uppercase tracking-wide">BSE Ticker *</label>
           {row.id ? (
-            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">{navSymbol}</div>
-            {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
+            <>
+              <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">{navSymbol}</div>
+              {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
+            </>
           ) : (
             <div className="flex gap-2 items-center">
               <input

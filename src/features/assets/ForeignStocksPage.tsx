@@ -322,7 +322,8 @@ function EditModal({ row, name, onClose, onSave }: {
             </div>
           ) : (
             <Input label="Symbol *" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())}
-            placeholder="e.g. AAPL, MKS" />
+              placeholder="e.g. AAPL, MKS" helpText="e.g. AAPL, TSLA, CNDX.L" />
+          )}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-textmut uppercase tracking-wide">Currency *</label>
             <select value={currency} onChange={e => setCurrency(e.target.value)}
