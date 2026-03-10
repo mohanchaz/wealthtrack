@@ -265,7 +265,7 @@ export default function MutualFundsPage() {
       title="Mutual Funds"
       subtitle={`${rows.length} fund${rows.length !== 1 ? 's' : ''}`}
       actions={[
-        { label: '+ Add Fund',   onClick: () => setEditRow({}),       variant: 'primary'   },
+        { label: 'Add Fund',   onClick: () => setEditRow({}),       variant: 'primary'   },
         { label: '🔄',           onClick: () => refetch(),            variant: 'outline'   },
       ]}
     >

@@ -118,7 +118,7 @@ export default function AionionStocksPage() {
   return (
     <PageShell title="Aionion Stocks" subtitle={`${rows.length} stock${rows.length !== 1 ? 's' : ''}`}
       actions={[
-        { label: '+ Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
+        { label: 'Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
         { label: '🔄', onClick: () => refetch(), variant: 'outline' },
       ]}
     >

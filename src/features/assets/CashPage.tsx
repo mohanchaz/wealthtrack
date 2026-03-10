@@ -158,7 +158,7 @@ export default function CashPage() {
 
   return (
     <PageShell title="Cash & Bank" subtitle={`${rows.length} entr${rows.length !== 1 ? 'ies' : 'y'}`}
-      actions={[{ label: '+ Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
+      actions={[{ label: 'Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       <StatGrid items={stats} cols={3} />
       <div className="card overflow-hidden">

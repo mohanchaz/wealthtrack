@@ -155,7 +155,7 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
           </div>
         </div>
         <Button size="sm" onClick={() => setShowForm(f => !f)} variant={showForm ? 'secondary' : 'primary'}>
-          {showForm ? '✕ Cancel' : '+ Add Entry'}
+          {showForm ? '✕ Cancel' : 'Add Entry'}
         </Button>
         {showForm && (
           <div className="flex flex-col gap-2 mt-2">
@@ -496,7 +496,7 @@ export default function CryptoPage() {
         </span>
       }
       actions={[
-        { label: '+ Add Crypto',  onClick: () => setEditRow({}),      variant: 'primary' },
+        { label: 'Add Crypto',  onClick: () => setEditRow({}),      variant: 'primary' },
         { label: '🔄',            onClick: () => refetch(),            variant: 'secondary' },
       ]}
     >

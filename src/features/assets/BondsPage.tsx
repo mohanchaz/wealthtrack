@@ -258,7 +258,7 @@ export default function BondsPage() {
 
   return (
     <PageShell title="Bonds & NCDs" subtitle={`${rows.length} bond${rows.length !== 1 ? 's' : ''}`}
-      actions={[{ label: '+ Add Bond', onClick: () => setEditRow({}), variant: 'primary' }]}
+      actions={[{ label: 'Add Bond', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Upcoming maturities alert */}
       {upcoming.length > 0 && (

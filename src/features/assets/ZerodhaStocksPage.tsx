@@ -225,7 +225,7 @@ export default function ZerodhaStocksPage() {
       title="Zerodha Stocks"
       subtitle={`${rows.length} stock${rows.length !== 1 ? 's' : ''}`}
       actions={[
-        { label: '+ Add Holding', onClick: () => setEditRow({}),      variant: 'primary'   },
+        { label: 'Add Holding', onClick: () => setEditRow({}),      variant: 'primary'   },
         { label: '🔄',            onClick: () => refreshPrices(),     variant: 'outline'   },
       ]}
     >

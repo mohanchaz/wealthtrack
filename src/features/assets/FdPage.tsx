@@ -256,7 +256,7 @@ export default function FdPage() {
 
   return (
     <PageShell title="Fixed Deposits" subtitle={`${rows.length} FD${rows.length !== 1 ? 's' : ''} tracked`}
-      actions={[{ label: '+ Add FD', onClick: () => setEditRow({}), variant: 'primary' }]}
+      actions={[{ label: 'Add FD', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Upcoming maturities alert */}
       {upcoming.length > 0 && (

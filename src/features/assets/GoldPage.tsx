@@ -129,7 +129,7 @@ export default function GoldPage() {
   return (
     <PageShell title="Gold" subtitle={`${rows.length} holding${rows.length !== 1 ? 's' : ''}`}
       actions={[
-        { label: '+ Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
+        { label: 'Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
         { label: '🔄', onClick: () => refetch(), variant: 'outline' },
       ]}
     >

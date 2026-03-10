@@ -202,7 +202,7 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
         </div>
 
         <Button size="sm" onClick={() => setShowForm(f => !f)} variant={showForm ? 'secondary' : 'primary'}>
-          {showForm ? '✕ Cancel' : '+ Add Entry'}
+          {showForm ? '✕ Cancel' : 'Add Entry'}
         </Button>
 
         {showForm && (
@@ -651,7 +651,7 @@ export default function ForeignStocksPage() {
       }
       actions={[
         { label: 'Import CSV', onClick: () => setShowImport(true), variant: 'import' },
-        { label: '+ Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
+        { label: 'Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
         { label: '🔄', onClick: () => refetch(), variant: 'secondary' },
       ]}
     >

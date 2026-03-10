@@ -281,7 +281,7 @@ export default function AmcMfPage() {
     <PageShell title="AMC Mutual Funds" subtitle={`${rows.length} fund${rows.length !== 1 ? 's' : ''}`}
       actions={[
         { label: '🔄', onClick: () => refetch(), variant: 'secondary' },
-        { label: '+ Add Fund', onClick: () => setEditRow({}), variant: 'primary' },
+        { label: 'Add Fund', onClick: () => setEditRow({}), variant: 'primary' },
       ]}
     >
       <AssetPageLayout

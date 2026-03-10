@@ -267,7 +267,7 @@ export default function EfPage() {
 
   return (
     <PageShell title="Emergency Fund" subtitle={`${rows.length} entr${rows.length !== 1 ? 'ies' : 'y'}`}
-      actions={[{ label: '+ Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
+      actions={[{ label: 'Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Coverage banner */}
       {coverageMonths !== null && (
