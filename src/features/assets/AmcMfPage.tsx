@@ -195,7 +195,6 @@ export default function AmcMfPage() {
     { label: 'Current Value',   value: INR(totalValue),    icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
     { label: 'Gain / Loss',     value: `${isPositive ? '+' : ''}${INR(gain)}`, sub: `${gainPct.toFixed(1)}%`, icon: isPositive ? '▲' : '▼', accentColor: isPositive ? '#059669' : '#dc2626', loading: isLoading },
     { label: 'Actual Invested', value: actual ? INR(actual) : '—', icon: '⊡', accentColor: '#d97706', loading: isLoading },
-    { label: 'Actual Gain',     value: actualGain ? `${actualGain.isPositive ? '+' : ''}${INR(actualGain.gain)}` : '—', sub: actualGain ? `${actualGain.isPositive ? '+' : ''}${actualGain.gainPct.toFixed(1)}%` : undefined, icon: actualGain?.isPositive ? '▲' : '▼', accentColor: actualGain?.isPositive ? '#059669' : '#dc2626', loading: isLoading },
   ]
 
   const cols = [
@@ -303,7 +302,7 @@ export default function AmcMfPage() {
       <AssetPageLayout
         stats={
           <div className="space-y-2">
-            <StatGrid items={stats} cols={5} />
+            <StatGrid items={stats} cols={4} />
             <div className="flex flex-wrap gap-x-6 gap-y-1 px-1 py-2 bg-ink/[0.03] border border-border rounded-xl">
               <span className="text-[10px] text-textmut uppercase tracking-widest self-center font-semibold">£ GBP</span>
               {[
