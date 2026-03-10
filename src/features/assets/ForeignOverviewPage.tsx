@@ -23,13 +23,15 @@ interface SectionCardProps {
   live:      boolean
   loading:   boolean
   extra?:    { label: string; value: string; color?: string }
+  gbpVal?:   number
+  gbpInvested?: number
   path:      string
 }
 
 function SectionCard({
   icon, label, sublabel, accent, accentBg,
   invested, value, actual, count, unit,
-  live, loading, extra, path,
+  live, loading, extra, gbpVal, gbpInvested, path,
 }: SectionCardProps) {
   const navigate = useNavigate()
   const { gain, gainPct, isPositive } = calcGain(value, invested)
@@ -38,10 +40,9 @@ function SectionCard({
   return (
     <button
       onClick={() => navigate(path)}
-      className="w-full text-left bg-surface border border-border rounded-2xl overflow-hidden hover:border-ink/20 hover:shadow-card transition-all group"
+      className="w-full text-left bg-surface border border-border border-t-[3px] rounded-2xl hover:border-ink/30 hover:shadow-card transition-all group"
+      style={{ borderTopColor: accent }}
     >
-      {/* Accent bar */}
-      <div className="h-1" style={{ background: accent }} />
 
       <div className="p-4">
         {/* Head */}
@@ -65,17 +66,33 @@ function SectionCard({
         {/* Rows */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-textmut uppercase tracking-wider font-semibold">Invested</span>
+            <span className="text-[10px] text-textmut uppercase tracking-wider font-semibold">Invested (₹)</span>
             <span className="text-xs font-bold text-textprim">{loading ? '…' : INR(invested)}</span>
           </div>
+          {gbpInvested != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-textmut uppercase tracking-wider font-semibold">Invested (£)</span>
+              <span className="text-xs font-bold text-textprim">{loading ? '…' : `£${gbpInvested.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-textmut uppercase tracking-wider font-semibold">
-              {live ? <span className="text-green">● Live</span> : 'Cur. Value'}
+              {live ? <span className="text-green">● Live (₹)</span> : 'Cur. Value (₹)'}
             </span>
             <span className={`text-xs font-bold ${!loading ? (isPositive ? 'text-green' : 'text-red') : 'text-textprim'}`}>
               {loading ? '…' : INR(value)}
             </span>
           </div>
+          {gbpVal != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-textmut uppercase tracking-wider font-semibold">
+                {live ? <span className="text-green">● Live (£)</span> : 'Cur. Value (£)'}
+              </span>
+              <span className={`text-xs font-bold ${!loading ? (isPositive ? 'text-green' : 'text-red') : 'text-textprim'}`}>
+                {loading ? '…' : `£${gbpVal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </span>
+            </div>
+          )}
           {actual != null && (
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-textmut uppercase tracking-wider font-semibold">Actual Inv</span>
@@ -193,6 +210,16 @@ export default function ForeignOverviewPage() {
 
   const bankInv = useMemo(() => bankSav.reduce((s, r) => s + Number(r.amount_gbp) * gbpInr, 0), [bankSav, gbpInr])
   const bankVal = bankInv
+  const bankGbp = useMemo(() => bankSav.reduce((s, r) => s + Number(r.amount_gbp), 0), [bankSav])
+
+  // GBP equivalents for foreign stocks and crypto
+  const foreignInvGbp = gbpInr > 0 ? foreignInv / gbpInr : 0
+  const foreignValGbp = gbpInr > 0 ? foreignVal / gbpInr : 0
+  const cryptoInvGbp  = useMemo(() => crypto.reduce((s, r) => s + Number(r.qty) * Number(r.avg_price_gbp), 0), [crypto])
+  const cryptoValGbp  = useMemo(() => crypto.reduce((s, r) => {
+    const p = yPrice(r.yahoo_symbol)
+    return s + (p != null ? Number(r.qty) * p : Number(r.qty) * Number(r.avg_price_gbp))
+  }, 0), [crypto, prices])
 
   const totalInv = foreignInv + cryptoInv + bankInv
   const totalVal = foreignVal + cryptoVal + bankVal
@@ -269,34 +296,32 @@ export default function ForeignOverviewPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <SectionCard
           icon="🌐" label="Foreign Stocks" sublabel="USD / GBP"
-          accent="#DB2877" accentBg="#FDF2F8"
+          accent="#1A1A1A" accentBg="#FDF2F8"
           invested={foreignInv} value={foreignVal}
           actual={actForeignAmt}
+          gbpInvested={foreignInvGbp} gbpVal={foreignValGbp}
           count={foreign.filter(r => Number(r.qty) > 0).length} unit="stocks"
           live={Object.keys(prices).length > 0} loading={l1}
           path="/assets/foreign-stocks"
         />
         <SectionCard
           icon="₿" label="Crypto" sublabel="GBP pairs"
-          accent="#F59E0B" accentBg="#FFFBEB"
+          accent="#1A1A1A" accentBg="#FFFBEB"
           invested={cryptoInv} value={cryptoVal}
           actual={actCryptoAmt}
+          gbpInvested={cryptoInvGbp} gbpVal={cryptoValGbp}
           count={crypto.filter(r => Number(r.qty) > 0).length} unit="coins"
           live={Object.keys(prices).length > 0} loading={l2}
           path="/assets/crypto"
         />
         <SectionCard
           icon="🏦" label="Bank Savings" sublabel="GBP · UK"
-          accent="#0EA5E9" accentBg="#F0F9FF"
+          accent="#1A1A1A" accentBg="#F0F9FF"
           invested={bankInv} value={bankVal}
           actual={actBankAmt}
+          gbpInvested={bankGbp} gbpVal={bankGbp}
           count={bankSav.length} unit="accounts"
           live={false} loading={l3}
-          extra={{
-            label: 'Holdings (£)',
-            value: `£${bankSav.reduce((s, r) => s + Number(r.amount_gbp), 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            color: '#0891B2',
-          }}
           path="/assets/bank-savings"
         />
       </div>
