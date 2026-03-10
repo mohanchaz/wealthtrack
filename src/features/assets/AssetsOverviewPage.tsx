@@ -9,7 +9,7 @@ import { supabase }          from '../../lib/supabase'
 import type {
   StockHolding, MfHolding, GoldHolding,
   AionionGoldHolding, CashAsset, FdAsset, EfAsset, BondAsset,
-  ForeignHolding, CryptoHolding, AmcMfHolding,
+  ForeignHolding, CryptoHolding, AmcMfHolding, BankSaving,
 } from '../../types/assets'
 
 // ── Tiny sparkline bar ────────────────────────────────────────

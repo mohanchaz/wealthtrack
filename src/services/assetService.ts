@@ -5,6 +5,7 @@ export type TableName =
   | 'mf_holdings' | 'gold_holdings' | 'amc_mf_holdings'
   | 'cash_assets' | 'bank_fd_assets' | 'emergency_funds'
   | 'bonds' | 'foreign_stock_holdings' | 'crypto_holdings'
+  | 'bank_savings'
 
 // Tables with no created_at column — order by their own timestamp or skip ordering
 const ORDER_COL: Partial<Record<TableName, string>> = {

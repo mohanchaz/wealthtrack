@@ -10,8 +10,8 @@ import { Modal }          from '../../components/ui/Modal'
 import { Button }         from '../../components/ui/Button'
 import { Input }          from '../../components/ui/Input'
 import { INR, formatDate } from '../../lib/utils'
-import { supabase }       from '../../lib/supabaseClient'
-import { useFxRates }     from '../../hooks/useFxRates'
+import { supabase }       from '../../lib/supabase'
+import { useFxRates }     from '../../hooks/useLivePrices'
 
 // ── Types ────────────────────────────────────────────────────
 interface BankSaving {
@@ -294,7 +294,7 @@ export default function BankSavingsPage() {
   useEffect(() => {
     if (!userId) return
     supabase.from('bank_savings_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
-      .then(({ data }) => {
+      .then(({ data }: { data: {gbp_amount: number; inr_rate: number}[] | null }) => {
         const entries = (data ?? []) as { gbp_amount: number; inr_rate: number }[]
         setActGbp(entries.reduce((s, e) => s + Number(e.gbp_amount), 0))
         setActInr(entries.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate), 0))
