@@ -32,8 +32,9 @@ function resolveYahoo(instrument: string): string {
 }
 
 // ── Add / Edit modal ─────────────────────────────────────────
-function EditModal({ row, onClose, onSave }: {
+function EditModal({ row, name, onClose, onSave }: {
   row: Partial<AionionGoldHolding>
+  name?: string | null
   onClose: () => void
   onSave:  (d: Partial<AionionGoldHolding>) => Promise<void>
 }) {
@@ -68,6 +69,7 @@ function EditModal({ row, onClose, onSave }: {
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-textmut uppercase tracking-wider">Instrument</label>
             <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">{inst}</div>
+            {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
           </div>
         ) : (
           <GoldInstrumentInput
@@ -107,6 +109,12 @@ export default function AionionGoldPage() {
     const key = yahoo.replace(/\.(NS|BO)$/, '')
     return priceMap[key]?.price ?? null
   }
+  const getName = (r: AionionGoldHolding) => {
+    const yahoo = resolveYahoo(r.instrument)
+    if (!yahoo) return null
+    const key = yahoo.replace(/\.(NS|BO)$/, '')
+    return priceMap[key]?.name ?? null
+  }
 
   const totalInvested = useMemo(() => rows.reduce((s, r) => s + r.qty * r.avg_cost, 0), [rows])
   const totalValue    = useMemo(() => rows.reduce((s, r) => {
@@ -144,7 +152,9 @@ export default function AionionGoldPage() {
         return (
           <div>
             <div className="font-bold">{r.instrument}</div>
-            {yahoo && <div className="text-[10px] text-textmut font-mono">{yahoo}</div>}
+            {getName(r)
+              ? <div className="text-[10px] text-textmut">{getName(r)}</div>
+              : yahoo && <div className="text-[10px] text-textmut font-mono">{yahoo}</div>}
           </div>
         )
       },
@@ -224,7 +234,7 @@ export default function AionionGoldPage() {
             rowKey={r => r.id}
             loading={isLoading}
             emptyText="No gold holdings yet — click + Add Holding to get started"
-            onEditRow={r => setEditRow(r)}
+            onEditRow={r => setEditRow({ ...r, _liveName: getName(r) } as typeof r)}
             onDeleteRows={async ids => {
               for (const id of ids) await deleteMutation.mutateAsync(id)
               toast(`Deleted ${ids.length}`, 'success')
@@ -234,7 +244,7 @@ export default function AionionGoldPage() {
         actualInvested={undefined}
       />
       {editRow !== null && (
-        <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />
+        <EditModal row={editRow} name={editRow.id ? (editRow as AionionGoldHolding & { _liveName?: string })._liveName ?? getName(editRow as AionionGoldHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />
       )}
     </PageShell>
   )

@@ -249,7 +249,7 @@ export default function ZerodhaStocksPage() {
             loading={isLoading}
             emptyText="No holdings — click + Add Holding or import from Zerodha Overview"
           
-            onEditRow={r => setEditRow(r)}
+            onEditRow={r => setEditRow({ ...r, _liveName: getName(r) } as typeof r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
           />
         }
@@ -257,7 +257,7 @@ export default function ZerodhaStocksPage() {
       />
 
       {editRow !== null && (
-        <EditModal row={editRow} name={editRow.id ? getName(editRow as StockHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />
+        <EditModal row={editRow} name={editRow.id ? (editRow as StockHolding & { _liveName?: string })._liveName ?? getName(editRow as StockHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />
       )}
 
 

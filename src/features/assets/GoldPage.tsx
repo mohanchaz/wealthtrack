@@ -36,7 +36,7 @@ function lookupGold(name: string): { type: string; yahoo: string } {
   return { type: /fund/i.test(name) ? 'MF' : 'ETF', yahoo: '' }
 }
 
-function EditModal({ row, onClose, onSave }: { row: Partial<GoldHolding>; onClose: () => void; onSave: (d: Partial<GoldHolding>) => Promise<void> }) {
+function EditModal({ row, name, onClose, onSave }: { row: Partial<GoldHolding>; name?: string | null; onClose: () => void; onSave: (d: Partial<GoldHolding>) => Promise<void> }) {
   const [name,    setName]    = useState(row.holding_name ?? '')
   const [type,    setType]    = useState(row.holding_type ?? 'ETF')
   const [qty,     setQty]     = useState(String(row.qty ?? ''))
@@ -67,9 +67,10 @@ function EditModal({ row, onClose, onSave }: { row: Partial<GoldHolding>; onClos
         {row.id ? (
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-textmut uppercase tracking-wider">Yahoo Symbol</label>
-            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none">
-              {sym || <span className="italic text-textfade">—</span>}
+            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">
+              {sym || <span className="italic opacity-40">—</span>}
             </div>
+            {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
           </div>
         ) : (
           <Input label="Yahoo Symbol (for live price)" value={sym} onChange={e => setSym(e.target.value)} placeholder="e.g. GOLDBEES.NS" />
@@ -88,7 +89,8 @@ export default function GoldPage() {
   const { data: priceMap = {}, isFetching: pf, refetch } = useYahooPrices(symbols)
   const [editRow, setEditRow] = useState<Partial<GoldHolding> | null>(null)
   const { upsertMutation, deleteMutation } = useAssets<GoldHolding>('gold_holdings')
-  const getLTP = (r: GoldHolding) => r.yahoo_symbol ? (priceMap[r.yahoo_symbol.replace(/\.(NS|BO)$/,'')]?.price ?? null) : null
+  const getLTP  = (r: GoldHolding) => r.yahoo_symbol ? (priceMap[r.yahoo_symbol.replace(/\.(NS|BO)$/,'')]?.price ?? null) : null
+  const getName = (r: GoldHolding) => r.yahoo_symbol ? (priceMap[r.yahoo_symbol.replace(/\.(NS|BO)$/,'')]?.name ?? null) : null
   const totalInvested = useMemo(() => rows.reduce((s, r) => s + r.qty * r.avg_cost, 0), [rows])
   const totalValue    = useMemo(() => rows.reduce((s, r) => { const ltp = getLTP(r); return s + (ltp != null ? r.qty * ltp : r.qty * r.avg_cost) }, 0), [rows, priceMap])
   const liveLabel = pf ? '🔄 Fetching…' : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
@@ -105,7 +107,12 @@ export default function GoldPage() {
         try { await deleteMutation.mutateAsync(id); toast('Deleted', 'success') } catch (e) { toast((e as Error).message, 'error') }
   }
   const cols = [
-    { key: 'holding_name', header: 'Name', render: (r: GoldHolding) => <span className="font-bold">{r.holding_name}</span> },
+    { key: 'holding_name', header: 'Name', render: (r: GoldHolding) => (
+      <div>
+        <div className="font-bold">{r.holding_name}</div>
+        {getName(r) && <div className="text-[10px] text-textmut">{getName(r)}</div>}
+      </div>
+    )},
     { key: 'holding_type', header: 'Type', render: (r: GoldHolding) => (
       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.holding_type === 'ETF' ? 'bg-amber/10 text-amber' : 'bg-teal/10 text-teal'}`}>{r.holding_type}</span>
     )},
@@ -145,11 +152,11 @@ export default function GoldPage() {
       <AssetPageLayout
         stats={<StatGrid items={buildInvestedStats({ invested: totalInvested, value: totalValue, loading: isLoading, liveLabel }).slice(0, 3)} cols={3} />}
         mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No gold holdings — import from Zerodha Overview or click + Add Holding" 
-            onEditRow={r => setEditRow(r)}
+            onEditRow={r => setEditRow({ ...r, _liveName: getName(r) } as typeof r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
           />}
       />
-      {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
+      {editRow !== null && <EditModal row={editRow} name={editRow.id ? (editRow as GoldHolding & { _liveName?: string })._liveName ?? getName(editRow as GoldHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />}
 
     </PageShell>
   )
