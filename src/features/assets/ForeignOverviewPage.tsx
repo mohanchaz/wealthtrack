@@ -230,7 +230,15 @@ export default function ForeignOverviewPage() {
   const actBankAmt    = actBankInr    > 0 ? actBankInr    : null
 
   const totalActual = (actForeignAmt ?? foreignInv) + (actCryptoAmt ?? cryptoInv) + (actBankAmt ?? bankInv)
-  const { gainPct: actGainPct, isPositive: actPos } = calcGain(totalVal, totalActual)
+  const { gain: actGain, gainPct: actGainPct, isPositive: actPos } = calcGain(totalVal, totalActual)
+
+  // GBP totals
+  const totalValGbp    = gbpInr > 0 ? totalVal    / gbpInr : 0
+  const totalInvGbp    = gbpInr > 0 ? totalInv    / gbpInr : 0
+  const totalGainGbp   = gbpInr > 0 ? totalGain   / gbpInr : 0
+  const actGainGbp     = gbpInr > 0 ? actGain     / gbpInr : 0
+  const totalActualGbp = gbpInr > 0 ? totalActual / gbpInr : 0
+  const fmtGbp = (v: number) => `£${Math.abs(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   const liveLabel = pricesFetching ? '🔄 Fetching…'
     : Object.keys(prices).length > 0 ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
@@ -261,33 +269,32 @@ export default function ForeignOverviewPage() {
       <div className="bg-surface border border-border rounded-2xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div>
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Total Value</div>
-          <div className="text-xl font-extrabold text-textprim font-mono">
-            {anyLoading ? '…' : INR(totalVal)}
-          </div>
-          <div className="text-[10px] text-textmut mt-0.5">Across 3 asset types</div>
+          <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalVal)}</div>
+          <div className="text-[10px] text-textmut font-mono mt-0.5">{anyLoading ? '' : fmtGbp(totalValGbp)}</div>
         </div>
         <div>
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Invested</div>
-          <div className="text-xl font-extrabold text-textprim font-mono">
-            {anyLoading ? '…' : INR(totalInv)}
-          </div>
+          <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalInv)}</div>
+          <div className="text-[10px] text-textmut font-mono mt-0.5">{anyLoading ? '' : fmtGbp(totalInvGbp)}</div>
         </div>
         <div>
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Gain / Loss</div>
           <div className={`text-xl font-extrabold font-mono ${totalPos ? 'text-green' : 'text-red'}`}>
             {anyLoading ? '…' : `${totalPos ? '+' : ''}${INR(totalGain)}`}
           </div>
-          <div className={`text-[10px] font-bold mt-0.5 ${totalPos ? 'text-green' : 'text-red'}`}>
-            {anyLoading ? '' : `${totalPos ? '+' : ''}${totalGainPct.toFixed(1)}%`}
+          <div className={`text-[10px] font-bold font-mono mt-0.5 ${totalPos ? 'text-green' : 'text-red'}`}>
+            {anyLoading ? '' : `${totalPos ? '+' : ''}${fmtGbp(totalGainGbp)} · ${totalPos ? '+' : ''}${totalGainPct.toFixed(1)}%`}
           </div>
         </div>
         <div>
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Actual Invested</div>
-          <div className="text-xl font-extrabold text-textprim font-mono">
-            {anyLoading ? '…' : INR(totalActual)}
+          <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalActual)}</div>
+          <div className="text-[10px] text-textmut font-mono mt-0.5">{anyLoading ? '' : fmtGbp(totalActualGbp)}</div>
+          <div className={`text-[10px] font-bold font-mono mt-0.5 ${actPos ? 'text-green' : 'text-red'}`}>
+            {anyLoading ? '' : `${actPos ? '+' : ''}${INR(actGain)}`}
           </div>
-          <div className={`text-[10px] font-bold mt-0.5 ${actPos ? 'text-green' : 'text-red'}`}>
-            {anyLoading ? '' : `Actual gain ${actPos ? '+' : ''}${actGainPct.toFixed(1)}%`}
+          <div className={`text-[10px] font-bold font-mono ${actPos ? 'text-green' : 'text-red'}`}>
+            {anyLoading ? '' : `${actPos ? '+' : ''}${fmtGbp(actGainGbp)} · ${actPos ? '+' : ''}${actGainPct.toFixed(1)}%`}
           </div>
         </div>
       </div>
