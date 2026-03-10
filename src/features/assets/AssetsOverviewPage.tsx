@@ -216,8 +216,11 @@ export default function AssetsOverviewPage() {
   // const actForeign  = useActualInvested('foreign_actual_invested')
   // crypto actual — defined after gbpInr below
 
-  const sum = (hook: ReturnType<typeof useActualInvested>) =>
-    hook.data?.reduce((s, e) => s + e.amount, 0) ?? null
+  const sum = (hook: ReturnType<typeof useActualInvested>) => {
+    if (!hook.data) return null
+    const total = hook.data.reduce((s, e) => s + e.amount, 0)
+    return total > 0 ? total : null
+  }
 
   // ── Live prices ──────────────────────────────────────────────
   const zInstruments  = useMemo(() => zStocks.map(r => r.instrument), [zStocks])
