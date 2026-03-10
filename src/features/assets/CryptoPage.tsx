@@ -196,11 +196,30 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
 function EditModal({ row, onClose, onSave }: {
   row: Partial<CryptoHolding>; onClose: () => void; onSave: (d: Partial<CryptoHolding>) => Promise<void>
 }) {
-  const [sym,      setSym]      = useState(row.yahoo_symbol ?? '')
-  const [platform, setPlatform] = useState(row.platform ?? 'Kraken')
-  const [qty,      setQty]      = useState(String(row.qty ?? ''))
-  const [avgGbp,   setAvgGbp]   = useState(String(row.avg_price_gbp ?? ''))
-  const [saving,   setSaving]   = useState(false)
+  const [sym,       setSym]      = useState(row.yahoo_symbol ?? '')
+  const [platform,  setPlatform] = useState(row.platform ?? 'Kraken')
+  const [qty,       setQty]      = useState(String(row.qty ?? ''))
+  const [avgGbp,    setAvgGbp]   = useState(String(row.avg_price_gbp ?? ''))
+  const [saving,    setSaving]   = useState(false)
+  const [coinName,  setCoinName] = useState<string | null>(null)
+  const [looking,   setLooking]  = useState(false)
+
+  // Lookup coin name from Yahoo when symbol changes (debounced)
+  useEffect(() => {
+    if (!sym || sym.length < 2) { setCoinName(null); return }
+    const yahoo_symbol = /-(GBP|USD|EUR|USDT)$/i.test(sym) ? sym : `${sym}-GBP`
+    const timer = setTimeout(async () => {
+      setLooking(true)
+      try {
+        const res  = await fetch(`/api/prices?symbols=${encodeURIComponent(yahoo_symbol)}`)
+        const data = await res.json() as Record<string, { price: number; name: string | null }>
+        const key  = yahoo_symbol.replace(/-(GBP|USD|EUR|USDT)$/i, '')
+        setCoinName(data[key]?.name ?? null)
+      } catch { setCoinName(null) }
+      finally { setLooking(false) }
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [sym])
 
   const handleSave = async () => {
     if (!sym || !qty || !avgGbp) return
@@ -216,8 +235,17 @@ function EditModal({ row, onClose, onSave }: {
     >
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Yahoo Symbol *" value={sym} onChange={e => setSym(e.target.value.toUpperCase())}
-            placeholder="BTC, ETH, SOL…" helpText="Auto-appends -GBP if needed" />
+          <div className="flex flex-col gap-1">
+            <Input label="Yahoo Symbol *" value={sym} onChange={e => setSym(e.target.value.toUpperCase())}
+              placeholder="BTC, ETH, SOL…" helpText="Auto-appends -GBP if needed" />
+            {looking && <p className="text-[10px] text-textmut">Looking up…</p>}
+            {coinName && !looking && (
+              <p className="text-[11px] font-semibold text-green flex items-center gap-1">✓ {coinName}</p>
+            )}
+            {!coinName && !looking && sym.length > 1 && (
+              <p className="text-[10px] text-textmut italic">Name will show once found</p>
+            )}
+          </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-textmut uppercase tracking-wide">Platform *</label>
             <select value={platform} onChange={e => setPlatform(e.target.value)}
@@ -254,9 +282,11 @@ export default function CryptoPage() {
   const [actualInr,  setActualInr]  = useState(0)
   const { upsertMutation, deleteMutation } = useAssets<CryptoHolding>('crypto_holdings')
 
-  const getLtpGbp  = (r: CryptoHolding) => priceMap[r.yahoo_symbol]?.price ?? null
+  // API strips -GBP/-USD suffix from keys: BTC-GBP → stored as BTC in priceMap
+  const priceKey   = (sym: string) => sym.replace(/-(GBP|USD|EUR|USDT)$/i, '')
+  const getLtpGbp  = (r: CryptoHolding) => priceMap[priceKey(r.yahoo_symbol)]?.price ?? null
   const gbpToInr   = (v: number) => v * gbpInr
-  const getCoinName = (r: CryptoHolding) => priceMap[r.yahoo_symbol]?.name ?? cryptoTicker(r.yahoo_symbol)
+  const getCoinName = (r: CryptoHolding) => priceMap[priceKey(r.yahoo_symbol)]?.name ?? cryptoTicker(r.yahoo_symbol)
 
   // Totals
   const totalInvestedGbp = useMemo(() => rows.reduce((s, r) => s + r.qty * r.avg_price_gbp, 0), [rows])
@@ -325,15 +355,18 @@ export default function CryptoPage() {
     {
       key: 'coin', header: 'Coin',
       render: (r: CryptoHolding) => {
-        const name = getCoinName(r)
-        const ticker = cryptoTicker(r.yahoo_symbol)
+        const ticker  = cryptoTicker(r.yahoo_symbol)
+        const rawName = priceMap[priceKey(r.yahoo_symbol)]?.name ?? null
         return (
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-ink">{ticker}</span>
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-orange-50 text-orange-700 border-orange-200">{r.platform}</span>
             </div>
-            {name !== ticker && <div className="text-[10px] text-textmut truncate max-w-[180px]" title={name}>{name}</div>}
+            {rawName
+              ? <div className="text-[10px] text-textmut truncate max-w-[200px]" title={rawName}>{rawName}</div>
+              : <div className="text-[10px] text-textfade font-mono">{r.yahoo_symbol}</div>
+            }
           </div>
         )
       },
@@ -384,10 +417,7 @@ export default function CryptoPage() {
     {
       key: 'invested', header: 'Invested', align: 'right' as const,
       render: (r: CryptoHolding) => (
-        <div className="text-right">
-          <div>{fmtGbp(r.qty * r.avg_price_gbp)}</div>
-          <div className="text-[10px] text-textmut">{INR(gbpToInr(r.qty * r.avg_price_gbp))}</div>
-        </div>
+        <div className="text-right">{fmtGbp(r.qty * r.avg_price_gbp)}</div>
       ),
     },
     {
@@ -399,7 +429,6 @@ export default function CryptoPage() {
         return (
           <div className="text-right">
             <div className={`font-bold ${isUp ? 'text-green' : 'text-red'}`}>{fmtGbp(valGbp)}</div>
-            <div className="text-[10px] text-textmut">{INR(gbpToInr(valGbp))}</div>
           </div>
         )
       },
