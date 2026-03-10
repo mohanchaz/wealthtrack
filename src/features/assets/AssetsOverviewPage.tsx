@@ -275,7 +275,7 @@ export default function AssetsOverviewPage() {
   // Zerodha stocks
   const zStocksInv = useMemo(() => zStocks.reduce((s, r) => s + Number(r.qty) * Number(r.avg_cost), 0), [zStocks])
   const zStocksVal = useMemo(() => zStocks.reduce((s, r) => {
-    const p = nsePrices[`${r.instrument}.NS`]?.price ?? null
+    const p = nsePrices[r.instrument]?.price ?? null
     return s + (p != null ? Number(r.qty) * p : Number(r.qty) * Number(r.avg_cost))
   }, 0), [zStocks, nsePrices])
 
@@ -299,7 +299,7 @@ export default function AssetsOverviewPage() {
   // Aionion stocks
   const aiStocksInv = useMemo(() => aiStocks.reduce((s, r) => s + Number(r.qty) * Number(r.avg_cost), 0), [aiStocks])
   const aiStocksVal = useMemo(() => aiStocks.reduce((s, r) => {
-    const p = nsePrices[`${r.instrument}.NS`]?.price ?? null
+    const p = nsePrices[r.instrument]?.price ?? null
     return s + (p != null ? Number(r.qty) * p : Number(r.qty) * Number(r.avg_cost))
   }, 0), [aiStocks, nsePrices])
 
