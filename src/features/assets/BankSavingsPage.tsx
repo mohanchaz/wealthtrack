@@ -399,38 +399,28 @@ export default function BankSavingsPage() {
       )}
       <AssetPageLayout
         stats={
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="bg-surface rounded-2xl border border-border p-4">
               <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-2">Holdings</div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-textmut">£</span>
-                <span className="text-sm font-extrabold font-mono text-textprim">£{totalGbp.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex items-center justify-between mt-1">
                 <span className="text-[10px] text-textmut">₹</span>
                 <span className="text-sm font-extrabold font-mono text-teal">{INR(totalInr)}</span>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[10px] text-textmut">£</span>
+                <span className="text-sm font-extrabold font-mono text-textprim">£{totalGbp.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="text-[10px] text-textmut mt-1.5">{rows.length} account{rows.length !== 1 ? 's' : ''} · @ ₹{gbpInr.toFixed(2)}/£</div>
             </div>
             <div className="bg-surface rounded-2xl border border-border p-4">
               <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-2">Actual Invested</div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-textmut">£</span>
-                <span className="text-sm font-extrabold font-mono text-textprim">{actGbp > 0 ? `£${actGbp.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</span>
-              </div>
-              <div className="flex items-center justify-between mt-1">
                 <span className="text-[10px] text-textmut">₹</span>
                 <span className="text-sm font-extrabold font-mono text-teal">{actInr > 0 ? INR(actInr) : '—'}</span>
               </div>
-            </div>
-            <div className="bg-surface rounded-2xl border border-border p-4">
-              <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-2">Accounts</div>
-              <div className="text-xl font-extrabold text-textprim">{rows.length}</div>
-              <div className="text-[10px] text-textmut mt-1">
-                {rows.filter(r => r.maturity_date).length} with maturity date
-              </div>
-              <div className="text-[10px] text-textmut mt-0.5">
-                {upcoming.length > 0 ? <span className="text-amber font-semibold">⏰ {upcoming.length} maturing soon</span> : 'None maturing soon'}
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[10px] text-textmut">£</span>
+                <span className="text-sm font-extrabold font-mono text-textprim">{actGbp > 0 ? `£${actGbp.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</span>
               </div>
             </div>
           </div>

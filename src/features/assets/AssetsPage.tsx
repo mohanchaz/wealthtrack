@@ -15,6 +15,7 @@ import CryptoPage         from './CryptoPage'
 import AmcMfPage          from './AmcMfPage'
 import AssetsOverviewPage  from './AssetsOverviewPage'
 import BankSavingsPage     from './BankSavingsPage'
+import ForeignOverviewPage from './ForeignOverviewPage'
 
 const PAGE_MAP: Record<string, React.ComponentType> = {
   'zerodha':        ZerodhaOverviewPage,
@@ -33,6 +34,7 @@ const PAGE_MAP: Record<string, React.ComponentType> = {
   'amc-mf':         AmcMfPage,
   'overview':        AssetsOverviewPage,
   'bank-savings':    BankSavingsPage,
+  'foreign':          ForeignOverviewPage,
 }
 
 export default function AssetsPage() {

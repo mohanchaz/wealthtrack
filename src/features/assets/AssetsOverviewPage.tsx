@@ -564,7 +564,7 @@ export default function AssetsOverviewPage() {
             <AssetCard icon="🌐" label="Foreign Stocks" sublabel="USD / GBP · Live" invested={foreignInv} actual={actForeignAmt ?? foreignInv} value={foreignVal}
               count={foreign.filter(r => Number(r.qty) > 0).length} unit="stocks"
               live={Object.keys(yahooPrices).length > 0} loading={l11} accent="#DB2777"
-              path="/assets/foreign-stocks" delay={0} />
+              path="/assets/foreign" delay={0} />
             <AssetCard icon="₿" label="Crypto" sublabel="GBP pairs · Live" invested={cryptoInv} actual={actCryptoAmt ?? cryptoInv} value={cryptoVal}
               count={crypto.filter(r => Number(r.qty) > 0).length} unit="coins"
               live={Object.keys(yahooPrices).length > 0} loading={l12} accent="#F59E0B"
@@ -590,7 +590,7 @@ export default function AssetsOverviewPage() {
               { label: 'FD', path: '/assets/fd' },
               { label: 'Emergency Fund', path: '/assets/ef' },
               { label: 'Bonds', path: '/assets/bonds' },
-              { label: 'Foreign Stocks', path: '/assets/foreign-stocks' },
+              { label: 'Foreign Assets', path: '/assets/foreign' },
               { label: 'Crypto', path: '/assets/crypto' },
               { label: 'Bank Savings', path: '/assets/bank-savings' },
             ].map(l => (
