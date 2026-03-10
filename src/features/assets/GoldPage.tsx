@@ -37,7 +37,6 @@ function lookupGold(name: string): { type: string; yahoo: string } {
 }
 
 function EditModal({ row, liveName, onClose, onSave }: { row: Partial<GoldHolding>; liveName?: string | null; onClose: () => void; onSave: (d: Partial<GoldHolding>) => Promise<void> }) {
-  const [type,    setType]    = useState(row.holding_type ?? 'ETF')
   const [qty,     setQty]     = useState(String(row.qty ?? ''))
   const [avg,     setAvg]     = useState(String(row.avg_cost ?? ''))
   const [sym,     setSym]     = useState(row.yahoo_symbol ?? '')
@@ -46,7 +45,7 @@ function EditModal({ row, liveName, onClose, onSave }: { row: Partial<GoldHoldin
     if (!qty || !avg) return
     setSaving(true)
     const q = parseFloat(qty), a = parseFloat(avg)
-    await onSave({ ...row, holding_name: row.holding_name ?? sym, holding_type: type, qty: q, avg_cost: a, yahoo_symbol: sym })
+    await onSave({ ...row, qty: q, avg_cost: a, yahoo_symbol: sym })
     setSaving(false)
   }
   return (
@@ -54,13 +53,7 @@ function EditModal({ row, liveName, onClose, onSave }: { row: Partial<GoldHoldin
       footer={<><Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button><Button size="sm" onClick={handleSave} loading={saving}>💾 Save</Button></>}
     >
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-textsec uppercase tracking-wider">Type</label>
-          <select value={type} onChange={e => setType(e.target.value)} className="h-9 rounded-xl border border-border bg-white text-sm text-textprim px-3 focus:border-teal focus:ring-2 focus:ring-teal/15 outline-none">
-            <option value="ETF">ETF</option><option value="MF">MF</option>
-          </select>
-        </div>
-        <Input label="Qty / Units" type="number" step="0.001" value={qty} onChange={e => setQty(e.target.value)} />
+<Input label="Qty / Units" type="number" step="0.001" value={qty} onChange={e => setQty(e.target.value)} />
         <Input label="Avg Cost / NAV" prefix="₹" type="number" step="0.01" value={avg} onChange={e => setAvg(e.target.value)} />
         {row.id ? (
           <div className="flex flex-col gap-1">
@@ -105,14 +98,11 @@ export default function GoldPage() {
         try { await deleteMutation.mutateAsync(id); toast('Deleted', 'success') } catch (e) { toast((e as Error).message, 'error') }
   }
   const cols = [
-    { key: 'holding_name', header: 'Name', render: (r: GoldHolding) => (
+    { key: 'yahoo_symbol', header: 'Name', render: (r: GoldHolding) => (
       <div>
-        <div className="font-bold">{r.holding_name}</div>
-        {getName(r) && <div className="text-[10px] text-textmut">{getName(r)}</div>}
+        <div className="font-bold">{getName(r) ?? r.yahoo_symbol ?? '—'}</div>
+        {r.yahoo_symbol && <div className="text-[10px] text-textmut font-mono">{r.yahoo_symbol}</div>}
       </div>
-    )},
-    { key: 'holding_type', header: 'Type', render: (r: GoldHolding) => (
-      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.holding_type === 'ETF' ? 'bg-amber/10 text-amber' : 'bg-teal/10 text-teal'}`}>{r.holding_type}</span>
     )},
     { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: GoldHolding) => {
       const qty  = Number(r.qty)

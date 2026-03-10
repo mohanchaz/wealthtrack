@@ -26,8 +26,8 @@ export interface MfHolding {
 export interface GoldHolding {
   id:            string
   user_id:       string
-  holding_name:  string
-  holding_type:  'ETF' | 'MF' | string
+  holding_name?:  string
+  holding_type?:  'ETF' | 'MF' | string
   qty:           number
   prev_qty?:     number
   avg_cost:      number
