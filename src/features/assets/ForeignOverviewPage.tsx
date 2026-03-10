@@ -287,13 +287,11 @@ export default function ForeignOverviewPage() {
           </div>
         </div>
         <div>
-          <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Actual Invested</div>
-          <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalActual)}</div>
-          <div className="text-[10px] text-textmut font-mono mt-0.5">{anyLoading ? '' : fmtGbp(totalActualGbp)}</div>
-          <div className={`text-[10px] font-bold font-mono mt-0.5 ${actPos ? 'text-green' : 'text-red'}`}>
-            {anyLoading ? '' : `${actPos ? '+' : ''}${INR(actGain)}`}
+          <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Actual Gain</div>
+          <div className={`text-xl font-extrabold font-mono ${actPos ? 'text-green' : 'text-red'}`}>
+            {anyLoading ? '…' : `${actPos ? '+' : ''}${INR(actGain)}`}
           </div>
-          <div className={`text-[10px] font-bold font-mono ${actPos ? 'text-green' : 'text-red'}`}>
+          <div className={`text-[10px] font-bold font-mono mt-0.5 ${actPos ? 'text-green' : 'text-red'}`}>
             {anyLoading ? '' : `${actPos ? '+' : ''}${fmtGbp(actGainGbp)} · ${actPos ? '+' : ''}${actGainPct.toFixed(1)}%`}
           </div>
         </div>
