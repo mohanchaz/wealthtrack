@@ -1,9 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAssets }        from '../../hooks/useAssets'
+import { useAuthStore }      from '../../store/authStore'
 import { useActualInvested } from '../../hooks/useActualInvested'
 import { useNsePrices, useYahooPrices, useFxRates } from '../../hooks/useLivePrices'
 import { INR, calcGain }    from '../../lib/utils'
+import { supabase }          from '../../lib/supabase'
 import type {
   StockHolding, MfHolding, GoldHolding,
   AionionGoldHolding, CashAsset, FdAsset, EfAsset, BondAsset,
@@ -185,6 +187,8 @@ export default function AssetsOverviewPage() {
   const navigate = useNavigate()
 
   // ── Load all asset tables ────────────────────────────────────
+  const userId = useAuthStore(s => s.user?.id)
+
   const { data: zStocks  = [], isLoading: l1 } = useAssets<StockHolding>('zerodha_stocks')
   const { data: zMfs     = [], isLoading: l2 } = useAssets<MfHolding>('mf_holdings')
   const { data: zGold    = [], isLoading: l3 } = useAssets<GoldHolding>('gold_holdings')
@@ -209,7 +213,7 @@ export default function AssetsOverviewPage() {
   const actEf       = useActualInvested('ef_actual_invested')
   // foreign_actual_invested uses custom schema (gbp_amount+inr_rate) — not wired to overview yet
   // const actForeign  = useActualInvested('foreign_actual_invested')
-  const actCrypto   = useActualInvested('crypto_actual_invested')
+  // crypto actual — defined after gbpInr below
 
   const sum = (hook: ReturnType<typeof useActualInvested>) =>
     hook.data?.reduce((s, e) => s + e.amount, 0) ?? null
@@ -230,6 +234,19 @@ export default function AssetsOverviewPage() {
   const { data: fx } = useFxRates()
   const usdInr = fx?.usdInr ?? 83.5
   const gbpInr = fx?.gbpInr ?? (fx?.gbpUsd ?? 1.27) * usdInr
+
+  // crypto_actual_invested has custom schema (gbp_amount+inr_rate) — fetch directly
+  const [actCryptoGbp, setActCryptoGbp] = useState(0)
+  const [actCryptoInr, setActCryptoInr] = useState(0)
+  useEffect(() => {
+    if (!userId) return
+    supabase.from('crypto_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
+      .then(({ data }) => {
+        const rows = (data ?? []) as {gbp_amount: number; inr_rate: number | null}[]
+        setActCryptoGbp(rows.reduce((s, e) => s + Number(e.gbp_amount), 0))
+        setActCryptoInr(rows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0))
+      })
+  }, [userId, gbpInr])
 
   // ── Helper: get yahoo price ──────────────────────────────────
   const yPrice = (sym: string | null | undefined) => {
@@ -333,7 +350,7 @@ export default function AssetsOverviewPage() {
   const actFdAmt       = sum(actFd)
   const actEfAmt       = sum(actEf)
   const actForeignAmt  = null // custom schema — see ForeignStocksPage
-  const actCryptoAmt   = sum(actCrypto)
+  const actCryptoAmt   = actCryptoInr > 0 ? actCryptoInr : null
   // No actual tables: cash, bonds, aionion gold → use invested as actual
   const cashActual     = cashInv
   const bondsActual    = bondsInv
