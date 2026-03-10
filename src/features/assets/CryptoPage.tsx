@@ -154,7 +154,7 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
             <span className="text-sm font-extrabold font-mono text-teal">{INR(totalInr)}</span>
           </div>
         </div>
-        <Button size="sm" onClick={() => setShowForm(f => !f)} className="w-full" variant={showForm ? 'secondary' : 'primary'}>
+        <Button size="sm" onClick={() => setShowForm(f => !f)} variant={showForm ? 'secondary' : 'primary'}>
           {showForm ? '✕ Cancel' : '+ Add Entry'}
         </Button>
         {showForm && (
@@ -165,7 +165,7 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
               value={inrRate} onChange={e => setInrRate(e.target.value)}
               helpText={`Live: ₹${gbpInr.toFixed(2)} / £1`} />
             <Input label="Date" type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} />
-            <Button size="sm" onClick={handleAdd} loading={saving} className="w-full">Save Entry</Button>
+            <Button size="sm" onClick={handleAdd} loading={saving} >Save Entry</Button>
             {error && <p className="text-[10px] text-red bg-red/5 border border-red/20 rounded-lg px-2 py-1">{error}</p>}
           </div>
         )}

@@ -201,7 +201,7 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
           </div>
         </div>
 
-        <Button size="sm" onClick={() => setShowForm(f => !f)} className="w-full" variant={showForm ? 'secondary' : 'primary'}>
+        <Button size="sm" onClick={() => setShowForm(f => !f)} variant={showForm ? 'secondary' : 'primary'}>
           {showForm ? '✕ Cancel' : '+ Add Entry'}
         </Button>
 
@@ -213,7 +213,7 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
               value={inrRate} onChange={e => setInrRate(e.target.value)}
               helpText={`Live rate: ₹${gbpInr.toFixed(2)} / £1`} />
             <Input label="Date" type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} />
-            <Button size="sm" onClick={handleAdd} loading={saving} className="w-full">Save Entry</Button>
+            <Button size="sm" onClick={handleAdd} loading={saving} >Save Entry</Button>
             {error && <p className="text-[10px] text-red bg-red/5 border border-red/20 rounded-lg px-2 py-1">{error}</p>}
           </div>
         )}
@@ -650,7 +650,7 @@ export default function ForeignStocksPage() {
         </span>
       }
       actions={[
-        { label: '📥 Import CSV', onClick: () => setShowImport(true), variant: 'secondary' },
+        { label: 'Import CSV', onClick: () => setShowImport(true), variant: 'import' },
         { label: '+ Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
         { label: '🔄', onClick: () => refetch(), variant: 'secondary' },
       ]}

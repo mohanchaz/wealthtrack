@@ -80,18 +80,22 @@ export function ActualInvestedPanel({ table }: Props) {
           <span className="text-[10px] font-bold text-textmut uppercase tracking-widest">Actual Invested</span>
           <span className="text-sm font-extrabold font-mono text-teal">{INR(total)}</span>
         </div>
-        <Button size="sm" onClick={() => setShowForm(f => !f)} className="w-full" variant={showForm ? 'secondary' : 'primary'}>
-          {showForm ? '✕ Cancel' : '+ Add Entry'}
-        </Button>
+        <div className="flex justify-center">
+          <Button size="sm" onClick={() => setShowForm(f => !f)} variant={showForm ? 'secondary' : 'primary'}>
+            {showForm ? '✕ Cancel' : '+ Add Entry'}
+          </Button>
+        </div>
         {showForm && (
           <div className="flex flex-col gap-2 mt-2">
             <Input prefix="₹" type="number" placeholder="Amount" value={amount}
               onChange={e => setAmount(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
             <Input type="date" value={entryDate}
               onChange={e => setEntryDate(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
-            <Button size="sm" onClick={handleAdd} loading={addMutation.isPending} className="w-full">
-              Save Entry
-            </Button>
+            <div className="flex justify-center">
+              <Button size="sm" onClick={handleAdd} loading={addMutation.isPending}>
+                Save Entry
+              </Button>
+            </div>
             {error && <p className="text-[10px] text-red bg-red/5 border border-red/20 rounded-lg px-2 py-1 leading-snug">{error}</p>}
           </div>
         )}

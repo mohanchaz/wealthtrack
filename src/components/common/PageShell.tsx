@@ -4,7 +4,7 @@ import { Button } from '../ui/Button'
 interface Action {
   label:    ReactNode
   onClick:  () => void
-  variant?: 'primary' | 'secondary' | 'outline'
+  variant?: 'primary' | 'secondary' | 'outline' | 'import'
 }
 
 interface Props {
