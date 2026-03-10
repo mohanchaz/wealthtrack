@@ -193,11 +193,14 @@ export default function FdPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
+  const actualGainFd   = actual && actual > 0 ? calcGain(totalMaturity, actual) : null
+
   const stats = [
     { label: 'Principal',      value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Maturity Value', value: INR(totalMaturity), icon: '◈', accentColor: '#0d9488', loading: isLoading },
     { label: 'Total Interest', value: `${isPositive?'+':''}${INR(gain)}`, sub: `${gainPct.toFixed(1)}%`, icon: isPositive?'▲':'▼', accentColor: isPositive?'#059669':'#dc2626', loading: isLoading },
     { label: 'Actual Invested', value: actual ? INR(actual) : '—', icon: '⊡', accentColor: '#d97706', loading: isLoading },
+    { label: 'Actual Gain', value: actualGainFd ? `${actualGainFd.isPositive?'+':''}${INR(actualGainFd.gain)}` : '—', sub: actualGainFd ? `${actualGainFd.isPositive?'+':''}${actualGainFd.gainPct.toFixed(1)}%` : undefined, icon: actualGainFd?.isPositive ? '▲' : '▼', accentColor: actualGainFd?.isPositive ? '#059669' : '#dc2626', loading: isLoading },
   ]
 
   const cols = [
@@ -274,7 +277,7 @@ export default function FdPage() {
       )}
 
       <AssetPageLayout
-        stats={<StatGrid items={stats} cols={4} />}
+        stats={<StatGrid items={stats} cols={5} />}
         mainTable={
           <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
             emptyText="No FDs yet — click + Add FD"

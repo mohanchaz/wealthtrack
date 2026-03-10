@@ -11,7 +11,7 @@ import { ActualInvestedPanel } from '../../components/common/ActualInvestedPanel
 import { Modal }               from '../../components/ui/Modal'
 import { Button }              from '../../components/ui/Button'
 import { Input }               from '../../components/ui/Input'
-import { INR, formatDate }     from '../../lib/utils'
+import { INR, formatDate, calcGain } from '../../lib/utils'
 import type { EfAsset }        from '../../types/assets'
 
 // ── Constants ──────────────────────────────────────────────────
@@ -204,11 +204,14 @@ export default function EfPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
+  const actualGainEf = actual && actual > 0 ? calcGain(totalMaturity, actual) : null
+
   const stats = [
     { label: 'Total Amount',    value: INR(totalInvested), icon: '₹',  accentColor: '#0891b2', loading: isLoading },
     { label: 'With Interest',   value: INR(totalMaturity), icon: '◈',  accentColor: '#0d9488', loading: isLoading },
     { label: 'Total Interest',  value: totalInterest > 0 ? `+${INR(totalInterest)}` : INR(totalInterest), icon: '▲', accentColor: '#059669', loading: isLoading },
     { label: 'Actual Invested', value: actual ? INR(actual) : '—',     icon: '⊡', accentColor: '#d97706', loading: isLoading },
+    { label: 'Actual Gain',     value: actualGainEf ? `${actualGainEf.isPositive?'+':''}${INR(actualGainEf.gain)}` : '—', sub: actualGainEf ? `${actualGainEf.isPositive?'+':''}${actualGainEf.gainPct.toFixed(1)}%` : undefined, icon: actualGainEf?.isPositive ? '▲' : '▼', accentColor: actualGainEf?.isPositive ? '#059669' : '#dc2626', loading: isLoading },
   ]
 
   const cols = [
@@ -307,7 +310,7 @@ export default function EfPage() {
       )}
 
       <AssetPageLayout
-        stats={<StatGrid items={stats} cols={4} />}
+        stats={<StatGrid items={stats} cols={5} />}
         mainTable={
           <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
             emptyText="No emergency fund entries — click + Add Entry"
