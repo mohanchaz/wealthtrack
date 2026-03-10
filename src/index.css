@@ -12,6 +12,7 @@
     @apply bg-bg text-textprim font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'zero' 0, 'ss01' 1;
     min-height: 100vh;
   }
 
