@@ -36,7 +36,7 @@ function lookupGold(name: string): { type: string; yahoo: string } {
   return { type: /fund/i.test(name) ? 'MF' : 'ETF', yahoo: '' }
 }
 
-function EditModal({ row, name, onClose, onSave }: { row: Partial<GoldHolding>; name?: string | null; onClose: () => void; onSave: (d: Partial<GoldHolding>) => Promise<void> }) {
+function EditModal({ row, liveName, onClose, onSave }: { row: Partial<GoldHolding>; liveName?: string | null; onClose: () => void; onSave: (d: Partial<GoldHolding>) => Promise<void> }) {
   const [name,    setName]    = useState(row.holding_name ?? '')
   const [type,    setType]    = useState(row.holding_type ?? 'ETF')
   const [qty,     setQty]     = useState(String(row.qty ?? ''))
@@ -70,7 +70,7 @@ function EditModal({ row, name, onClose, onSave }: { row: Partial<GoldHolding>; 
             <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">
               {sym || <span className="italic opacity-40">—</span>}
             </div>
-            {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
+            {liveName && <div className="text-xs text-textmut mt-0.5">{liveName}</div>}
           </div>
         ) : (
           <Input label="Yahoo Symbol (for live price)" value={sym} onChange={e => setSym(e.target.value)} placeholder="e.g. GOLDBEES.NS" />
@@ -156,7 +156,7 @@ export default function GoldPage() {
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
           />}
       />
-      {editRow !== null && <EditModal row={editRow} name={editRow.id ? (editRow as GoldHolding & { _liveName?: string })._liveName ?? getName(editRow as GoldHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />}
+      {editRow !== null && <EditModal row={editRow} liveName={editRow.id ? (editRow as GoldHolding & { _liveName?: string })._liveName ?? getName(editRow as GoldHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />}
 
     </PageShell>
   )
