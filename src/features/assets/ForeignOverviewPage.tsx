@@ -115,7 +115,7 @@ function SectionCard({
             </span>
           )}
           {actCalc && !loading && (
-            <span className="text-[10px] text-textmut font-semibold">
+            <span className={`text-[10px] font-semibold ${actCalc.isPositive ? 'text-green' : 'text-red'}`}>
               Actual {actCalc.isPositive ? '+' : ''}{actCalc.gainPct.toFixed(1)}%
             </span>
           )}

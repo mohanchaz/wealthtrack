@@ -54,7 +54,7 @@ function SectionCard({ icon, label, sublabel, accent, accentBg, invested, value,
         </div>
         <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border">
           {!loading && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isPositive ? 'bg-green/10 text-green' : 'text-red bg-red/10'}`}>{isPositive ? '+' : ''}{gainPct.toFixed(1)}%</span>}
-          {actCalc && !loading && <span className="text-[10px] text-textmut font-semibold">Actual {actCalc.isPositive ? '+' : ''}{actCalc.gainPct.toFixed(1)}%</span>}
+          {actCalc && !loading && <span className={`text-[10px] font-semibold ${actCalc.isPositive ? 'text-green' : 'text-red'}`}>Actual {actCalc.isPositive ? '+' : ''}{actCalc.gainPct.toFixed(1)}%</span>}
         </div>
       </div>
     </button>
