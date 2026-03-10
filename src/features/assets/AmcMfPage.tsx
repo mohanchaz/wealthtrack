@@ -3,7 +3,7 @@ import { useAuthStore }        from '../../store/authStore'
 import { useAssets }           from '../../hooks/useAssets'
 import { useActualInvested }   from '../../hooks/useActualInvested'
 import { useToastStore }       from '../../store/toastStore'
-import { useYahooPrices }      from '../../hooks/useLivePrices'
+import { useYahooPrices, useFxRates } from '../../hooks/useLivePrices'
 import { AssetPageLayout }     from '../../components/common/AssetPageLayout'
 import { PageShell }           from '../../components/common/PageShell'
 import { StatGrid }            from '../../components/common/StatGrid'
@@ -163,6 +163,12 @@ export default function AmcMfPage() {
 
   const actual = aiHook.data?.reduce((s, e) => s + e.amount, 0)
   const { gain, gainPct, isPositive } = calcGain(totalValue, totalInvested)
+
+  // FX for GBP banner
+  const { data: fx } = useFxRates()
+  const gbpInr = fx ? (fx.gbpUsd ?? 1.27) * (fx.usdInr ?? 84) : 107
+  const toGbp  = (inr: number) => inr / gbpInr
+  const GBP    = (inr: number) => `£${toGbp(inr).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const liveLabel = pricesFetching
     ? '🔄 Fetching…'
     : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
@@ -295,7 +301,29 @@ export default function AmcMfPage() {
       ]}
     >
       <AssetPageLayout
-        stats={<StatGrid items={stats} cols={5} />}
+        stats={
+          <div className="space-y-2">
+            <StatGrid items={stats} cols={5} />
+            <div className="flex flex-wrap gap-x-6 gap-y-1 px-1 py-2 bg-ink/[0.03] border border-border rounded-xl">
+              <span className="text-[10px] text-textmut uppercase tracking-widest self-center font-semibold">£ GBP</span>
+              {[
+                { label: 'Invested',        val: GBP(totalInvested) },
+                { label: 'Current Value',   val: GBP(totalValue) },
+                { label: 'Gain',            val: `${isPositive?'+':''}${GBP(gain)}`, color: isPositive ? 'text-green' : 'text-red' },
+                ...(actual ? [
+                  { label: 'Actual Inv',    val: GBP(actual) },
+                  ...(actualGain ? [{ label: 'Actual Gain', val: `${actualGain.isPositive?'+':''}${GBP(actualGain.gain)}`, color: actualGain.isPositive ? 'text-green' : 'text-red' }] : []),
+                ] : []),
+              ].map(({ label, val, color }) => (
+                <div key={label} className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-textmut">{label}</span>
+                  <span className={`text-[11px] font-bold font-mono ${color ?? 'text-textprim'}`}>{val}</span>
+                </div>
+              ))}
+              <span className="text-[9px] text-textfade self-center ml-auto">@ ₹{gbpInr.toFixed(1)}/£</span>
+            </div>
+          </div>
+        }
         mainTable={
           <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
             emptyText="No AMC MF holdings — click + Add Fund"
