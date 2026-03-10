@@ -64,7 +64,16 @@ function EditModal({ row, onClose, onSave }: { row: Partial<GoldHolding>; onClos
         </div>
         <Input label="Qty / Units" type="number" step="0.001" value={qty} onChange={e => setQty(e.target.value)} />
         <Input label="Avg Cost / NAV" prefix="₹" type="number" step="0.01" value={avg} onChange={e => setAvg(e.target.value)} />
-        <Input label="Yahoo Symbol (for live price)" value={sym} onChange={e => setSym(e.target.value)} placeholder="e.g. GOLDBEES.NS" />
+        {row.id ? (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-textmut uppercase tracking-wider">Yahoo Symbol</label>
+            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none">
+              {sym || <span className="italic text-textfade">—</span>}
+            </div>
+          </div>
+        ) : (
+          <Input label="Yahoo Symbol (for live price)" value={sym} onChange={e => setSym(e.target.value)} placeholder="e.g. GOLDBEES.NS" />
+        )}
       </div>
     </Modal>
   )

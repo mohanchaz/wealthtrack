@@ -81,14 +81,23 @@ function EditModal({ row, onClose, onSave }: {
       }
     >
       <div className="flex flex-col gap-4">
-        <NseSymbolInput
-          value={instrument}
-          onChange={setInstrument}
-          onLive={r => {
-            if (!row.id && r.status === 'found' && r.price && !avgCost)
-              setAvgCost(r.price.toFixed(2))
-          }}
-        />
+        {row.id ? (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-textmut uppercase tracking-wider">Symbol</label>
+            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none">
+              {instrument}
+            </div>
+          </div>
+        ) : (
+          <NseSymbolInput
+            value={instrument}
+            onChange={setInstrument}
+            onLive={r => {
+              if (r.status === 'found' && r.price && !avgCost)
+                setAvgCost(r.price.toFixed(2))
+            }}
+          />
+        )}
         <Input label="Quantity"     type="number" value={qty}     onChange={e => setQty(e.target.value)} placeholder="e.g. 10" />
         <Input label="Avg Cost (₹)" prefix="₹" type="number" step="0.01" value={avgCost} onChange={e => setAvgCost(e.target.value)} placeholder="e.g. 1500.00" />
       </div>
