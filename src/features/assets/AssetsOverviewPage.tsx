@@ -201,6 +201,7 @@ export default function AssetsOverviewPage() {
   const { data: bonds    = [], isLoading: l10 } = useAssets<BondAsset>('bonds')
   const { data: foreign  = [], isLoading: l11 } = useAssets<ForeignHolding>('foreign_stock_holdings')
   const { data: crypto   = [], isLoading: l12 } = useAssets<CryptoHolding>('crypto_holdings')
+  const { data: bankSav  = [], isLoading: l13 } = useAssets<BankSaving>('bank_savings')
 
   // ── Actual invested hooks ───────────────────────────────────
   const actZStocks  = useActualInvested('zerodha_actual_invested')
@@ -239,6 +240,7 @@ export default function AssetsOverviewPage() {
   const [actCryptoGbp, setActCryptoGbp] = useState(0)
   const [actCryptoInr, setActCryptoInr] = useState(0)
   const [actForeignInr, setActForeignInr] = useState(0)
+  const [actBankInr,    setActBankInr]    = useState(0)
   useEffect(() => {
     if (!userId) return
     supabase.from('crypto_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
@@ -251,6 +253,11 @@ export default function AssetsOverviewPage() {
       .then(({ data }) => {
         const rows = (data ?? []) as {gbp_amount: number; inr_rate: number | null}[]
         setActForeignInr(rows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0))
+      })
+    supabase.from('bank_savings_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
+      .then(({ data }) => {
+        const rows = (data ?? []) as {gbp_amount: number; inr_rate: number | null}[]
+        setActBankInr(rows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0))
       })
   }, [userId, gbpInr])
 
@@ -341,9 +348,12 @@ export default function AssetsOverviewPage() {
     return s + (p != null ? Number(r.qty) * p * gbpInr : Number(r.qty) * Number(r.avg_price_gbp) * gbpInr)
   }, 0), [crypto, yahooPrices, gbpInr])
 
+  const bankInv = useMemo(() => bankSav.reduce((s, r) => s + Number(r.amount_gbp) * gbpInr, 0), [bankSav, gbpInr])
+  const bankVal = bankInv // no live price — same as invested
+
   // ── Grand totals ─────────────────────────────────────────────
-  const totalInv = zerodhaTotalInv + aionionTotalInv + amcMfInv + cashInv + fdInv + efInv + bondsInv + foreignInv + cryptoInv
-  const totalVal = zerodhaTotalVal + aionionTotalVal + amcMfVal + cashVal + fdVal + efVal + bondsVal + foreignVal + cryptoVal
+  const totalInv = zerodhaTotalInv + aionionTotalInv + amcMfInv + cashInv + fdInv + efInv + bondsInv + foreignInv + cryptoInv + bankInv
+  const totalVal = zerodhaTotalVal + aionionTotalVal + amcMfVal + cashVal + fdVal + efVal + bondsVal + foreignVal + cryptoVal + bankVal
   const { gain: totalGain, gainPct: totalGainPct, isPositive: totalPos } = calcGain(totalVal, totalInv)
 
   // ── Actual invested per section (null = not applicable → use invested) ──
@@ -357,6 +367,7 @@ export default function AssetsOverviewPage() {
   const actEfAmt       = sum(actEf)
   const actForeignAmt  = actForeignInr > 0 ? actForeignInr : null
   const actCryptoAmt   = actCryptoInr > 0 ? actCryptoInr : null
+  const actBankAmt     = actBankInr > 0 ? actBankInr : null
   // No actual tables: cash, bonds, aionion gold → use invested as actual
   const cashActual     = cashInv
   const bondsActual    = bondsInv
@@ -374,11 +385,12 @@ export default function AssetsOverviewPage() {
     (actEfAmt       ?? efInv) +
     bondsActual +
     (actForeignAmt  ?? foreignInv) +
-    (actCryptoAmt   ?? cryptoInv)
+    (actCryptoAmt   ?? cryptoInv) +
+    (actBankAmt     ?? bankInv)
 
   const { gain: actualGain, gainPct: actualGainPct, isPositive: actualPos } = calcGain(totalVal, totalActual)
 
-  const anyLoading = l1||l2||l3||l4||l5||l6||l7||l8||l9||l10||l11||l12
+  const anyLoading = l1||l2||l3||l4||l5||l6||l7||l8||l9||l10||l11||l12||l13
   const anyLive    = !nFetching && !yFetching && Object.keys(nsePrices).length > 0
 
   // ── Allocation slices (for donut) ────────────────────────────
@@ -547,7 +559,7 @@ export default function AssetsOverviewPage() {
 
         {/* ── GLOBAL GROUP ────────────────────────────────────── */}
         <section className="mb-8">
-          <GroupHeader label="Global Assets" invested={foreignInv + cryptoInv} value={foreignVal + cryptoVal} loading={anyLoading} />
+          <GroupHeader label="Foreign Assets" invested={foreignInv + cryptoInv + bankInv} value={foreignVal + cryptoVal + bankVal} loading={anyLoading} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <AssetCard icon="🌐" label="Foreign Stocks" sublabel="USD / GBP · Live" invested={foreignInv} actual={actForeignAmt ?? foreignInv} value={foreignVal}
               count={foreign.filter(r => Number(r.qty) > 0).length} unit="stocks"
@@ -557,6 +569,10 @@ export default function AssetsOverviewPage() {
               count={crypto.filter(r => Number(r.qty) > 0).length} unit="coins"
               live={Object.keys(yahooPrices).length > 0} loading={l12} accent="#F59E0B"
               path="/assets/crypto" delay={60} />
+            <AssetCard icon="🏦" label="Bank Savings" sublabel="GBP · UK Accounts" invested={bankInv} actual={actBankAmt ?? bankInv} value={bankVal}
+              count={bankSav.length} unit="accounts"
+              live={false} loading={l13} accent="#0EA5E9"
+              path="/assets/bank-savings" delay={90} />
           </div>
         </section>
 
@@ -576,6 +592,7 @@ export default function AssetsOverviewPage() {
               { label: 'Bonds', path: '/assets/bonds' },
               { label: 'Foreign Stocks', path: '/assets/foreign-stocks' },
               { label: 'Crypto', path: '/assets/crypto' },
+              { label: 'Bank Savings', path: '/assets/bank-savings' },
             ].map(l => (
               <button key={l.path} onClick={() => navigate(l.path)}
                 className="text-xs font-medium text-textmut bg-surface border border-border rounded-xl px-3 py-1.5

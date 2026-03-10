@@ -33,10 +33,11 @@ export const NAV_ITEMS: NavItem[] = [
       { id: 'bonds',   label: 'Bonds',           icon: '◆', path: '/assets/bonds'   },
       { id: 'amc-mf',  label: 'AMC Mutual Funds',icon: '◆', path: '/assets/amc-mf'  },
       {
-        id: 'foreign', label: 'Foreign Investments', icon: '🌐', path: '/assets/foreign',
+        id: 'foreign', label: 'Foreign Assets', icon: '🌐', path: '/assets/foreign',
         children: [
-          { id: 'foreign-stocks', label: 'Foreign Stocks', icon: '◆', path: '/assets/foreign-stocks' },
-          { id: 'crypto',         label: 'Crypto',         icon: '◆', path: '/assets/crypto'         },
+          { id: 'foreign-stocks',  label: 'Foreign Stocks',  icon: '◆', path: '/assets/foreign-stocks'  },
+          { id: 'crypto',          label: 'Crypto',           icon: '◆', path: '/assets/crypto'           },
+          { id: 'bank-savings',    label: 'Bank Savings',     icon: '◆', path: '/assets/bank-savings'     },
         ],
       },
     ],

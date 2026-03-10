@@ -162,3 +162,16 @@ export interface ActualEntry {
   note?:      string
   created_at?: string
 }
+
+// ── Bank Savings (bank_savings) ───────────────────────────────
+export interface BankSaving {
+  id:              string
+  user_id:         string
+  account_type:    string
+  platform:        string
+  account_number?: string
+  amount_gbp:      number
+  interest_rate?:  number
+  maturity_date?:  string
+  created_at?:     string
+}
