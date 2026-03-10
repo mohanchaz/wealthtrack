@@ -122,7 +122,7 @@ function parseZerodhaAll(text: string): ParseResult | null {
     if (/gold/i.test(rawName)) {
       if (qty <= 0) continue
       const { type, yahoo } = lookupGold(rawName)
-      gold.push({ holding_name: rawName, holding_type: type, qty, avg_cost: avg, yahoo_symbol: yahoo })
+      gold.push({ qty, avg_cost: avg, yahoo_symbol: yahoo })
       continue
     }
 
@@ -323,7 +323,7 @@ export function ZerodhaImportModal({ onClose }: Props) {
                 icon="🥇"
                 label="Gold"
                 count={preview.gold.length}
-                items={preview.gold.map(g => g.holding_name)}
+                items={preview.gold.map(g => g.yahoo_symbol ?? g.holding_name ?? '—')}
               />
             </div>
           </div>
