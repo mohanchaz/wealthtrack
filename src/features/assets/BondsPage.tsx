@@ -8,7 +8,7 @@ import { AssetTable }         from '../../components/common/AssetTable'
 import { Modal }              from '../../components/ui/Modal'
 import { Button }             from '../../components/ui/Button'
 import { Input }              from '../../components/ui/Input'
-import { INR, formatDate }    from '../../lib/utils'
+import { INR, formatDate, calcGain } from '../../lib/utils'
 import type { BondAsset }     from '../../types/assets'
 
 // ── Constants ──────────────────────────────────────────────────
@@ -193,9 +193,12 @@ export default function BondsPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
+  const { gain: faceGain, gainPct: faceGainPct, isPositive: faceGainPos } = calcGain(totalFaceValue, totalInvested)
+
   const stats = [
-    { label: 'Invested',       value: INR(totalInvested),  icon: '₹', accentColor: '#0891b2', loading: isLoading },
-    { label: 'Face Value',     value: INR(totalFaceValue), icon: '◈', accentColor: '#0d9488', loading: isLoading },
+    { label: 'Invested',        value: INR(totalInvested),  icon: '₹', accentColor: '#0891b2', loading: isLoading },
+    { label: 'Face Value',      value: INR(totalFaceValue), icon: '◈', accentColor: '#0d9488', loading: isLoading },
+    { label: 'Gain',            value: `${faceGainPos?'+':''}${INR(faceGain)}`, sub: `${faceGainPos?'+':''}${faceGainPct.toFixed(1)}%`, icon: faceGainPos?'▲':'▼', accentColor: faceGainPos?'#059669':'#dc2626', loading: isLoading },
     { label: 'Annual Interest', value: totalAnnualInt > 0 ? INR(totalAnnualInt) : '—', icon: '⊡', accentColor: '#059669', loading: isLoading },
   ]
 
@@ -275,7 +278,7 @@ export default function BondsPage() {
         </div>
       )}
 
-      <StatGrid items={stats} cols={3} />
+      <StatGrid items={stats} cols={4} />
       <div className="card overflow-hidden mt-4">
         <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
           emptyText="No bonds — click + Add Bond"
