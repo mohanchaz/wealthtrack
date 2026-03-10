@@ -266,7 +266,7 @@ export default function ForeignOverviewPage() {
       </div>
 
       {/* Summary totals bar */}
-      <div className="bg-surface border border-border rounded-2xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="bg-surface border border-border rounded-2xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div>
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Total Value</div>
           <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalVal)}</div>
@@ -285,6 +285,11 @@ export default function ForeignOverviewPage() {
           <div className={`text-[10px] font-bold font-mono mt-0.5 ${totalPos ? 'text-green' : 'text-red'}`}>
             {anyLoading ? '' : `${totalPos ? '+' : ''}${fmtGbp(totalGainGbp)} · ${totalPos ? '+' : ''}${totalGainPct.toFixed(1)}%`}
           </div>
+        </div>
+        <div>
+          <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Actual Invested</div>
+          <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalActual)}</div>
+          <div className="text-[10px] text-textmut font-mono mt-0.5">{anyLoading ? '' : fmtGbp(totalActualGbp)}</div>
         </div>
         <div>
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Actual Gain</div>
