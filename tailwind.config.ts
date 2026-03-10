@@ -6,7 +6,7 @@ export default {
     extend: {
       fontFamily: {
         sans:    ['"Mulish"', 'sans-serif'],
-        mono:    ['"JetBrains Mono"', 'monospace'],
+        mono:    ['"Mulish"', 'sans-serif'],
         display: ['"Mulish"', 'sans-serif'],
       },
       colors: {
