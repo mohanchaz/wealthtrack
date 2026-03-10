@@ -5,9 +5,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans:    ['"Inter"', 'sans-serif'],
+        sans:    ['"Mulish"', 'sans-serif'],
         mono:    ['"JetBrains Mono"', 'monospace'],
-        display: ['"Inter"', 'sans-serif'],
+        display: ['"Mulish"', 'sans-serif'],
       },
       colors: {
         /* ── Backgrounds ─────────────────────────────── */
