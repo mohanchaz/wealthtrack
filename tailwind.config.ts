@@ -5,9 +5,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans:    ['"DM Sans"', 'sans-serif'],
-        mono:    ['"DM Mono"', 'monospace'],
-        display: ['"DM Sans"', 'sans-serif'],
+        sans:    ['"IBM Plex Sans"', 'sans-serif'],
+        mono:    ['"IBM Plex Mono"', 'monospace'],
+        display: ['"IBM Plex Sans"', 'sans-serif'],
       },
       colors: {
         /* ── Backgrounds ─────────────────────────────── */
