@@ -71,7 +71,28 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
   const [selected,    setSelected]    = useState<Set<string>>(new Set())
   const [deleting,    setDeleting]    = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [editEntry,   setEditEntry]   = useState<CryptoActualEntry | null>(null)
+  const [editGbp,     setEditGbp]     = useState('')
+  const [editRate,    setEditRate]    = useState('')
+  const [editDate,    setEditDate]    = useState('')
+  const [editSaving,  setEditSaving]  = useState(false)
   const toast = useToastStore(s => s.show)
+
+  const openEdit = (e: CryptoActualEntry) => {
+    setEditEntry(e); setEditGbp(String(e.gbp_amount)); setEditRate(String(e.inr_rate ?? gbpInr)); setEditDate(e.entry_date)
+  }
+  const handleEditSave = async () => {
+    if (!editEntry) return
+    setEditSaving(true)
+    try {
+      const { error: err } = await supabase.from('crypto_actual_invested').update({
+        gbp_amount: parseFloat(editGbp), inr_rate: parseFloat(editRate), entry_date: editDate
+      }).eq('id', editEntry.id)
+      if (err) throw new Error(err.message)
+      setEditEntry(null); await load(); toast('Updated ✅', 'success')
+    } catch (e2) { toast((e2 as Error).message, 'error') }
+    finally { setEditSaving(false) }
+  }
 
   const load = async () => {
     setLoading(true)
@@ -180,14 +201,26 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
                 className={`flex items-center px-4 py-2.5 border-b border-border/40 last:border-0 hover:bg-surface2 transition-colors gap-2 ${selected.has(e.id) ? 'bg-red/5' : i % 2 === 1 ? 'bg-surface2/20' : ''}`}>
                 <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleOne(e.id)} className="w-3 h-3 rounded accent-ink cursor-pointer shrink-0" />
                 <span className="flex-1 font-mono font-bold text-xs text-textprim">{fmtGbp(Number(e.gbp_amount))}</span>
-                <span className="w-16 text-right text-[10px] text-textmut font-mono">₹{Number(e.inr_rate ?? gbpInr).toFixed(1)}</span>
-                <span className="w-20 text-right text-[11px] font-semibold">{INR(Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr))}</span>
+                <span className="w-14 text-right text-[10px] text-textmut font-mono">₹{Number(e.inr_rate ?? gbpInr).toFixed(1)}</span>
+                <span className="w-18 text-right text-[11px] font-semibold">{INR(Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr))}</span>
+                <button onClick={() => openEdit(e)} className="ml-1 text-[10px] text-textmut hover:text-ink px-1 py-0.5 rounded hover:bg-surface2 transition-colors" title="Edit">✏</button>
               </div>
             ))}
           </>
         )}
       </div>
       {confirmOpen && <ConfirmModal message={`Delete ${selected.size} entr${selected.size > 1 ? 'ies' : 'y'}?`} onConfirm={doDelete} onCancel={() => setConfirmOpen(false)} />}
+      {editEntry && (
+        <Modal open onClose={() => setEditEntry(null)} title="Edit Entry"
+          footer={<><Button variant="secondary" size="sm" onClick={() => setEditEntry(null)}>Cancel</Button><Button size="sm" onClick={handleEditSave} loading={editSaving}>💾 Save</Button></>}
+        >
+          <div className="flex flex-col gap-3">
+            <Input label="GBP Amount" prefix="£" type="number" step="0.01" value={editGbp} onChange={e2 => setEditGbp(e2.target.value)} />
+            <Input label="GBP → INR Rate" type="number" step="0.01" value={editRate} onChange={e2 => setEditRate(e2.target.value)} />
+            <Input label="Date" type="date" value={editDate} onChange={e2 => setEditDate(e2.target.value)} />
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
@@ -463,7 +496,6 @@ export default function CryptoPage() {
         </span>
       }
       actions={[
-        { label: '📥 Import CSV', onClick: () => setShowImport(true), variant: 'secondary' },
         { label: '+ Add Crypto',  onClick: () => setEditRow({}),      variant: 'primary' },
         { label: '🔄',            onClick: () => refetch(),            variant: 'secondary' },
       ]}

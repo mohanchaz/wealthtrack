@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { useActualInvested } from '../../hooks/useActualInvested'
-import type { ActualTable } from '../../services/actualInvestedService'
+import type { ActualTable, ActualEntry } from '../../services/actualInvestedService'
 import { INR, formatDate } from '../../lib/utils'
-import { Button } from '../ui/Button'
+import { Button }       from '../ui/Button'
+import { Input }        from '../ui/Input'
+import { Modal }        from '../ui/Modal'
 import { ConfirmModal } from '../ui/ConfirmModal'
-import { Input }  from '../ui/Input'
 
 interface Props { table: ActualTable }
 
 export function ActualInvestedPanel({ table }: Props) {
-  const { data = [], addMutation, deleteMutation } = useActualInvested(table)
+  const { data = [], addMutation, updateMutation, deleteMutation } = useActualInvested(table)
+
   const [showForm,    setShowForm]    = useState(false)
   const [amount,      setAmount]      = useState('')
   const [entryDate,   setEntryDate]   = useState('')
@@ -18,10 +20,15 @@ export function ActualInvestedPanel({ table }: Props) {
   const [deleting,    setDeleting]    = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
+  // Edit state
+  const [editEntry,  setEditEntry]  = useState<ActualEntry | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const [editDate,   setEditDate]   = useState('')
+  const [editError,  setEditError]  = useState('')
+
   const total    = data.reduce((s, r) => s + r.amount, 0)
   const allIds   = data.map(e => e.id)
   const allCheck = allIds.length > 0 && allIds.every(id => selected.has(id))
-  const anyCheck = selected.size > 0
 
   const toggleAll = () => allCheck ? setSelected(new Set()) : setSelected(new Set(allIds))
   const toggleOne = (id: string) => setSelected(prev => {
@@ -38,9 +45,22 @@ export function ActualInvestedPanel({ table }: Props) {
     } catch (e) { setError((e as Error).message) }
   }
 
-  const handleDeleteSelected = async () => {
-    if (selected.size === 0) return
-    setConfirmOpen(true)
+  const openEdit = (entry: ActualEntry) => {
+    setEditEntry(entry)
+    setEditAmount(String(entry.amount))
+    setEditDate(entry.entry_date ?? '')
+    setEditError('')
+  }
+
+  const handleEditSave = async () => {
+    if (!editEntry) return
+    const n = parseFloat(editAmount)
+    if (!n || n <= 0) { setEditError('Enter a valid amount'); return }
+    setEditError('')
+    try {
+      await updateMutation.mutateAsync({ id: editEntry.id, amount: n, entryDate: editDate || undefined })
+      setEditEntry(null)
+    } catch (e) { setEditError((e as Error).message) }
   }
 
   const doDelete = async () => {
@@ -83,23 +103,22 @@ export function ActualInvestedPanel({ table }: Props) {
           <div className="py-6 text-center text-xs text-textfade">No entries yet</div>
         ) : (
           <>
-            {/* Select-all header */}
             <div className="px-4 py-2 border-b border-border bg-surface2/40">
               <div className="flex items-center text-[10px] font-bold text-textmut uppercase tracking-widest gap-2">
                 <input type="checkbox" checked={allCheck} onChange={toggleAll}
                   className="w-3 h-3 rounded accent-ink cursor-pointer" title="Select all" />
                 <span className="flex-1">Amount</span>
-                <span className="w-24 text-right">Date</span>
+                <span className="w-20 text-right">Date</span>
+                <span className="w-5" />
               </div>
             </div>
 
-            {/* Delete bar */}
-            {anyCheck && (
+            {selected.size > 0 && (
               <div className="flex items-center gap-2 px-4 py-1.5 bg-red/5 border-b border-red/20">
                 <span className="text-[10px] font-semibold text-red flex-1">{selected.size} selected</span>
-                <button onClick={handleDeleteSelected} disabled={deleting}
+                <button onClick={() => setConfirmOpen(true)} disabled={deleting}
                   className="text-[10px] font-bold px-2 py-1 rounded bg-red text-white hover:bg-red/80 disabled:opacity-50 transition-colors">
-                  {deleting ? '…' : `🗑 Delete`}
+                  {deleting ? '…' : '🗑 Delete'}
                 </button>
                 <button onClick={() => setSelected(new Set())}
                   className="text-[10px] text-textmut hover:text-textprim transition-colors">
@@ -117,14 +136,38 @@ export function ActualInvestedPanel({ table }: Props) {
                 <input type="checkbox" checked={selected.has(entry.id)} onChange={() => toggleOne(entry.id)}
                   className="w-3 h-3 rounded accent-ink cursor-pointer shrink-0" />
                 <span className="flex-1 font-mono font-bold text-xs text-textprim">{INR(entry.amount)}</span>
-                <span className="w-24 text-right text-[11px] text-textmut">
+                <span className="w-20 text-right text-[11px] text-textmut">
                   {formatDate(entry.entry_date ?? entry.created_at)}
                 </span>
+                <button onClick={() => openEdit(entry)}
+                  className="w-5 text-center text-[11px] text-textmut hover:text-ink transition-colors"
+                  title="Edit">✏</button>
               </div>
             ))}
           </>
         )}
       </div>
+
+      {/* Edit modal */}
+      {editEntry && (
+        <Modal open onClose={() => setEditEntry(null)} title="Edit Entry"
+          footer={
+            <>
+              <Button variant="secondary" size="sm" onClick={() => setEditEntry(null)}>Cancel</Button>
+              <Button size="sm" onClick={handleEditSave} loading={updateMutation.isPending}>💾 Save</Button>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-3">
+            <Input label="Amount" prefix="₹" type="number" step="0.01"
+              value={editAmount} onChange={e => setEditAmount(e.target.value)} />
+            <Input label="Date" type="date"
+              value={editDate} onChange={e => setEditDate(e.target.value)} />
+            {editError && <p className="text-[10px] text-red bg-red/5 border border-red/20 rounded-lg px-2 py-1">{editError}</p>}
+          </div>
+        </Modal>
+      )}
+
       {confirmOpen && (
         <ConfirmModal
           message={`Delete ${selected.size} entr${selected.size > 1 ? 'ies' : 'y'}? This cannot be undone.`}

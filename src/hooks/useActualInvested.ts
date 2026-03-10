@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/authStore'
 import {
   fetchActualInvested,
   addActualEntry,
+  updateActualEntry,
   deleteActualEntry,
   type ActualTable,
 } from '../services/actualInvestedService'
@@ -24,10 +25,16 @@ export function useActualInvested(table: ActualTable) {
     onSuccess: () => qc.invalidateQueries({ queryKey: qKey }),
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, amount, entryDate }: { id: string; amount: number; entryDate?: string }) =>
+      updateActualEntry(table, id, amount, entryDate),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qKey }),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteActualEntry(table, id),
     onSuccess:  () => qc.invalidateQueries({ queryKey: qKey }),
   })
 
-  return { ...query, addMutation, deleteMutation }
+  return { ...query, addMutation, updateMutation, deleteMutation }
 }

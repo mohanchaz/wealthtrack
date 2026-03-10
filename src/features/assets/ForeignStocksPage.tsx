@@ -112,10 +112,31 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
   const [selected,    setSelected]    = useState<Set<string>>(new Set())
   const [deleting,    setDeleting]    = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [editEntry,   setEditEntry]   = useState<ForeignActualEntry | null>(null)
+  const [editGbp,     setEditGbp]     = useState('')
+  const [editRate,    setEditRate]    = useState('')
+  const [editDate,    setEditDate]    = useState('')
+  const [editSaving,  setEditSaving]  = useState(false)
   const toast = useToastStore(s => s.show)
 
   const [entries, setEntries] = useState<ForeignActualEntry[]>([])
   const [loading, setLoading] = useState(true)
+
+  const openEdit = (e: ForeignActualEntry) => {
+    setEditEntry(e); setEditGbp(String(e.gbp_amount)); setEditRate(String(e.inr_rate)); setEditDate(e.entry_date)
+  }
+  const handleEditSave = async () => {
+    if (!editEntry) return
+    setEditSaving(true)
+    try {
+      const { error: err } = await supabase.from('foreign_actual_invested').update({
+        gbp_amount: parseFloat(editGbp), inr_rate: parseFloat(editRate), entry_date: editDate
+      }).eq('id', editEntry.id)
+      if (err) throw new Error(err.message)
+      setEditEntry(null); await load(); toast('Updated ✅', 'success')
+    } catch (e2) { toast((e2 as Error).message, 'error') }
+    finally { setEditSaving(false) }
+  }
 
   const load = async () => {
     setLoading(true)
@@ -235,18 +256,30 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
                 <span className="flex-1 font-mono font-bold text-xs text-textprim">
                   £{Number(e.gbp_amount).toFixed(2)}
                 </span>
-                <span className="w-20 text-right text-[10px] text-textmut font-mono">
+                <span className="w-16 text-right text-[10px] text-textmut font-mono">
                   ₹{Number(e.inr_rate).toFixed(1)}
                 </span>
-                <span className="w-20 text-right text-[11px] font-semibold text-textprim">
+                <span className="w-18 text-right text-[11px] font-semibold text-textprim">
                   {INR(Number(e.gbp_amount) * Number(e.inr_rate))}
                 </span>
+                <button onClick={() => openEdit(e)} className="ml-1 text-[10px] text-textmut hover:text-ink px-1 py-0.5 rounded hover:bg-surface2 transition-colors" title="Edit">✏</button>
               </div>
             ))}
           </>
         )}
       </div>
 
+      {editEntry && (
+        <Modal open onClose={() => setEditEntry(null)} title="Edit Entry"
+          footer={<><Button variant="secondary" size="sm" onClick={() => setEditEntry(null)}>Cancel</Button><Button size="sm" onClick={handleEditSave} loading={editSaving}>💾 Save</Button></>}
+        >
+          <div className="flex flex-col gap-3">
+            <Input label="GBP Amount" prefix="£" type="number" step="0.01" value={editGbp} onChange={e2 => setEditGbp(e2.target.value)} />
+            <Input label="GBP → INR Rate" type="number" step="0.01" value={editRate} onChange={e2 => setEditRate(e2.target.value)} />
+            <Input label="Date" type="date" value={editDate} onChange={e2 => setEditDate(e2.target.value)} />
+          </div>
+        </Modal>
+      )}
       {confirmOpen && (
         <ConfirmModal
           message={`Delete ${selected.size} entr${selected.size > 1 ? 'ies' : 'y'}?`}

@@ -49,3 +49,15 @@ export async function deleteActualEntry(table: ActualTable, id: string): Promise
   const { error } = await supabase.from(table).delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
+
+export async function updateActualEntry(
+  table:      ActualTable,
+  id:         string,
+  amount:     number,
+  entryDate?: string,
+): Promise<void> {
+  const payload: Record<string, unknown> = { amount }
+  if (entryDate) payload.entry_date = entryDate
+  const { error } = await supabase.from(table).update(payload).eq('id', id)
+  if (error) throw new Error(error.message)
+}
