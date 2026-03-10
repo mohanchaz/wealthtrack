@@ -323,7 +323,7 @@ export function ZerodhaImportModal({ onClose }: Props) {
                 icon="🥇"
                 label="Gold"
                 count={preview.gold.length}
-                items={preview.gold.map(g => g.yahoo_symbol ?? g.holding_name ?? '—')}
+                items={preview.gold.map(g => g.yahoo_symbol ?? '—')}
               />
             </div>
           </div>

@@ -9,7 +9,7 @@ export type TableName =
 // Tables with no created_at column — order by their own timestamp or skip ordering
 const ORDER_COL: Partial<Record<TableName, string>> = {
   mf_holdings:    'fund_name',      // no created_at — order alphabetically
-  gold_holdings:  'holding_name',   // no created_at — order alphabetically
+  gold_holdings:  'yahoo_symbol',   // no created_at — order by yahoo_symbol
   aionion_gold:   'instrument',     // no created_at
   aionion_stocks: 'instrument',     // no created_at — uses imported_at
   crypto_holdings: 'updated_at',      // uses updated_at not created_at
@@ -78,7 +78,7 @@ export async function replaceAssets<T extends Record<string, unknown>>(
   const existingRows = (existing ?? []) as Record<string, unknown>[]
 
   const rowKey = (r: Record<string, unknown>): string =>
-    ((r.instrument ?? r.fund_name ?? r.holding_name ?? r.symbol ?? r.yahoo_symbol) as string) ?? ''
+    ((r.instrument ?? r.fund_name ?? r.symbol ?? r.yahoo_symbol) as string) ?? ''
 
   const existingByKey = new Map<string, Record<string, unknown>>()
   for (const r of existingRows) {
