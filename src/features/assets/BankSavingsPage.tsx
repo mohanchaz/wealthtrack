@@ -226,6 +226,30 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
   )
 }
 
+function MaturityBadge({ dateStr }: { dateStr?: string }) {
+  const d = daysUntil(dateStr)
+  if (d === null) return <span className="text-textmut text-xs">—</span>
+  if (d < 0) return (
+    <div className="text-right">
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green/10 text-green">✓ Matured</span>
+      <div className="text-[10px] text-textmut mt-0.5">{formatDate(dateStr)}</div>
+    </div>
+  )
+  if (d <= 30) return (
+    <div className="text-right">
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red/10 text-red">In {d}d</span>
+      <div className="text-[10px] text-textmut mt-0.5">{formatDate(dateStr)}</div>
+    </div>
+  )
+  if (d <= 90) return (
+    <div className="text-right">
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber/10 text-amber">In {d}d</span>
+      <div className="text-[10px] text-textmut mt-0.5">{formatDate(dateStr)}</div>
+    </div>
+  )
+  return <div className="text-right text-xs text-textmut">{formatDate(dateStr)}</div>
+}
+
 // ── Edit / Add Modal ─────────────────────────────────────────
 function EditModal({ row, onClose, onSave }: {
   row: Partial<BankSaving>; onClose: () => void; onSave: (d: Partial<BankSaving>) => Promise<void>
@@ -311,6 +335,10 @@ export default function BankSavingsPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
+  const upcoming = useMemo(() =>
+    rows.filter(r => { const d = daysUntil(r.maturity_date); return d !== null && d >= 0 && d <= 90 })
+  , [rows])
+
   const stats = [
     { label: 'Total (£)',     value: `£${totalGbp.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sub: `${rows.length} account${rows.length !== 1 ? 's' : ''}` },
     { label: 'Total (₹)',     value: INR(totalInr),  sub: `@ ₹${gbpInr.toFixed(2)}/£` },
@@ -353,14 +381,7 @@ export default function BankSavingsPage() {
     },
     {
       key: 'maturity_date', header: 'Maturity', align: 'right' as const,
-      render: (r: BankSaving) => {
-        const d = daysUntil(r.maturity_date)
-        if (d === null) return <span className="text-textmut text-xs">—</span>
-        if (d < 0) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green/10 text-green">✓ Matured</span>
-        if (d <= 30) return <div className="text-right"><span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red/10 text-red">In {d}d</span><div className="text-[10px] text-textmut mt-0.5">{formatDate(r.maturity_date)}</div></div>
-        if (d <= 90) return <div className="text-right"><span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber/10 text-amber">In {d}d</span><div className="text-[10px] text-textmut mt-0.5">{formatDate(r.maturity_date)}</div></div>
-        return <div className="text-right text-xs text-textmut">{formatDate(r.maturity_date)}</div>
-      },
+      render: (r: BankSaving) => <MaturityBadge dateStr={r.maturity_date} />,
     },
   ]
 
@@ -368,6 +389,20 @@ export default function BankSavingsPage() {
     <PageShell title="Bank Savings" subtitle={`${rows.length} account${rows.length !== 1 ? 's' : ''}`}
       actions={[{ label: 'Add Account', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
+      {/* Upcoming maturities alert */}
+      {upcoming.length > 0 && (
+        <div className="mb-4 rounded-xl border border-amber/30 bg-amber/5 px-4 py-3 flex items-center gap-3">
+          <span className="text-amber text-lg">⏰</span>
+          <div>
+            <div className="text-sm font-semibold text-ink">
+              {upcoming.length} account{upcoming.length > 1 ? 's' : ''} maturing within 90 days
+            </div>
+            <div className="text-xs text-textmut mt-0.5">
+              {upcoming.map(r => `${r.platform} (${formatDate(r.maturity_date)})`).join(' · ')}
+            </div>
+          </div>
+        </div>
+      )}
       <AssetPageLayout
         stats={
           <div className="grid grid-cols-3 gap-3">
