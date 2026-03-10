@@ -122,7 +122,7 @@ function parseZerodhaAll(text: string): ParseResult | null {
     if (/gold/i.test(rawName)) {
       if (qty <= 0) continue
       const { type, yahoo } = lookupGold(rawName)
-      gold.push({ qty, avg_cost: avg, yahoo_symbol: yahoo })
+      gold.push({ holding_type: type, qty, avg_cost: avg, yahoo_symbol: yahoo })
       continue
     }
 

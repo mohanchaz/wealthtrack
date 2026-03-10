@@ -37,6 +37,7 @@ function lookupGold(name: string): { type: string; yahoo: string } {
 }
 
 function EditModal({ row, liveName, onClose, onSave }: { row: Partial<GoldHolding>; liveName?: string | null; onClose: () => void; onSave: (d: Partial<GoldHolding>) => Promise<void> }) {
+  const [type,    setType]    = useState(row.holding_type ?? 'ETF')
   const [qty,     setQty]     = useState(String(row.qty ?? ''))
   const [avg,     setAvg]     = useState(String(row.avg_cost ?? ''))
   const [sym,     setSym]     = useState(row.yahoo_symbol ?? '')
@@ -45,7 +46,7 @@ function EditModal({ row, liveName, onClose, onSave }: { row: Partial<GoldHoldin
     if (!qty || !avg) return
     setSaving(true)
     const q = parseFloat(qty), a = parseFloat(avg)
-    await onSave({ ...row, qty: q, avg_cost: a, yahoo_symbol: sym })
+    await onSave({ ...row, holding_type: type, qty: q, avg_cost: a, yahoo_symbol: sym })
     setSaving(false)
   }
   return (
