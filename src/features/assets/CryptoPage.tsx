@@ -226,8 +226,8 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
 }
 
 // ── Edit Modal ────────────────────────────────────────────────
-function EditModal({ row, onClose, onSave }: {
-  row: Partial<CryptoHolding>; onClose: () => void; onSave: (d: Partial<CryptoHolding>) => Promise<void>
+function EditModal({ row, name, onClose, onSave }: {
+  row: Partial<CryptoHolding>; name?: string | null; onClose: () => void; onSave: (d: Partial<CryptoHolding>) => Promise<void>
 }) {
   const [sym,       setSym]      = useState(row.yahoo_symbol ?? '')
   const [platform,  setPlatform] = useState(row.platform ?? 'Kraken')
@@ -268,17 +268,25 @@ function EditModal({ row, onClose, onSave }: {
     >
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <Input label="Yahoo Symbol *" value={sym} onChange={e => setSym(e.target.value.toUpperCase())}
-              placeholder="BTC, ETH, SOL…" helpText="Auto-appends -GBP if needed" />
-            {looking && <p className="text-[10px] text-textmut">Looking up…</p>}
-            {coinName && !looking && (
-              <p className="text-[11px] font-semibold text-green flex items-center gap-1">✓ {coinName}</p>
-            )}
-            {!coinName && !looking && sym.length > 1 && (
-              <p className="text-[10px] text-textmut italic">Name will show once found</p>
-            )}
-          </div>
+          {row.id ? (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-textmut uppercase tracking-wider">Yahoo Symbol</label>
+              <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">{sym}</div>
+              {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <Input label="Yahoo Symbol *" value={sym} onChange={e => setSym(e.target.value.toUpperCase())}
+                placeholder="BTC, ETH, SOL…" helpText="Auto-appends -GBP if needed" />
+              {looking && <p className="text-[10px] text-textmut">Looking up…</p>}
+              {coinName && !looking && (
+                <p className="text-[11px] font-semibold text-green flex items-center gap-1">✓ {coinName}</p>
+              )}
+              {!coinName && !looking && sym.length > 1 && (
+                <p className="text-[10px] text-textmut italic">Name will show once found</p>
+              )}
+            </div>
+          )}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-textmut uppercase tracking-wide">Platform *</label>
             <select value={platform} onChange={e => setPlatform(e.target.value)}
@@ -522,7 +530,7 @@ export default function CryptoPage() {
         }
       />
 
-      {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
+      {editRow !== null && <EditModal row={editRow} name={editRow.id ? getCoinName(editRow as CryptoHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />}
 
       <CsvImportModal
         open={showImport}

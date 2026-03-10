@@ -50,8 +50,9 @@ function isStockRow(rawName: string): boolean {
 }
 
 // ── Edit modal ────────────────────────────────────────────────
-function EditModal({ row, onClose, onSave }: {
+function EditModal({ row, name, onClose, onSave }: {
   row:     Partial<StockHolding>
+  name?:   string | null
   onClose: () => void
   onSave:  (data: Partial<StockHolding>) => Promise<void>
 }) {
@@ -256,7 +257,7 @@ export default function ZerodhaStocksPage() {
       />
 
       {editRow !== null && (
-        <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />
+        <EditModal row={editRow} name={editRow.id ? getName(editRow as StockHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />
       )}
 
 

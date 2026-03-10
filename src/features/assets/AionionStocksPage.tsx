@@ -16,8 +16,8 @@ import { NseSymbolInput }    from '../../components/common/NseSymbolInput'
 import { INR, calcGain }     from '../../lib/utils'
 import type { StockHolding } from '../../types/assets'
 
-function EditModal({ row, onClose, onSave }: {
-  row: Partial<StockHolding>; onClose: () => void; onSave: (d: Partial<StockHolding>) => Promise<void>
+function EditModal({ row, name, onClose, onSave }: {
+  row: Partial<StockHolding>; name?: string | null; onClose: () => void; onSave: (d: Partial<StockHolding>) => Promise<void>
 }) {
   const [inst,   setInst]   = useState(row.instrument ?? '')
   const [qty,    setQty]    = useState(String(row.qty      ?? ''))
@@ -36,15 +36,23 @@ function EditModal({ row, onClose, onSave }: {
       footer={<><Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button><Button size="sm" onClick={handleSave} loading={saving} disabled={!inst || !qty || !avg}>Save</Button></>}
     >
       <div className="flex flex-col gap-4">
-        <NseSymbolInput
-          value={inst}
-          onChange={setInst}
-          onLive={r => {
+        {row.id ? (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-textmut uppercase tracking-wider">Symbol</label>
+            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">{inst}</div>
+            {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
+          </div>
+        ) : (
+          <NseSymbolInput
+            value={inst}
+            onChange={setInst}
+            onLive={r => {
             // Auto-fill LTP as avg cost only when adding new (not editing)
             if (!row.id && r.status === 'found' && r.price && !avg)
               setAvg(r.price.toFixed(2))
-          }}
-        />
+            }}
+          />
+        )}
         <Input label="Quantity" type="number" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g. 10" />
         <Input label="Avg Cost (₹)" prefix="₹" type="number" step="0.01" value={avg} onChange={e => setAvg(e.target.value)} placeholder="e.g. 1500.00" />
       </div>
@@ -133,7 +141,7 @@ export default function AionionStocksPage() {
         }
         actualInvested={<ActualInvestedPanel table="aionion_actual_invested" />}
       />
-      {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
+      {editRow !== null && <EditModal row={editRow} name={editRow.id ? getName(editRow as StockHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />}
     </PageShell>
   )
 }

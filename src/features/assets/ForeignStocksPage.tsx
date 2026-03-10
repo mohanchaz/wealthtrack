@@ -292,8 +292,8 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
 }
 
 // ── Edit Modal ────────────────────────────────────────────────
-function EditModal({ row, onClose, onSave }: {
-  row: Partial<ForeignHolding>; onClose: () => void; onSave: (d: Partial<ForeignHolding>) => Promise<void>
+function EditModal({ row, name, onClose, onSave }: {
+  row: Partial<ForeignHolding>; name?: string | null; onClose: () => void; onSave: (d: Partial<ForeignHolding>) => Promise<void>
 }) {
   const [symbol,   setSymbol]   = useState(row.symbol   ?? '')
   const [qty,      setQty]      = useState(String(row.qty       ?? ''))
@@ -314,7 +314,14 @@ function EditModal({ row, onClose, onSave }: {
     >
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Symbol *" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())}
+          {row.id ? (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-textmut uppercase tracking-wider">Symbol</label>
+              <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">{symbol}</div>
+              {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
+            </div>
+          ) : (
+            <Input label="Symbol *" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())}
             placeholder="e.g. AAPL, MKS" />
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-textmut uppercase tracking-wide">Currency *</label>
@@ -676,7 +683,7 @@ export default function ForeignStocksPage() {
       />
 
       {editRow !== null && (
-        <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />
+        <EditModal row={editRow} name={editRow.id ? (priceMap[editRow.symbol ?? '']?.name ?? priceMap[(editRow.symbol ?? '').replace(/\.(NS|BO)$/,'')]?.name ?? null) : null} onClose={() => setEditRow(null)} onSave={handleSave} />
       )}
 
       <CsvImportModal

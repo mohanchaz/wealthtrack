@@ -23,8 +23,8 @@ const AMC_LIST = [
 ]
 
 // ── Edit Modal ─────────────────────────────────────────────────
-function EditModal({ row, onClose, onSave }: {
-  row: Partial<AmcMfHolding>; onClose: () => void; onSave: (d: Partial<AmcMfHolding>) => Promise<void>
+function EditModal({ row, name, onClose, onSave }: {
+  row: Partial<AmcMfHolding>; name?: string | null; onClose: () => void; onSave: (d: Partial<AmcMfHolding>) => Promise<void>
 }) {
   const [navSymbol, setNavSymbol] = useState(row.nav_symbol   ?? '')
   const [platform,  setPlatform]  = useState(row.platform     ?? '')
@@ -75,17 +75,22 @@ function EditModal({ row, onClose, onSave }: {
         {/* Ticker input with live name preview */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-textmut uppercase tracking-wide">BSE Ticker *</label>
-          <div className="flex gap-2 items-center">
-            <input
-              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/20 font-mono"
-              value={navSymbol}
-              onChange={e => { setNavSymbol(e.target.value); setPreviewName(null) }}
-              placeholder="e.g. 0P0000XVOZ.BO"
-            />
-            <Button variant="secondary" size="sm" onClick={() => fetchPreview(navSymbol)} loading={previewing}>
-              🔍 Lookup
-            </Button>
-          </div>
+          {row.id ? (
+            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">{navSymbol}</div>
+            {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
+          ) : (
+            <div className="flex gap-2 items-center">
+              <input
+                className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink/20 font-mono"
+                value={navSymbol}
+                onChange={e => { setNavSymbol(e.target.value); setPreviewName(null) }}
+                placeholder="e.g. 0P0000XVOZ.BO"
+              />
+              <Button variant="secondary" size="sm" onClick={() => fetchPreview(navSymbol)} loading={previewing}>
+                🔍 Lookup
+              </Button>
+            </div>
+          )}
           {/* Live name preview */}
           {previewName && (
             <div className="flex items-center gap-2 mt-1 px-3 py-2 rounded-lg bg-green/5 border border-green/20">
@@ -93,7 +98,7 @@ function EditModal({ row, onClose, onSave }: {
               <span className="text-sm font-semibold text-ink">{previewName}</span>
             </div>
           )}
-          {previewName === null && navSymbol && !previewing && (
+          {!row.id && previewName === null && navSymbol && !previewing && (
             <p className="text-[10px] text-textmut">Enter ticker then click 🔍 Lookup to verify fund name</p>
           )}
         </div>
@@ -295,7 +300,7 @@ export default function AmcMfPage() {
         }
         actualInvested={<ActualInvestedPanel table="amc_mf_actual_invested" />}
       />
-      {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
+      {editRow !== null && <EditModal row={editRow} name={editRow.id ? getName(editRow as AmcMfHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />}
     </PageShell>
   )
 }

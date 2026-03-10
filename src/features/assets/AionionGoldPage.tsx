@@ -64,15 +64,21 @@ function EditModal({ row, onClose, onSave }: {
       }
     >
       <div className="flex flex-col gap-4">
-        <GoldInstrumentInput
-          value={inst}
-          onChange={setInst}
-          onLive={r => {
-            // Auto-fill live price into avg cost only on new add
-            if (!row.id && r.status === 'found' && r.price && !avg)
-              setAvg(r.price.toFixed(2))
-          }}
-        />
+        {row.id ? (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-textmut uppercase tracking-wider">Instrument</label>
+            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">{inst}</div>
+          </div>
+        ) : (
+          <GoldInstrumentInput
+            value={inst}
+            onChange={setInst}
+            onLive={r => {
+              if (r.status === 'found' && r.price && !avg)
+                setAvg(r.price.toFixed(2))
+            }}
+          />
+        )}
         <Input label="Qty / Units" type="number" step="0.0001" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g. 100" />
         <Input label="Avg Cost / NAV (₹)" prefix="₹" type="number" step="0.01" value={avg} onChange={e => setAvg(e.target.value)} placeholder="e.g. 6500.00" />
       </div>
