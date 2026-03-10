@@ -6,6 +6,22 @@ import { useActualInvested } from '../../hooks/useActualInvested'
 import { useNsePrices, useYahooPrices, useFxRates } from '../../hooks/useLivePrices'
 import { INR, calcGain }    from '../../lib/utils'
 import { supabase }          from '../../lib/supabase'
+import { GOLD_OPTIONS }      from '../../components/common/GoldInstrumentInput'
+
+const AI_GOLD_LOOKUP: { match: RegExp; yahoo: string }[] = [
+  { match: /goldbees/i,     yahoo: 'GOLDBEES.NS'   },
+  { match: /nippon.*gold/i, yahoo: '0P0000XVDS.BO' },
+  { match: /axis.*gold/i,   yahoo: 'AXISGOLD.NS'   },
+  { match: /hdfc.*gold/i,   yahoo: 'HDFCGOLD.NS'   },
+  { match: /icici.*gold/i,  yahoo: 'ICICIGOLD.NS'  },
+  { match: /kotak.*gold/i,  yahoo: 'KOTAKGOLD.NS'  },
+  { match: /sbi.*gold/i,    yahoo: 'SBIGOLD.NS'    },
+  { match: /quantum.*gold/i,yahoo: '0P0000XV6Q.BO' },
+]
+const resolveAiGoldYahoo = (instrument: string): string => {
+  for (const e of AI_GOLD_LOOKUP) if (e.match.test(instrument)) return e.yahoo
+  return ''
+}
 import type {
   StockHolding, MfHolding, GoldHolding,
   AionionGoldHolding, CashAsset, FdAsset, EfAsset, BondAsset,
@@ -229,10 +245,11 @@ export default function AssetsOverviewPage() {
   const { data: nsePrices = {}, isFetching: nFetching } = useNsePrices(allNse)
 
   const mfSymbols  = useMemo(() => [...new Set([...zMfs.map(r => r.nav_symbol), ...amcMf.map(r => r.nav_symbol)].filter(Boolean) as string[])], [zMfs, amcMf])
-  const goldSymbols = useMemo(() => [...new Set(zGold.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [zGold])
+  const goldSymbols   = useMemo(() => [...new Set(zGold.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [zGold])
+  const aiGoldSymbols = useMemo(() => [...new Set(aiGold.map(r => resolveAiGoldYahoo(r.instrument)).filter(Boolean))], [aiGold])
   const cryptoSyms  = useMemo(() => [...new Set(crypto.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [crypto])
   const foreignSyms = useMemo(() => [...new Set(foreign.map(r => r.symbol).filter(Boolean) as string[])], [foreign])
-  const allYahoo    = useMemo(() => [...new Set([...mfSymbols, ...goldSymbols, ...cryptoSyms, ...foreignSyms])], [mfSymbols, goldSymbols, cryptoSyms, foreignSyms])
+  const allYahoo    = useMemo(() => [...new Set([...mfSymbols, ...goldSymbols, ...aiGoldSymbols, ...cryptoSyms, ...foreignSyms])], [mfSymbols, goldSymbols, aiGoldSymbols, cryptoSyms, foreignSyms])
   const { data: yahooPrices = {}, isFetching: yFetching } = useYahooPrices(allYahoo)
 
   const { data: fx } = useFxRates()
@@ -305,7 +322,12 @@ export default function AssetsOverviewPage() {
 
   // Aionion Gold
   const aiGoldInv = useMemo(() => aiGold.reduce((s, r) => s + Number(r.qty) * Number(r.avg_cost), 0), [aiGold])
-  const aiGoldVal = aiGoldInv // no live price for aionion gold
+  const aiGoldVal = useMemo(() => aiGold.reduce((s, r) => {
+    const yahoo = resolveAiGoldYahoo(r.instrument)
+    const key   = yahoo.replace(/\.(NS|BO)$/, '')
+    const p     = yahoo ? (yahooPrices[key]?.price ?? yahooPrices[yahoo]?.price ?? null) : null
+    return s + (p != null ? Number(r.qty) * p : Number(r.qty) * Number(r.avg_cost))
+  }, 0), [aiGold, yahooPrices])
   const aionionTotalInv = aiStocksInv + aiGoldInv
   const aionionTotalVal = aiStocksVal + aiGoldVal
 
