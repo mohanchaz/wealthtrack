@@ -37,17 +37,16 @@ function lookupGold(name: string): { type: string; yahoo: string } {
 }
 
 function EditModal({ row, liveName, onClose, onSave }: { row: Partial<GoldHolding>; liveName?: string | null; onClose: () => void; onSave: (d: Partial<GoldHolding>) => Promise<void> }) {
-  const [name,    setName]    = useState(row.holding_name ?? '')
   const [type,    setType]    = useState(row.holding_type ?? 'ETF')
   const [qty,     setQty]     = useState(String(row.qty ?? ''))
   const [avg,     setAvg]     = useState(String(row.avg_cost ?? ''))
   const [sym,     setSym]     = useState(row.yahoo_symbol ?? '')
   const [saving,  setSaving]  = useState(false)
   const handleSave = async () => {
-    if (!name || !qty || !avg) return
+    if (!qty || !avg) return
     setSaving(true)
     const q = parseFloat(qty), a = parseFloat(avg)
-    await onSave({ ...row, holding_name: name, holding_type: type, qty: q, avg_cost: a, yahoo_symbol: sym })
+    await onSave({ ...row, holding_name: row.holding_name ?? sym, holding_type: type, qty: q, avg_cost: a, yahoo_symbol: sym })
     setSaving(false)
   }
   return (
@@ -55,7 +54,6 @@ function EditModal({ row, liveName, onClose, onSave }: { row: Partial<GoldHoldin
       footer={<><Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button><Button size="sm" onClick={handleSave} loading={saving}>💾 Save</Button></>}
     >
       <div className="flex flex-col gap-4">
-        <Input label="Name" value={name} onChange={e => setName(e.target.value)} />
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-textsec uppercase tracking-wider">Type</label>
           <select value={type} onChange={e => setType(e.target.value)} className="h-9 rounded-xl border border-border bg-white text-sm text-textprim px-3 focus:border-teal focus:ring-2 focus:ring-teal/15 outline-none">

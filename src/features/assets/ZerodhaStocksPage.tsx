@@ -85,9 +85,10 @@ function EditModal({ row, name, onClose, onSave }: {
         {row.id ? (
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-textmut uppercase tracking-wider">Symbol</label>
-            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none">
+            <div className="h-9 rounded-xl border border-border bg-surface2 text-sm text-textmut px-3 flex items-center font-mono select-none cursor-not-allowed">
               {instrument}
             </div>
+            {name && <div className="text-xs text-textmut mt-0.5">{name}</div>}
           </div>
         ) : (
           <NseSymbolInput
