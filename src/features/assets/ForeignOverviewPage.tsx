@@ -269,7 +269,7 @@ export default function ForeignOverviewPage() {
       </div>
 
       {/* Summary totals bar */}
-      <div className="bg-surface border border-border rounded-2xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-6 gap-4">
+      <div className="bg-surface border border-border rounded-2xl p-4 mb-2 grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div>
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Total Value</div>
           <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalVal)}</div>
@@ -300,13 +300,23 @@ export default function ForeignOverviewPage() {
             {anyLoading ? '' : `${actPos ? '+' : ''}${actGainPct.toFixed(1)}%`}
           </div>
         </div>
-        <div className="border-l border-border pl-4">
-          <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">GBP Portfolio</div>
-          <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : fmtGbp(nativeValGbp)}</div>
-          <div className={`text-[10px] font-bold font-mono mt-0.5 ${nativeGainPos ? 'text-green' : 'text-red'}`}>
-            {anyLoading ? '' : `${nativeGainPos ? '+' : '-'}${fmtGbp(Math.abs(nativeGainGbp))} · ${nativeGainPos ? '+' : ''}${nativeGainPct.toFixed(1)}%`}
+      </div>
+
+      {/* GBP bar */}
+      <div className="bg-surface border border-border rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center gap-x-6 gap-y-1">
+        <span className="text-[10px] font-bold text-textmut uppercase tracking-widest">£ GBP</span>
+        {[
+          { label: 'Portfolio',    val: fmtGbp(nativeValGbp),                                            color: 'text-textprim' },
+          { label: 'Invested',     val: fmtGbp(nativeValGbp - nativeGainGbp),                            color: 'text-textprim' },
+          { label: 'Gain',         val: `${nativeGainPos?'+':'-'}${fmtGbp(Math.abs(nativeGainGbp))}`,    color: nativeGainPos ? 'text-green' : 'text-red' },
+          { label: 'Gain %',       val: `${nativeGainPos?'+':''}${nativeGainPct.toFixed(1)}%`,            color: nativeGainPos ? 'text-green' : 'text-red' },
+        ].map(({ label, val, color }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <span className="text-[10px] text-textmut">{label}</span>
+            <span className={`text-[12px] font-extrabold font-mono ${color}`}>{anyLoading ? '…' : val}</span>
           </div>
-        </div>
+        ))}
+        <span className="text-[9px] text-textfade ml-auto">@ ₹{gbpInr.toFixed(1)}/£</span>
       </div>
 
       {/* Section cards */}
