@@ -238,6 +238,7 @@ export default function AssetsOverviewPage() {
   // crypto_actual_invested has custom schema (gbp_amount+inr_rate) — fetch directly
   const [actCryptoGbp, setActCryptoGbp] = useState(0)
   const [actCryptoInr, setActCryptoInr] = useState(0)
+  const [actForeignInr, setActForeignInr] = useState(0)
   useEffect(() => {
     if (!userId) return
     supabase.from('crypto_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
@@ -245,6 +246,11 @@ export default function AssetsOverviewPage() {
         const rows = (data ?? []) as {gbp_amount: number; inr_rate: number | null}[]
         setActCryptoGbp(rows.reduce((s, e) => s + Number(e.gbp_amount), 0))
         setActCryptoInr(rows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0))
+      })
+    supabase.from('foreign_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
+      .then(({ data }) => {
+        const rows = (data ?? []) as {gbp_amount: number; inr_rate: number | null}[]
+        setActForeignInr(rows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0))
       })
   }, [userId, gbpInr])
 
@@ -349,7 +355,7 @@ export default function AssetsOverviewPage() {
   const actAmcMfAmt    = sum(actAmcMf)
   const actFdAmt       = sum(actFd)
   const actEfAmt       = sum(actEf)
-  const actForeignAmt  = null // custom schema — see ForeignStocksPage
+  const actForeignAmt  = actForeignInr > 0 ? actForeignInr : null
   const actCryptoAmt   = actCryptoInr > 0 ? actCryptoInr : null
   // No actual tables: cash, bonds, aionion gold → use invested as actual
   const cashActual     = cashInv
