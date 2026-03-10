@@ -143,10 +143,11 @@ export default function ZerodhaStocksPage() {
 
   const handleSave = async (data: Partial<StockHolding>) => {
     try {
+      const { _liveName, ...clean } = data as Partial<StockHolding> & { _liveName?: string }
       // Keep prev_qty as the pre-edit qty so the diff badge stays accurate
-      const existing = rows.find(r => r.id === data.id)
-      const prev_qty = existing ? existing.qty : data.qty
-      await upsertMutation.mutateAsync({ ...data, prev_qty, user_id: userId } as Record<string, unknown>)
+      const existing = rows.find(r => r.id === clean.id)
+      const prev_qty = existing ? existing.qty : clean.qty
+      await upsertMutation.mutateAsync({ ...clean, prev_qty, user_id: userId } as Record<string, unknown>)
       toast('Saved ✅', 'success')
       setEditRow(null)
     } catch (e) { toast((e as Error).message, 'error') }

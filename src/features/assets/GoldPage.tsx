@@ -88,9 +88,10 @@ export default function GoldPage() {
   const liveLabel = pf ? '🔄 Fetching…' : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
   const handleSave = async (d: Partial<GoldHolding>) => {
     try {
-      const existing = rows.find(r => r.id === d.id)
-      const prev_qty = existing ? existing.qty : d.qty
-      await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string,unknown>)
+      const { _liveName, ...clean } = d as Partial<GoldHolding> & { _liveName?: string }
+      const existing = rows.find(r => r.id === clean.id)
+      const prev_qty = existing ? existing.qty : clean.qty
+      await upsertMutation.mutateAsync({ ...clean, prev_qty, user_id: userId } as Record<string,unknown>)
       toast('Saved ✅', 'success'); setEditRow(null)
     }
     catch (e) { toast((e as Error).message, 'error') }

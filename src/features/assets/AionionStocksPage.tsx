@@ -79,11 +79,11 @@ export default function AionionStocksPage() {
   const liveLabel = pf ? '🔄 Fetching…' : Object.keys(priceMap).length ? `🟢 Live NSE · ${new Date().toLocaleTimeString('en-IN')}` : undefined
   const handleSave = async (d: Partial<StockHolding>) => {
     try {
+      const { _liveName, ...clean } = d as Partial<StockHolding> & { _liveName?: string }
       // When editing, preserve old qty as prev_qty so diff badge shows correctly.
-      // When adding new, prev_qty = qty (no diff to show on first save).
-      const existing = rows.find(r => r.id === d.id)
-      const prev_qty = existing ? existing.qty : d.qty
-      await upsertMutation.mutateAsync({ ...d, prev_qty, user_id: userId } as Record<string,unknown>)
+      const existing = rows.find(r => r.id === clean.id)
+      const prev_qty = existing ? existing.qty : clean.qty
+      await upsertMutation.mutateAsync({ ...clean, prev_qty, user_id: userId } as Record<string,unknown>)
       toast('Saved ✅','success'); setEditRow(null)
     }
     catch (e) { toast((e as Error).message, 'error') }

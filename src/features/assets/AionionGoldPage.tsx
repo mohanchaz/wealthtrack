@@ -126,8 +126,8 @@ export default function AionionGoldPage() {
 
   const handleSave = async (d: Partial<AionionGoldHolding>) => {
     try {
-      // Only save DB columns — no yahoo_symbol / invested / current_value
-      const { yahoo_symbol, invested, current_value, ...clean } = d as AionionGoldHolding & { yahoo_symbol?: string; invested?: number; current_value?: number }
+      // Only save DB columns — no yahoo_symbol / invested / current_value / _liveName
+      const { yahoo_symbol, invested, current_value, _liveName, ...clean } = d as AionionGoldHolding & { yahoo_symbol?: string; invested?: number; current_value?: number; _liveName?: string }
       // Preserve old qty as prev_qty so diff badge works; new adds get prev_qty = qty
       const existing = rows.find(r => r.id === clean.id)
       const prev_qty = existing ? existing.qty : clean.qty
