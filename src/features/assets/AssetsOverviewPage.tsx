@@ -88,7 +88,7 @@ function AssetCard({ icon, label, sublabel, invested, actual, value, count, unit
       {/* Gain rows */}
       <div className="flex items-center justify-between mt-2">
         <div className="text-[10px] text-textmut">
-          Avg cost <span className="text-textsec font-medium">{loading ? '…' : INR(invested)}</span>
+          Invested <span className="text-textsec font-medium">{loading ? '…' : INR(invested)}</span>
         </div>
         {!loading && (
           <div className={`text-xs font-bold ${isPositive ? 'text-green' : 'text-red'}`}>
@@ -99,7 +99,7 @@ function AssetCard({ icon, label, sublabel, invested, actual, value, count, unit
       {!loading && actual !== invested && (
         <div className="flex items-center justify-between mt-1">
           <div className="text-[10px] text-textmut">
-            Actual <span className="text-textsec font-medium">{INR(actual)}</span>
+            Actual invested <span className="text-textsec font-medium">{INR(actual)}</span>
           </div>
           <div className={`text-xs font-bold ${actPos ? 'text-green' : 'text-red'}`}>
             {actPos ? '+' : ''}{actGainPct.toFixed(1)}%
