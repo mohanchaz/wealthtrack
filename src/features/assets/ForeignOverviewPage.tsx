@@ -1,4 +1,5 @@
-import { useMemo, useQuery } from 'react'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate }      from 'react-router-dom'
 import { useAuthStore }     from '../../store/authStore'
 import { useAssets }        from '../../hooks/useAssets'
@@ -10,6 +11,9 @@ import { PageShell }        from '../../components/common/PageShell'
 import { INR, calcGain }    from '../../lib/utils'
 import { supabase }         from '../../lib/supabase'
 import type { ForeignHolding, CryptoHolding, BankSaving } from '../../types/assets'
+
+// ── Shared types ──────────────────────────────────────────────
+type ActRow = { gbp_amount: number; inr_rate: number | null }
 
 // ── Asset Section Card ────────────────────────────────────────
 interface SectionCardProps {
@@ -169,7 +173,6 @@ export default function ForeignOverviewPage() {
   }
 
   // Actual invested — reactive via React Query (same keys invalidated by detail pages)
-  type ActRow = { gbp_amount: number; inr_rate: number | null }
   const { data: foreignActRows = [] } = useQuery<ActRow[]>({
     queryKey: ['foreign_actual_invested', userId],
     queryFn: async () => {
@@ -194,12 +197,12 @@ export default function ForeignOverviewPage() {
     },
     enabled: !!userId,
   })
-  const actForeignGbp = useMemo(() => foreignActRows.reduce((s, e) => s + Number(e.gbp_amount), 0), [foreignActRows])
-  const actForeignInr = useMemo(() => foreignActRows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0), [foreignActRows, gbpInr])
-  const actCryptoGbp  = useMemo(() => cryptoActRows.reduce((s, e) => s + Number(e.gbp_amount), 0), [cryptoActRows])
-  const actCryptoInr  = useMemo(() => cryptoActRows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0), [cryptoActRows, gbpInr])
-  const actBankGbp    = useMemo(() => bankActRows.reduce((s, e) => s + Number(e.gbp_amount), 0), [bankActRows])
-  const actBankInr    = useMemo(() => bankActRows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0), [bankActRows, gbpInr])
+  const actForeignGbp = useMemo(() => foreignActRows.reduce((s: number, e: ActRow) => s + Number(e.gbp_amount), 0), [foreignActRows])
+  const actForeignInr = useMemo(() => foreignActRows.reduce((s: number, e: ActRow) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0), [foreignActRows, gbpInr])
+  const actCryptoGbp  = useMemo(() => cryptoActRows.reduce((s: number, e: ActRow) => s + Number(e.gbp_amount), 0), [cryptoActRows])
+  const actCryptoInr  = useMemo(() => cryptoActRows.reduce((s: number, e: ActRow) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0), [cryptoActRows, gbpInr])
+  const actBankGbp    = useMemo(() => bankActRows.reduce((s: number, e: ActRow) => s + Number(e.gbp_amount), 0), [bankActRows])
+  const actBankInr    = useMemo(() => bankActRows.reduce((s: number, e: ActRow) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0), [bankActRows, gbpInr])
 
   // ── Computed values ──────────────────────────────────────────
   const foreignInv = useMemo(() => foreign.reduce((s, r) => {
