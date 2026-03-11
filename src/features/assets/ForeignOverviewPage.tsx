@@ -169,22 +169,28 @@ export default function ForeignOverviewPage() {
   const [actForeignInr, setActForeignInr] = useState(0)
   const [actCryptoInr,  setActCryptoInr]  = useState(0)
   const [actBankInr,    setActBankInr]    = useState(0)
+  const [actForeignGbp, setActForeignGbp] = useState(0)
+  const [actCryptoGbp,  setActCryptoGbp]  = useState(0)
+  const [actBankGbp,    setActBankGbp]    = useState(0)
   useEffect(() => {
     if (!userId || !gbpInr) return
     supabase.from('foreign_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
       .then(({ data }) => {
         const rows = (data ?? []) as { gbp_amount: number; inr_rate: number | null }[]
         setActForeignInr(rows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0))
+        setActForeignGbp(rows.reduce((s, e) => s + Number(e.gbp_amount), 0))
       })
     supabase.from('crypto_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
       .then(({ data }) => {
         const rows = (data ?? []) as { gbp_amount: number; inr_rate: number | null }[]
         setActCryptoInr(rows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0))
+        setActCryptoGbp(rows.reduce((s, e) => s + Number(e.gbp_amount), 0))
       })
     supabase.from('bank_savings_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
       .then(({ data }) => {
         const rows = (data ?? []) as { gbp_amount: number; inr_rate: number | null }[]
         setActBankInr(rows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0))
+        setActBankGbp(rows.reduce((s, e) => s + Number(e.gbp_amount), 0))
       })
   }, [userId, gbpInr])
 
@@ -238,6 +244,15 @@ export default function ForeignOverviewPage() {
   const nativeGainGbp = nativeValGbp - nativeInvGbp
   const nativeGainPos = nativeGainGbp >= 0
   const nativeGainPct = nativeInvGbp > 0 ? (nativeGainGbp / nativeInvGbp) * 100 : 0
+
+  // Native GBP actual invested (sum of gbp_amount across all actual tables)
+  const hasActualGbp    = actForeignGbp + actCryptoGbp + actBankGbp > 0
+  const nativeActualGbp = (actForeignGbp > 0 ? actForeignGbp : foreignInvGbp)
+                        + (actCryptoGbp  > 0 ? actCryptoGbp  : cryptoInvGbp)
+                        + (actBankGbp    > 0 ? actBankGbp    : bankGbp)
+  const nativeActGainGbp = nativeValGbp - nativeActualGbp
+  const nativeActGainPos = nativeActGainGbp >= 0
+  const nativeActGainPct = nativeActualGbp > 0 ? (nativeActGainGbp / nativeActualGbp) * 100 : 0
 
   // INR-converted GBP (for display sub-labels under INR figures)
   const fmtGbp = (v: number) => `£${Math.abs(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -306,10 +321,13 @@ export default function ForeignOverviewPage() {
       <div className="bg-surface border border-border rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center gap-x-6 gap-y-1">
         <span className="text-[10px] font-bold text-textmut uppercase tracking-widest">£ GBP</span>
         {[
-          { label: 'Portfolio',    val: fmtGbp(nativeValGbp),                                            color: 'text-textprim' },
-          { label: 'Invested',     val: fmtGbp(nativeValGbp - nativeGainGbp),                            color: 'text-textprim' },
-          { label: 'Gain',         val: `${nativeGainPos?'+':'-'}${fmtGbp(Math.abs(nativeGainGbp))}`,    color: nativeGainPos ? 'text-green' : 'text-red' },
-          { label: 'Gain %',       val: `${nativeGainPos?'+':''}${nativeGainPct.toFixed(1)}%`,            color: nativeGainPos ? 'text-green' : 'text-red' },
+          { label: 'Portfolio',       val: fmtGbp(nativeValGbp),                                                                                                  color: 'text-textprim' },
+          { label: 'Invested',        val: fmtGbp(nativeInvGbp),                                                                                                  color: 'text-textprim' },
+          { label: 'Gain',            val: `${nativeGainPos?'+':'-'}${fmtGbp(Math.abs(nativeGainGbp))} (${nativeGainPos?'+':''}${nativeGainPct.toFixed(1)}%)`,     color: nativeGainPos ? 'text-green' : 'text-red' },
+          ...(hasActualGbp ? [
+            { label: 'Actual Inv',    val: fmtGbp(nativeActualGbp),                                                                                               color: 'text-textprim' },
+            { label: 'Actual Gain',   val: `${nativeActGainPos?'+':'-'}${fmtGbp(Math.abs(nativeActGainGbp))} (${nativeActGainPos?'+':''}${nativeActGainPct.toFixed(1)}%)`, color: nativeActGainPos ? 'text-green' : 'text-red' },
+          ] : []),
         ].map(({ label, val, color }) => (
           <div key={label} className="flex items-center gap-1.5">
             <span className="text-[10px] text-textmut">{label}</span>
