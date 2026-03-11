@@ -8,17 +8,26 @@ export interface IdealAllocation {
   item:        string
   type:        string
   category:    string
-  percentage:  number     // decimal e.g. 0.36 = 36%
+  percentage:  number
   created_at?: string
 }
 
 // ── Dashboard stats ────────────────────────────────────────────
+export interface DashboardCategory {
+  label: string
+  inv:   number
+  val:   number
+  color: string
+}
+
 export interface DashboardStats {
   totalValue:     number
   totalInvested:  number
   actualInvested: number
   assetCount:     number
   entryLabel:     string
+  categories:     DashboardCategory[]
+  gbpInr:         number
 }
 
 // ── Toasts ─────────────────────────────────────────────────────
