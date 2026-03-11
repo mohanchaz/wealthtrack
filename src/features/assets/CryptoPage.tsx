@@ -358,14 +358,6 @@ export default function CryptoPage() {
     { label: 'Actual Invested (₹)', value: actualInr > 0 ? INR(actualInr) : '—',                                                                      icon: '⊡', accentColor: '#d97706', loading: isLoading },
     { label: 'Actual Gain (₹)',     value: actGainInr != null ? `${actIsUp?'+':''}${INR(actGainInr)}` : '—', sub: actGainPct != null ? `${actIsUp?'+':''}${actGainPct.toFixed(1)}%` : undefined, icon: actIsUp?'▲':'▼', accentColor: actIsUp?'#059669':'#dc2626', loading: isLoading },
   ]
-  const statsRow2 = [
-    { label: 'Invested (£)',        value: fmtGbp(totalInvestedGbp),                                                                                   icon: '£', accentColor: '#B45309', loading: isLoading },
-    { label: 'Current Value (£)',   value: fmtGbp(totalValueGbp),                                                                                      icon: '◈', accentColor: '#0d9488', loading: isLoading },
-    { label: 'Gain / Loss (£)',     value: `${isUpGbp?'+':''}${fmtGbp(gainGbp)}`, sub: `${isUpGbp?'+':''}${gainPctGbp.toFixed(1)}%`,                   icon: isUpGbp?'▲':'▼', accentColor: isUpGbp?'#059669':'#dc2626', loading: isLoading },
-    { label: 'Actual Invested (£)', value: actualGbp > 0 ? fmtGbp(actualGbp) : '—',                                                                   icon: '⊡', accentColor: '#d97706', loading: isLoading },
-    { label: 'Actual Gain (£)',     value: actGainGbp != null ? `${actIsUp?'+':''}${fmtGbp(actGainGbp)}` : '—', sub: actGainPct != null ? `${actIsUp?'+':''}${actGainPct.toFixed(1)}%` : undefined, icon: actIsUp?'▲':'▼', accentColor: actIsUp?'#059669':'#dc2626', loading: isLoading },
-  ]
-
   const handleSave = async (d: Partial<CryptoHolding>) => {
     try {
       const existing = rows.find(r => r.id === d.id)
@@ -510,9 +502,26 @@ export default function CryptoPage() {
     >
       <AssetPageLayout
         stats={
-          <div className="flex flex-col gap-3">
+          <div className="space-y-2">
             <StatGrid items={statsRow1} cols={5} />
-            <StatGrid items={statsRow2} cols={5} />
+            <div className="flex flex-wrap gap-y-1 py-2 bg-ink/[0.03] border border-border rounded-xl px-3">
+              <span className="text-[10px] text-textmut uppercase tracking-widest self-center font-semibold pr-3">£ GBP</span>
+              {[
+                { label: 'Invested',      val: fmtGbp(totalInvestedGbp) },
+                { label: 'Current Value', val: fmtGbp(totalValueGbp) },
+                { label: 'Gain',          val: `${isUpGbp?'+':''}${fmtGbp(gainGbp)} (${isUpGbp?'+':''}${gainPctGbp.toFixed(1)}%)`, color: isUpGbp ? 'text-green' : 'text-red' },
+                ...(actualGbp > 0 ? [
+                  { label: 'Actual Inv',  val: fmtGbp(actualGbp) },
+                  ...(actGainGbp != null ? [{ label: 'Actual Gain', val: `${actIsUp?'+':''}${fmtGbp(actGainGbp)} (${actIsUp?'+':''}${(actGainPct??0).toFixed(1)}%)`, color: actIsUp ? 'text-green' : 'text-red' }] : []),
+                ] : []),
+              ].map(({ label, val, color }, i) => (
+                <div key={label} className={`flex items-center gap-1.5 px-3 ${i > 0 ? 'border-l border-border' : ''}`}>
+                  <span className="text-[10px] text-textmut">{label}</span>
+                  <span className={`text-[11px] font-bold font-mono ${color ?? 'text-textprim'}`}>{val}</span>
+                </div>
+              ))}
+              <span className="text-[9px] text-textfade self-center ml-auto pl-3">@ ₹{gbpInr.toFixed(1)}/£</span>
+            </div>
           </div>
         }
         mainTable={
