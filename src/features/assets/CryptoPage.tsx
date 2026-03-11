@@ -60,6 +60,8 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
   userId: string; gbpInr: number
   onTotalsChange: (gbp: number, inr: number) => void
 }) {
+  const qcPanel = useQueryClient()
+  const invalidateActual = () => qcPanel.invalidateQueries({ queryKey: ['crypto_actual_invested', userId] })
   const [showForm,    setShowForm]    = useState(false)
   const [gbpAmount,   setGbpAmount]   = useState('')
   const [inrRate,     setInrRate]     = useState(String(gbpInr.toFixed(2)))
@@ -89,7 +91,7 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
         gbp_amount: parseFloat(editGbp), inr_rate: parseFloat(editRate), entry_date: editDate
       }).eq('id', editEntry.id)
       if (err) throw new Error(err.message)
-      setEditEntry(null); await load(); toast('Updated ✅', 'success')
+      setEditEntry(null); await load(); invalidateActual(); toast('Updated ✅', 'success')
     } catch (e2) { toast((e2 as Error).message, 'error') }
     finally { setEditSaving(false) }
   }
@@ -122,7 +124,7 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
       })
       if (err) throw new Error(err.message)
       setGbpAmount(''); setEntryDate(''); setShowForm(false)
-      await load(); toast('Entry added ✅', 'success')
+      await load(); invalidateActual(); toast('Entry added ✅', 'success')
     } catch (e) { setError((e as Error).message) }
     finally { setSaving(false) }
   }
@@ -131,7 +133,7 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
     setConfirmOpen(false); setDeleting(true)
     try {
       for (const id of selected) await supabase.from('crypto_actual_invested').delete().eq('id', id)
-      setSelected(new Set()); await load(); toast(`Deleted ${selected.size}`, 'success')
+      setSelected(new Set()); await load(); invalidateActual(); toast(`Deleted ${selected.size}`, 'success')
     } finally { setDeleting(false) }
   }
 

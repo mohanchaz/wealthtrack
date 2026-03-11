@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useQueryClient }    from '@tanstack/react-query'
+import { useState, useMemo } from 'react'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
 import { useActualInvested } from '../../hooks/useActualInvested'
@@ -94,6 +94,8 @@ interface ForeignActualEntry {
 }
 
 function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number }) {
+  const qcPanel = useQueryClient()
+  const invalidateActual = () => qcPanel.invalidateQueries({ queryKey: ['foreign_actual_invested', userId] })
   const [showForm,    setShowForm]    = useState(false)
   const [gbpAmount,   setGbpAmount]   = useState('')
   const [inrRate,     setInrRate]     = useState(String(gbpInr.toFixed(2)))
@@ -124,7 +126,7 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
         gbp_amount: parseFloat(editGbp), inr_rate: parseFloat(editRate), entry_date: editDate
       }).eq('id', editEntry.id)
       if (err) throw new Error(err.message)
-      setEditEntry(null); await load(); toast('Updated ✅', 'success')
+      setEditEntry(null); await load(); invalidateActual(); toast('Updated ✅', 'success')
     } catch (e2) { toast((e2 as Error).message, 'error') }
     finally { setEditSaving(false) }
   }
@@ -153,7 +155,7 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
       })
       if (err) throw new Error(err.message)
       setGbpAmount(''); setEntryDate(''); setShowForm(false)
-      await load()
+      await load(); invalidateActual()
       toast('Entry added ✅', 'success')
     } catch (e) { setError((e as Error).message) }
     finally { setSaving(false) }
@@ -165,7 +167,7 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
       for (const id of selected) {
         await supabase.from('foreign_actual_invested').delete().eq('id', id)
       }
-      setSelected(new Set()); await load()
+      setSelected(new Set()); await load(); invalidateActual()
       toast(`Deleted ${selected.size}`, 'success')
     } finally { setDeleting(false) }
   }
@@ -354,12 +356,15 @@ export default function ForeignStocksPage() {
   const usdInr = fx?.usdInr ?? 83.5
   const gbpInr = fx?.gbpInr ?? gbpUsd * usdInr
 
-  // Actual invested entries — fetched at page level for stats
-  const [actualEntries, setActualEntries] = useState<{gbp_amount: number; inr_rate: number}[]>([])
-  useEffect(() => {
-    supabase.from('foreign_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
-      .then(({ data }) => setActualEntries((data ?? []) as {gbp_amount: number; inr_rate: number}[]))
-  }, [userId])
+  // Actual invested entries — same cache key as ForeignActualPanel so invalidation auto-refetches
+  const { data: actualEntries = [] } = useQuery({
+    queryKey: ['foreign_actual_invested', userId],
+    queryFn: async () => {
+      const { data } = await supabase.from('foreign_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
+      return (data ?? []) as { gbp_amount: number; inr_rate: number }[]
+    },
+    enabled: !!userId,
+  })
   const actualGbp = actualEntries.reduce((s, e) => s + Number(e.gbp_amount), 0)
   const actualInr = actualEntries.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate), 0)
 
