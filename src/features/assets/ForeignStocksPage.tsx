@@ -19,23 +19,14 @@ import { INR, calcGain, formatDate } from '../../lib/utils'
 import { parseCsvRows, cleanNum } from '../../lib/csvParser'
 import { supabase }          from '../../lib/supabase'
 import type { ForeignHolding } from '../../types/assets'
+import {
+  toForeignYahooSymbol, getForeignPriceEntry,
+  isForeignGbxLive, getForeignLtpGbp, getForeignAvgGbp,
+} from '../../lib/foreignPriceHelpers'
 
 // ── Symbol intelligence ───────────────────────────────────────
 // Known London Stock Exchange symbols (traded in GBX pence)
 // Yahoo Finance symbol overrides
-const YAHOO_MAP: Record<string, string> = {
-  BRK:  'BRK-B',
-  CNDX: 'CNDX.L',
-  IGLN: 'IGLN.L',
-  MKS:  'MKS.L',
-  SPXS: 'SPXS.L',
-}
-
-function toYahooSymbol(symbol: string, currency: string): string {
-  if (YAHOO_MAP[symbol]) return YAHOO_MAP[symbol]
-  if (currency === 'GBP' || currency === 'GBX') return `${symbol}.L`
-  return symbol
-}
 
 // Auto-detect currency from symbol — no currency column in the CSV
 // ── CSV parser ────────────────────────────────────────────────
@@ -374,7 +365,7 @@ export default function ForeignStocksPage() {
 
   // Build yahoo symbols list
   const yahooSymbols = useMemo(() =>
-    [...new Set(rows.map(r => toYahooSymbol(r.symbol, r.currency)))],
+    [...new Set(rows.map(r => toForeignYahooSymbol(r.symbol, r.currency)))],
   [rows])
 
   const { data: priceMap = {}, isFetching: priceFetching, refetch } = useYahooPrices(yahooSymbols)
@@ -382,40 +373,11 @@ export default function ForeignStocksPage() {
   const [showImport, setShowImport] = useState(false)
   const { upsertMutation, deleteMutation } = useAssets<ForeignHolding>('foreign_stock_holdings')
 
-  // ── Price helpers ────────────────────────────────────────────
-  // getRawEntry: raw Yahoo price map entry for a holding
-  const getRawEntry = (r: ForeignHolding) => {
-    const ySym = toYahooSymbol(r.symbol, r.currency)
-    const key  = ySym.replace(/\.(L|US)$/, '')
-    return priceMap[key] ?? priceMap[ySym] ?? null
-  }
-
-  // isGbxLive: true if Yahoo is reporting this price in pence (GBp)
-  // Yahoo uses "GBp" (lowercase p) for pence-denominated LSE stocks
-  // This replaces the unreliable price-magnitude heuristic
-  const isGbxLive = (r: ForeignHolding): boolean => {
-    if (r.currency === 'GBX') return true          // user explicitly set GBX
-    const entry = getRawEntry(r)
-    if (!entry?.currency) return false
-    return entry.currency === 'GBp'                // Yahoo's pence marker
-  }
-
-  // getLtpInGbp: live price always in GBP (never pence, never USD)
-  // This is the single source of truth for current value calculations
-  const getLtpInGbp = (r: ForeignHolding): number | null => {
-    const entry = getRawEntry(r)
-    if (!entry) return null
-    if (isGbxLive(r))        return entry.price / 100          // pence → GBP
-    if (r.currency === 'USD') return entry.price / gbpUsd       // USD   → GBP
-    return entry.price                                          // already GBP
-  }
-
-  // getAvgInGbp: avg cost always in GBP
-  const getAvgInGbp = (r: ForeignHolding): number => {
-    if (r.currency === 'GBX') return r.avg_price / 100
-    if (r.currency === 'USD') return r.avg_price / gbpUsd
-    return r.avg_price
-  }
+  // ── Price helpers (from shared foreignPriceHelpers) ─────────
+  const getLtpInGbp  = (r: ForeignHolding) => getForeignLtpGbp(r, priceMap, gbpUsd)
+  const getAvgInGbp  = (r: ForeignHolding) => getForeignAvgGbp(r, gbpUsd)
+  const isGbxLive    = (r: ForeignHolding) => isForeignGbxLive(r, priceMap)
+  const getRawEntry  = (r: ForeignHolding) => getForeignPriceEntry(r, priceMap)
 
   // gbpToInr: final conversion
   const gbpToInr = (gbp: number): number => gbp * gbpInr
@@ -490,7 +452,7 @@ export default function ForeignStocksPage() {
 
   // Sort rows by instrument name from priceMap, fallback to symbol
   const getInstrumentName = (r: ForeignHolding): string => {
-    const ySym  = toYahooSymbol(r.symbol, r.currency)
+    const ySym  = toForeignYahooSymbol(r.symbol, r.currency)
     const key   = ySym.replace(/\.(L|US)$/, '')
     return priceMap[key]?.name ?? priceMap[ySym]?.name ?? r.symbol
   }
@@ -693,7 +655,7 @@ export default function ForeignStocksPage() {
       />
 
       {editRow !== null && (
-        <EditModal row={editRow} name={editRow.id ? (priceMap[editRow.symbol ?? '']?.name ?? priceMap[(editRow.symbol ?? '').replace(/\.(NS|BO)$/,'')]?.name ?? null) : null} onClose={() => setEditRow(null)} onSave={handleSave} />
+        <EditModal row={editRow} name={editRow.id ? (getForeignPriceEntry(editRow as ForeignHolding, priceMap)?.name ?? null) : null} onClose={() => setEditRow(null)} onSave={handleSave} />
       )}
 
       <CsvImportModal

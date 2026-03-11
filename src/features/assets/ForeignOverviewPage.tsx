@@ -3,6 +3,9 @@ import { useNavigate }      from 'react-router-dom'
 import { useAuthStore }     from '../../store/authStore'
 import { useAssets }        from '../../hooks/useAssets'
 import { useYahooPrices, useFxRates } from '../../hooks/useLivePrices'
+import {
+  toForeignYahooSymbol, getForeignLtpGbp, getForeignAvgGbp,
+} from '../../lib/foreignPriceHelpers'
 import { PageShell }        from '../../components/common/PageShell'
 import { INR, calcGain }    from '../../lib/utils'
 import { supabase }         from '../../lib/supabase'
@@ -155,7 +158,7 @@ export default function ForeignOverviewPage() {
   const gbpUsd = fx?.gbpUsd ?? (gbpInr / usdInr)
 
   // Yahoo prices
-  const foreignSyms = useMemo(() => [...new Set(foreign.map(r => r.symbol).filter(Boolean) as string[])], [foreign])
+  const foreignSyms = useMemo(() => [...new Set(foreign.map(r => toForeignYahooSymbol(r.symbol, r.currency)).filter(Boolean))], [foreign])
   const cryptoSyms  = useMemo(() => [...new Set(crypto.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [crypto])
   const allSyms     = useMemo(() => [...new Set([...foreignSyms, ...cryptoSyms])], [foreignSyms, cryptoSyms])
   const { data: prices = {}, isFetching: pricesFetching } = useYahooPrices(allSyms)
@@ -196,17 +199,14 @@ export default function ForeignOverviewPage() {
 
   // ── Computed values ──────────────────────────────────────────
   const foreignInv = useMemo(() => foreign.reduce((s, r) => {
-    const rate = r.currency === 'USD' ? usdInr : (r.currency === 'GBP' || r.currency === 'GBX') ? gbpInr : 1
-    const mult = r.currency === 'GBX' ? 0.01 : 1
-    return s + Number(r.qty) * Number(r.avg_price) * mult * rate
-  }, 0), [foreign, usdInr, gbpInr])
+    return s + Number(r.qty) * getForeignAvgGbp(r, gbpUsd) * gbpInr
+  }, 0), [foreign, gbpUsd, gbpInr])
 
   const foreignVal = useMemo(() => foreign.reduce((s, r) => {
-    const p    = yPrice(r.symbol)
-    const rate = r.currency === 'USD' ? usdInr : (r.currency === 'GBP' || r.currency === 'GBX') ? gbpInr : 1
-    const mult = r.currency === 'GBX' ? 0.01 : 1
-    return s + (p != null ? Number(r.qty) * p * mult * rate : Number(r.qty) * Number(r.avg_price) * mult * rate)
-  }, 0), [foreign, prices, usdInr, gbpInr])
+    const ltpGbp = getForeignLtpGbp(r, prices, gbpUsd)
+    const avgGbp = getForeignAvgGbp(r, gbpUsd)
+    return s + Number(r.qty) * (ltpGbp ?? avgGbp) * gbpInr
+  }, 0), [foreign, prices, gbpUsd, gbpInr])
 
   const cryptoInv = useMemo(() => crypto.reduce((s, r) => s + Number(r.qty) * Number(r.avg_price_gbp) * gbpInr, 0), [crypto, gbpInr])
   const cryptoVal = useMemo(() => crypto.reduce((s, r) => {
