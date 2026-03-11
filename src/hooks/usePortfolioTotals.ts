@@ -54,15 +54,15 @@ export interface AllocationBucket {
 }
 
 export const ALLOC_COLORS: Record<string, string> = {
-  'India Equity MF':     '#1A1A1A',
-  'India Equity Stocks': '#767676',
-  'Foreign Equity/ETF':  '#ABABAB',
-  'Gold':                '#1A7A3C',
-  'Bonds':               '#C0392B',
-  'Fixed Deposit':       '#B45309',
-  'Cash':                '#2563EB',
-  'UK Savings':          '#7C3AED',
-  'Crypto':              '#0891B2',
+  'India Equity MF':     '#0F766E',  // teal
+  'India Equity Stocks': '#2563EB',  // blue
+  'Foreign Equity/ETF':  '#7C3AED',  // violet
+  'Gold':                '#D97706',  // amber
+  'Bonds':               '#DC2626',  // red
+  'Fixed Deposit':       '#0891B2',  // cyan
+  'Cash':                '#059669',  // emerald
+  'UK Savings':          '#9333EA',  // purple
+  'Crypto':              '#EA580C',  // orange
 }
 
 export interface PortfolioTotals {
