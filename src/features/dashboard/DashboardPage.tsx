@@ -464,7 +464,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* ── Quick nav ──────────────────────────────────────────── */
+        {/* ── Quick nav ──────────────────────────────────────────── */}
         <div>
           <h2 className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-3">Quick Access</h2>
           <div className="flex flex-wrap gap-2">
