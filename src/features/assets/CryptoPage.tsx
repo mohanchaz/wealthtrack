@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useQueryClient }    from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useAuthStore }      from '../../store/authStore'
 import { useAssets }         from '../../hooks/useAssets'
 import { useYahooPrices, useFxRates } from '../../hooks/useLivePrices'
@@ -56,10 +56,7 @@ function parseCryptoCsv(text: string): Omit<CryptoHolding, 'id' | 'user_id'>[] |
 // ── Actual Invested Panel ─────────────────────────────────────
 interface CryptoActualEntry { id: string; user_id: string; entry_date: string; gbp_amount: number; inr_rate: number | null }
 
-function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
-  userId: string; gbpInr: number
-  onTotalsChange: (gbp: number, inr: number) => void
-}) {
+function CryptoActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number }) {
   const qcPanel = useQueryClient()
   const invalidateActual = () => qcPanel.invalidateQueries({ queryKey: ['crypto_actual_invested', userId] })
   const [showForm,    setShowForm]    = useState(false)
@@ -68,8 +65,6 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
   const [entryDate,   setEntryDate]   = useState('')
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState('')
-  const [entries,     setEntries]     = useState<CryptoActualEntry[]>([])
-  const [loading,     setLoading]     = useState(true)
   const [selected,    setSelected]    = useState<Set<string>>(new Set())
   const [deleting,    setDeleting]    = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -91,24 +86,20 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
         gbp_amount: parseFloat(editGbp), inr_rate: parseFloat(editRate), entry_date: editDate
       }).eq('id', editEntry.id)
       if (err) throw new Error(err.message)
-      setEditEntry(null); await load(); invalidateActual(); toast('Updated ✅', 'success')
+      setEditEntry(null); await invalidateActual(); toast('Updated ✅', 'success')
     } catch (e2) { toast((e2 as Error).message, 'error') }
     finally { setEditSaving(false) }
   }
 
-  const load = async () => {
-    setLoading(true)
-    const { data } = await supabase.from('crypto_actual_invested')
-      .select('*').eq('user_id', userId).order('entry_date', { ascending: false })
-    const rows = (data ?? []) as CryptoActualEntry[]
-    setEntries(rows)
-    const totalGbp = rows.reduce((s, e) => s + Number(e.gbp_amount), 0)
-    const totalInr = rows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0)
-    onTotalsChange(totalGbp, totalInr)
-    setLoading(false)
-  }
-
-  useMemo(() => { load() }, [userId])
+  const { data: entries = [], isFetching: loading } = useQuery<CryptoActualEntry[]>({
+    queryKey: ['crypto_actual_invested', userId],
+    queryFn: async () => {
+      const { data } = await supabase.from('crypto_actual_invested')
+        .select('*').eq('user_id', userId).order('entry_date', { ascending: false })
+      return (data ?? []) as CryptoActualEntry[]
+    },
+    enabled: !!userId,
+  })
 
   const totalGbp = entries.reduce((s, e) => s + Number(e.gbp_amount), 0)
   const totalInr = entries.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0)
@@ -124,7 +115,7 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
       })
       if (err) throw new Error(err.message)
       setGbpAmount(''); setEntryDate(''); setShowForm(false)
-      await load(); invalidateActual(); toast('Entry added ✅', 'success')
+      await invalidateActual(); toast('Entry added ✅', 'success')
     } catch (e) { setError((e as Error).message) }
     finally { setSaving(false) }
   }
@@ -133,7 +124,7 @@ function CryptoActualPanel({ userId, gbpInr, onTotalsChange }: {
     setConfirmOpen(false); setDeleting(true)
     try {
       for (const id of selected) await supabase.from('crypto_actual_invested').delete().eq('id', id)
-      setSelected(new Set()); await load(); invalidateActual(); toast(`Deleted ${selected.size}`, 'success')
+      setSelected(new Set()); await invalidateActual(); toast(`Deleted ${selected.size}`, 'success')
     } finally { setDeleting(false) }
   }
 
@@ -321,8 +312,16 @@ export default function CryptoPage() {
 
   const [editRow,    setEditRow]    = useState<Partial<CryptoHolding> | null>(null)
   const [showImport, setShowImport] = useState(false)
-  const [actualGbp,  setActualGbp]  = useState(0)
-  const [actualInr,  setActualInr]  = useState(0)
+  const { data: _cryptoActRows = [] } = useQuery<{ gbp_amount: number; inr_rate: number | null }[]>({
+    queryKey: ['crypto_actual_invested', userId],
+    queryFn: async () => {
+      const { data } = await supabase.from('crypto_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
+      return (data ?? []) as { gbp_amount: number; inr_rate: number | null }[]
+    },
+    enabled: !!userId,
+  })
+  const actualGbp = useMemo(() => _cryptoActRows.reduce((s, e) => s + Number(e.gbp_amount), 0), [_cryptoActRows])
+  const actualInr = useMemo(() => _cryptoActRows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr), 0), [_cryptoActRows, gbpInr])
   const { upsertMutation, deleteMutation } = useAssets<CryptoHolding>('crypto_holdings')
 
   // API strips -GBP/-USD suffix from keys: BTC-GBP → stored as BTC in priceMap
@@ -537,7 +536,7 @@ export default function CryptoPage() {
           />
         }
         actualInvested={
-          <CryptoActualPanel userId={userId} gbpInr={gbpInr} onTotalsChange={(gbp, inr) => { setActualGbp(gbp); setActualInr(inr) }} />
+          <CryptoActualPanel userId={userId} gbpInr={gbpInr} />
         }
       />
 

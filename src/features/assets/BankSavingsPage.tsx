@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useAuthStore }   from '../../store/authStore'
 import { useAssets }      from '../../hooks/useAssets'
 import { useToastStore }  from '../../store/toastStore'
@@ -54,6 +55,8 @@ function daysUntil(d?: string) {
 
 // ── Actual Invested Panel ────────────────────────────────────
 function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number }) {
+  const qc = useQueryClient()
+  const invalidateActual = () => qc.invalidateQueries({ queryKey: ['bank_savings_actual_invested', userId] })
   const [showForm,    setShowForm]    = useState(false)
   const [gbpAmount,   setGbpAmount]   = useState('')
   const [inrRate,     setInrRate]     = useState(String(gbpInr.toFixed(2)))
@@ -62,26 +65,25 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
   const [error,       setError]       = useState('')
   const [selected,    setSelected]    = useState<Set<string>>(new Set())
   const [deleting,    setDeleting]    = useState(false)
-  const [confirmOpen, setConfirmOpen] = useState(false)
   const [editEntry,   setEditEntry]   = useState<ActualEntry | null>(null)
   const [editGbp,     setEditGbp]     = useState('')
   const [editRate,    setEditRate]    = useState('')
   const [editDate,    setEditDate]    = useState('')
   const [editSaving,  setEditSaving]  = useState(false)
-  const [entries,     setEntries]     = useState<ActualEntry[]>([])
-  const [loading,     setLoading]     = useState(true)
   const toast = useToastStore(s => s.show)
 
   useEffect(() => { setInrRate(String(gbpInr.toFixed(2))) }, [gbpInr])
 
-  const load = async () => {
-    setLoading(true)
-    const { data } = await supabase.from('bank_savings_actual_invested')
-      .select('*').eq('user_id', userId).order('entry_date', { ascending: false })
-    setEntries((data ?? []) as ActualEntry[])
-    setLoading(false)
-  }
-  useMemo(() => { load() }, [userId])
+  // Shared cache key — invalidateActual() refreshes both panel and stats banner
+  const { data: entries = [], isFetching: loading } = useQuery<ActualEntry[]>({
+    queryKey: ['bank_savings_actual_invested', userId],
+    queryFn: async () => {
+      const { data } = await supabase.from('bank_savings_actual_invested')
+        .select('*').eq('user_id', userId).order('entry_date', { ascending: false })
+      return (data ?? []) as ActualEntry[]
+    },
+    enabled: !!userId,
+  })
 
   const totalGbp = entries.reduce((s, e) => s + Number(e.gbp_amount), 0)
   const totalInr = entries.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate), 0)
@@ -96,7 +98,8 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
         entry_date: entryDate || new Date().toISOString().slice(0, 10),
       })
       if (err) throw new Error(err.message)
-      setGbpAmount(''); setEntryDate(''); setShowForm(false); await load()
+      setGbpAmount(''); setEntryDate(''); setShowForm(false)
+      await invalidateActual()
       toast('Entry added ✅', 'success')
     } catch (e) { setError((e as Error).message) }
     finally { setSaving(false) }
@@ -113,16 +116,16 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
         gbp_amount: parseFloat(editGbp), inr_rate: parseFloat(editRate), entry_date: editDate
       }).eq('id', editEntry.id)
       if (err) throw new Error(err.message)
-      setEditEntry(null); await load(); toast('Updated ✅', 'success')
+      setEditEntry(null); await invalidateActual(); toast('Updated ✅', 'success')
     } catch (e2) { toast((e2 as Error).message, 'error') }
     finally { setEditSaving(false) }
   }
 
   const doDelete = async () => {
-    setConfirmOpen(false); setDeleting(true)
+    setDeleting(true)
     try {
       for (const id of selected) await supabase.from('bank_savings_actual_invested').delete().eq('id', id)
-      setSelected(new Set()); await load(); toast(`Deleted ${selected.size}`, 'success')
+      setSelected(new Set()); await invalidateActual(); toast(`Deleted ${selected.size}`, 'success')
     } finally { setDeleting(false) }
   }
 
@@ -148,7 +151,7 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
           </div>
         </div>
         <Button size="sm" variant={showForm ? 'secondary' : 'primary'} onClick={() => setShowForm(f => !f)}>
-          {showForm ? '✕ Cancel' : 'Add Entry'}
+          {showForm ? '✕ Cancel' : '+ Add Entry'}
         </Button>
         {showForm && (
           <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-border">
@@ -157,7 +160,7 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
             <Input label="GBP → INR Rate" type="number" step="0.01" placeholder="e.g. 106.5"
               value={inrRate} onChange={e => setInrRate(e.target.value)} />
             <Input label="Date" type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} />
-            {error && <p className="text-[10px] text-red">{error}</p>}
+            {error && <p className="text-[10px] text-red bg-red/5 border border-red/20 rounded-lg px-2 py-1">{error}</p>}
             <Button size="sm" onClick={handleAdd} loading={saving}>Save Entry</Button>
           </div>
         )}
@@ -175,23 +178,29 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
               <input type="checkbox" checked={allCheck} onChange={toggleAll} className="rounded" />
               <span className="text-[10px] text-textmut flex-1">{entries.length} entries</span>
               {selected.size > 0 && (
-                <button onClick={() => setConfirmOpen(true)} disabled={deleting}
-                  className="text-[10px] text-red font-semibold hover:opacity-70">
-                  🗑 {selected.size}
-                </button>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red/10 text-red">
+                  {selected.size}
+                </span>
               )}
             </div>
-            {entries.map(e => (
-              <div key={e.id} className="flex items-center gap-2 px-4 py-2.5 border-b border-border/50 hover:bg-surface2/50">
+            {selected.size > 0 && (
+              <div className="flex items-center gap-2 px-4 py-1.5 bg-red/5 border-b border-red/20">
+                <span className="text-[10px] font-semibold text-red flex-1">{selected.size} selected</span>
+                <button onClick={doDelete} disabled={deleting}
+                  className="text-[10px] font-bold px-2 py-1 rounded bg-red text-white hover:bg-red/80 disabled:opacity-50">
+                  {deleting ? '…' : '🗑 Delete'}
+                </button>
+              </div>
+            )}
+            {entries.map((e, i) => (
+              <div key={e.id} className={`flex items-center gap-2 px-4 py-2.5 border-b border-border/40 last:border-0 hover:bg-surface2 transition-colors ${selected.has(e.id) ? 'bg-red/5' : i % 2 === 1 ? 'bg-surface2/20' : ''}`}>
                 <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleOne(e.id)} className="rounded shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold font-mono text-textprim">£{Number(e.gbp_amount).toFixed(2)}</span>
-                    <span className="text-sm font-semibold font-mono text-teal">{INR(Number(e.gbp_amount) * Number(e.inr_rate))}</span>
+                  <div className="text-[11px] font-bold font-mono text-textprim">
+                    £{Number(e.gbp_amount).toFixed(2)}<span className="text-textmut mx-1">·</span>{INR(Number(e.gbp_amount) * Number(e.inr_rate))}
                   </div>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-[10px] text-textmut">{formatDate(e.entry_date)}</span>
-                    <span className="text-[10px] text-textmut">@ ₹{Number(e.inr_rate).toFixed(2)}/£</span>
+                  <div className="text-[10px] text-textmut mt-0.5">
+                    {formatDate(e.entry_date)} <span className="ml-1">@ ₹{Number(e.inr_rate).toFixed(2)}/£</span>
                   </div>
                 </div>
                 <button onClick={() => openEdit(e)} className="text-textmut hover:text-textprim text-xs ml-1">✏</button>
@@ -205,21 +214,12 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
       {editEntry && (
         <Modal open onClose={() => setEditEntry(null)} title="Edit Entry"
           footer={<><Button variant="secondary" size="sm" onClick={() => setEditEntry(null)}>Cancel</Button>
-            <Button size="sm" onClick={handleEditSave} loading={editSaving}>Save</Button></>}>
+            <Button size="sm" onClick={handleEditSave} loading={editSaving}>💾 Save</Button></>}>
           <div className="flex flex-col gap-3">
             <Input label="GBP Amount" prefix="£" type="number" step="0.01" value={editGbp} onChange={e2 => setEditGbp(e2.target.value)} />
             <Input label="GBP → INR Rate" type="number" step="0.01" value={editRate} onChange={e2 => setEditRate(e2.target.value)} />
             <Input label="Date" type="date" value={editDate} onChange={e2 => setEditDate(e2.target.value)} />
           </div>
-        </Modal>
-      )}
-
-      {/* Delete confirm */}
-      {confirmOpen && (
-        <Modal open onClose={() => setConfirmOpen(false)} title="Delete entries?"
-          footer={<><Button variant="secondary" size="sm" onClick={() => setConfirmOpen(false)}>Cancel</Button>
-            <Button variant="danger" size="sm" onClick={doDelete}>Delete {selected.size}</Button></>}>
-          <p className="text-sm text-textsec">This cannot be undone.</p>
         </Modal>
       )}
     </div>
@@ -312,18 +312,17 @@ export default function BankSavingsPage() {
   const usdInr = fx?.usdInr ?? 84
   const gbpInr = fx?.gbpInr ?? (fx?.gbpUsd ?? 1.27) * usdInr
 
-  // Actual invested total for stats
-  const [actInr, setActInr] = useState(0)
-  const [actGbp, setActGbp] = useState(0)
-  useEffect(() => {
-    if (!userId) return
-    supabase.from('bank_savings_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
-      .then(({ data }: { data: {gbp_amount: number; inr_rate: number}[] | null }) => {
-        const entries = (data ?? []) as { gbp_amount: number; inr_rate: number }[]
-        setActGbp(entries.reduce((s, e) => s + Number(e.gbp_amount), 0))
-        setActInr(entries.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate), 0))
-      })
-  }, [userId])
+  // Actual invested total — same cache key as panel so invalidation updates both
+  const { data: _actRows = [] } = useQuery<{ gbp_amount: number; inr_rate: number }[]>({
+    queryKey: ['bank_savings_actual_invested', userId],
+    queryFn: async () => {
+      const { data } = await supabase.from('bank_savings_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
+      return (data ?? []) as { gbp_amount: number; inr_rate: number }[]
+    },
+    enabled: !!userId,
+  })
+  const actGbp = useMemo(() => _actRows.reduce((s, e) => s + Number(e.gbp_amount), 0), [_actRows])
+  const actInr = useMemo(() => _actRows.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate), 0), [_actRows])
 
   const totalGbp = useMemo(() => rows.reduce((s, r) => s + Number(r.amount_gbp), 0), [rows])
   const totalInr = useMemo(() => rows.reduce((s, r) => s + Number(r.amount_gbp) * gbpInr, 0), [rows, gbpInr])
