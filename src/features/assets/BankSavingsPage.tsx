@@ -8,6 +8,7 @@ import { PageShell }      from '../../components/common/PageShell'
 import { StatGrid }       from '../../components/common/StatGrid'
 import { AssetTable }     from '../../components/common/AssetTable'
 import { Modal }          from '../../components/ui/Modal'
+import { ConfirmModal }   from '../../components/ui/ConfirmModal'
 import { Button }         from '../../components/ui/Button'
 import { Input }          from '../../components/ui/Input'
 import { INR, formatDate } from '../../lib/utils'
@@ -65,6 +66,7 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
   const [error,       setError]       = useState('')
   const [selected,    setSelected]    = useState<Set<string>>(new Set())
   const [deleting,    setDeleting]    = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [editEntry,   setEditEntry]   = useState<ActualEntry | null>(null)
   const [editGbp,     setEditGbp]     = useState('')
   const [editRate,    setEditRate]    = useState('')
@@ -122,7 +124,7 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
   }
 
   const doDelete = async () => {
-    setDeleting(true)
+    setConfirmOpen(false); setDeleting(true)
     try {
       for (const id of selected) await supabase.from('bank_savings_actual_invested').delete().eq('id', id)
       setSelected(new Set()); await invalidateActual(); toast(`Deleted ${selected.size}`, 'success')
@@ -186,7 +188,7 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
             {selected.size > 0 && (
               <div className="flex items-center gap-2 px-4 py-1.5 bg-red/5 border-b border-red/20">
                 <span className="text-[10px] font-semibold text-red flex-1">{selected.size} selected</span>
-                <button onClick={doDelete} disabled={deleting}
+                <button onClick={() => setConfirmOpen(true)} disabled={deleting}
                   className="text-[10px] font-bold px-2 py-1 rounded bg-red text-white hover:bg-red/80 disabled:opacity-50">
                   {deleting ? '…' : '🗑 Delete'}
                 </button>
@@ -211,6 +213,13 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
       </div>
 
       {/* Edit modal */}
+      {confirmOpen && (
+        <ConfirmModal
+          message={`Delete ${selected.size} entr${selected.size > 1 ? 'ies' : 'y'}?`}
+          onConfirm={doDelete}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
       {editEntry && (
         <Modal open onClose={() => setEditEntry(null)} title="Edit Entry"
           footer={<><Button variant="secondary" size="sm" onClick={() => setEditEntry(null)}>Cancel</Button>
