@@ -113,27 +113,27 @@ export default function AionionOverviewPage() {
   return (
     <PageShell title="Aionion" subtitle="Overview of all Aionion holdings">
 
-      <div className={`bg-surface border border-border rounded-2xl p-4 mb-4 grid grid-cols-2 gap-4 ${hasActual ? 'sm:grid-cols-5' : 'sm:grid-cols-3'}`}>
-        <div>
+      <div className="bg-surface border border-border rounded-2xl p-4 mb-4 flex flex-wrap items-stretch divide-x divide-border">
+        <div className="flex flex-col justify-center pr-6 min-w-[140px]">
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Total Value</div>
           <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalVal)}</div>
           <div className="text-[10px] text-textmut mt-0.5">{liveTag ?? 'Across 2 asset types'}</div>
         </div>
-        <div>
+        <div className="flex flex-col justify-center px-6 min-w-[140px]">
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Invested</div>
           <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalInv)}</div>
         </div>
-        <div>
+        <div className="flex flex-col justify-center px-6 min-w-[140px]">
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Gain / Loss</div>
           <div className={`text-xl font-extrabold font-mono ${totalPos ? 'text-green' : 'text-red'}`}>{anyLoading ? '…' : `${totalPos ? '+' : ''}${INR(totalGain)}`}</div>
           <div className={`text-[10px] font-bold font-mono mt-0.5 ${totalPos ? 'text-green' : 'text-red'}`}>{anyLoading ? '' : `${totalPos ? '+' : ''}${totalGainPct.toFixed(1)}%`}</div>
         </div>
         {hasActual && <>
-          <div>
+          <div className="flex flex-col justify-center px-6 min-w-[140px]">
             <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Actual Invested</div>
             <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalActual)}</div>
           </div>
-          <div>
+          <div className="flex flex-col justify-center pl-6 min-w-[140px]">
             <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Actual Gain</div>
             <div className={`text-xl font-extrabold font-mono ${actPos ? 'text-green' : 'text-red'}`}>{anyLoading ? '…' : `${actPos ? '+' : ''}${INR(actGain)}`}</div>
             <div className={`text-[10px] font-bold font-mono mt-0.5 ${actPos ? 'text-green' : 'text-red'}`}>{anyLoading ? '' : `${actPos ? '+' : ''}${actGainPct.toFixed(1)}%`}</div>

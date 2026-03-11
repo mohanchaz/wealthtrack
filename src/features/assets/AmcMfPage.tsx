@@ -3,7 +3,7 @@ import { useAuthStore }        from '../../store/authStore'
 import { useAssets }           from '../../hooks/useAssets'
 import { useActualInvested }   from '../../hooks/useActualInvested'
 import { useToastStore }       from '../../store/toastStore'
-import { useYahooPrices, useFxRates } from '../../hooks/useLivePrices'
+import { useYahooPrices } from '../../hooks/useLivePrices'
 import { AssetPageLayout }     from '../../components/common/AssetPageLayout'
 import { PageShell }           from '../../components/common/PageShell'
 import { StatGrid }            from '../../components/common/StatGrid'
@@ -164,11 +164,7 @@ export default function AmcMfPage() {
   const actual = aiHook.data?.reduce((s, e) => s + e.amount, 0)
   const { gain, gainPct, isPositive } = calcGain(totalValue, totalInvested)
 
-  // FX for GBP banner
-  const { data: fx } = useFxRates()
-  const gbpInr = fx ? (fx.gbpUsd ?? 1.27) * (fx.usdInr ?? 84) : 107
-  const toGbp  = (inr: number) => inr / gbpInr
-  const GBP    = (inr: number) => `£${toGbp(inr).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
   const liveLabel = pricesFetching
     ? '🔄 Fetching…'
     : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
@@ -188,7 +184,6 @@ export default function AmcMfPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
-  const actualGain = actual && actual > 0 ? calcGain(totalValue, actual) : null
 
   const stats = [
     { label: 'Invested',        value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
@@ -301,27 +296,7 @@ export default function AmcMfPage() {
     >
       <AssetPageLayout
         stats={
-          <div className="space-y-2">
-            <StatGrid items={stats} cols={4} />
-            <div className="flex flex-wrap gap-y-1 py-2 bg-ink/[0.03] border border-border rounded-xl px-3">
-              <span className="text-[10px] text-textmut uppercase tracking-widest self-center font-semibold pr-3">£ GBP</span>
-              {[
-                { label: 'Invested',        val: GBP(totalInvested) },
-                { label: 'Current Value',   val: GBP(totalValue) },
-                { label: 'Gain',            val: `${isPositive?'+':''}${GBP(gain)}`, color: isPositive ? 'text-green' : 'text-red' },
-                ...(actual ? [
-                  { label: 'Actual Inv',    val: GBP(actual) },
-                  ...(actualGain ? [{ label: 'Actual Gain', val: `${actualGain.isPositive?'+':''}${GBP(actualGain.gain)}`, color: actualGain.isPositive ? 'text-green' : 'text-red' }] : []),
-                ] : []),
-              ].map(({ label, val, color }, i) => (
-                <div key={label} className={`flex items-center gap-1.5 px-3 ${i > 0 ? 'border-l border-border' : ''}`}>
-                  <span className="text-[10px] text-textmut">{label}</span>
-                  <span className={`text-[11px] font-bold font-mono ${color ?? 'text-textprim'}`}>{val}</span>
-                </div>
-              ))}
-              <span className="text-[9px] text-textfade self-center ml-auto pl-3">@ ₹{gbpInr.toFixed(1)}/£</span>
-            </div>
-          </div>
+          <StatGrid items={stats} cols={4} />
         }
         mainTable={
           <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
