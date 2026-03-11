@@ -354,7 +354,7 @@ export default function CryptoPage() {
   const statsRow1 = [
     { label: 'Invested (₹)',        value: INR(totalInvestedInr),                                                                                      icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Current Value (₹)',   value: INR(totalValueInr),                                                                                         icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
-    { label: 'Gain / Loss (₹)',     value: `${isUpInr?'+':''}${INR(gainInr)}`,                                                                         icon: isUpInr?'▲':'▼', accentColor: isUpInr?'#059669':'#dc2626', loading: isLoading },
+    { label: 'Gain / Loss (₹)',     value: `${isUpInr?'+':''}${INR(gainInr)}`,        sub: `${isUpInr?'+':''}${(totalInvestedInr > 0 ? (gainInr/totalInvestedInr)*100 : 0).toFixed(1)}%`, icon: isUpInr?'▲':'▼', accentColor: isUpInr?'#059669':'#dc2626', loading: isLoading },
     { label: 'Actual Invested (₹)', value: actualInr > 0 ? INR(actualInr) : '—',                                                                      icon: '⊡', accentColor: '#d97706', loading: isLoading },
     { label: 'Actual Gain (₹)',     value: actGainInr != null ? `${actIsUp?'+':''}${INR(actGainInr)}` : '—', sub: actGainPct != null ? `${actIsUp?'+':''}${actGainPct.toFixed(1)}%` : undefined, icon: actIsUp?'▲':'▼', accentColor: actIsUp?'#059669':'#dc2626', loading: isLoading },
   ]
