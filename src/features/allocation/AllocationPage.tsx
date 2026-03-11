@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { useAllocations } from '../../hooks/useAllocations'
-import { AllocationDonut } from '../../components/charts/AllocationDonut'
+import { usePortfolioTotals, ALLOC_COLORS } from '../../hooks/usePortfolioTotals'
 import { EditAllocationModal } from './EditAllocationModal'
 import { Button } from '../../components/ui/Button'
 import { PageSpinner } from '../../components/ui/Spinner'
-import { CHART_COLORS } from '../../constants/chartColors'
+import { INR } from '../../lib/utils'
 
-const TIPS = [
-  { icon: '🎯', title: 'Target Mix',       body: 'Set the percentage you want in each asset class. This is your long-term goal, not your current holdings.' },
-  { icon: '✏️', title: 'Customise Freely', body: 'Click Edit to rename, add, or remove asset classes. The total must always equal 100%.' },
-  { icon: '📊', title: 'Stay on Track',    body: 'Once you add real assets, WealthTrack compares your actual portfolio to this target automatically.' },
-]
+function fmt(n: number) {
+  if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)}Cr`
+  if (n >= 1e5) return `₹${(n / 1e5).toFixed(2)}L`
+  return INR(n)
+}
 
 export default function AllocationPage() {
   const { data: allocations = [], isLoading, error, seedMutation, saveMutation } = useAllocations()
+  const p = usePortfolioTotals()
   const [editOpen, setEditOpen] = useState(false)
 
   if (isLoading) return <PageSpinner />
@@ -50,67 +51,105 @@ export default function AllocationPage() {
       {/* Header */}
       <div className="flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-2xl font-extrabold text-textprim tracking-tight">Ideal Allocation</h1>
-          <p className="text-sm text-textmut mt-0.5">Your target portfolio mix across asset classes</p>
+          <h1 className="text-2xl font-extrabold text-textprim tracking-tight">Allocation</h1>
+          <p className="text-sm text-textmut mt-0.5">Target vs actual portfolio weights</p>
         </div>
         <Button variant="outline" onClick={() => setEditOpen(true)} size="sm">
-          ✏️ Edit
+          ✏️ Edit targets
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-
-        {/* Bar list */}
-        <div className="lg:col-span-3 rounded-2xl border border-border bg-white p-6 shadow-card animate-fade-up delay-1">
-          <h2 className="text-sm font-bold text-textprim mb-5">Target Allocation</h2>
-          <div className="flex flex-col gap-4">
-            {allocations.map((a, i) => {
-              const pct   = (a.percentage * 100).toFixed(1)
-              const color = CHART_COLORS[i % CHART_COLORS.length]
-              return (
-                <div key={a.id}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-                      <span className="text-sm font-medium text-textprim">{a.item}</span>
-                    </div>
-                    <span className="text-sm font-bold font-mono" style={{ color }}>{pct}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-surface2 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}80)` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
+      {/* Target vs Actual — full panel */}
+      <div className="rounded-2xl border border-border bg-white shadow-card animate-fade-up delay-1 overflow-hidden">
+        <div className="px-6 pt-5 pb-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-sm font-bold text-textprim">Target vs Actual</h2>
+          <div className="flex items-center gap-4 text-[11px] text-textmut">
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-2 rounded-full bg-[#1A1A1A] opacity-80" />
+              <span>Actual</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-px h-4 bg-border2" />
+              <span>Target</span>
+            </div>
+            <span className="text-textfade font-mono">actual% / <strong className="text-textprim">target%</strong></span>
           </div>
         </div>
 
-        {/* Right column */}
-        <div className="lg:col-span-2 flex flex-col gap-5">
-          {/* Donut */}
-          <div className="rounded-2xl border border-border bg-white p-5 shadow-card animate-fade-up delay-2">
-            <h2 className="text-sm font-bold text-textprim mb-4">Distribution</h2>
-            <AllocationDonut allocations={allocations} />
-          </div>
+        <div className="px-6 py-4 space-y-1">
+          {allocations.map((alloc) => {
+            const bucket   = p.allocationBuckets.find(b => b.key === alloc.item)
+            const color    = ALLOC_COLORS[alloc.item] ?? '#767676'
+            const targetPct = alloc.percentage * 100
+            const actualPct = p.totalVal > 0 && bucket ? (bucket.val / p.totalVal) * 100 : 0
+            const diff      = actualPct - targetPct
+            const diffAbs   = Math.abs(diff)
+            const over      = diff > 0.5
+            const under     = diff < -0.5
+            const onTrack   = !over && !under
 
-          {/* Tips */}
-          <div className="rounded-2xl border border-border bg-white p-5 shadow-card animate-fade-up delay-3">
-            <h2 className="text-sm font-bold text-textprim mb-4">About Ideal Allocation</h2>
-            <div className="flex flex-col gap-4">
-              {TIPS.map(t => (
-                <div key={t.title} className="flex gap-3">
-                  <span className="text-lg shrink-0 mt-0.5">{t.icon}</span>
-                  <div>
-                    <div className="text-xs font-bold text-textprim mb-1">{t.title}</div>
-                    <div className="text-xs text-textsec leading-relaxed">{t.body}</div>
+            return (
+              <div key={alloc.id} className="py-3 border-b border-border/50 last:border-0">
+                {/* Label row */}
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                    <span className="text-sm font-semibold text-textprim">{alloc.item}</span>
+                    {!p.anyLoading && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                        onTrack ? 'bg-green/8 text-green'
+                        : over   ? 'bg-amber-50 text-amber-700'
+                        :          'bg-red/8 text-red'
+                      }`}>
+                        {onTrack ? '✓ on track'
+                          : over ? `+${diffAbs.toFixed(1)}% over`
+                          :        `${diffAbs.toFixed(1)}% under`}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-5">
+                    {bucket && !p.anyLoading && (
+                      <span className="text-sm font-mono font-semibold text-textsec">
+                        {fmt(bucket.val)}
+                      </span>
+                    )}
+                    <div className="text-right w-24">
+                      <span className="text-[12px] font-mono text-textmut">
+                        {p.anyLoading ? '…' : `${actualPct.toFixed(1)}%`}
+                      </span>
+                      <span className="text-[11px] text-border2 mx-1">/</span>
+                      <span className="text-[12px] font-mono text-textprim font-bold">{targetPct.toFixed(1)}%</span>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* Dual progress bar */}
+                <div className="relative h-5">
+                  {/* Background track */}
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full h-1.5 rounded-full bg-surface2" />
+                  </div>
+                  {/* Target ghost fill */}
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full h-1.5 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full opacity-20 transition-all duration-700"
+                        style={{ width: `${targetPct}%`, backgroundColor: color }} />
+                    </div>
+                  </div>
+                  {/* Target tick */}
+                  <div className="absolute top-1 bottom-1 w-0.5 rounded-full bg-border2"
+                    style={{ left: `calc(${targetPct}% - 1px)` }} />
+                  {/* Actual bar */}
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full h-2.5 rounded-full overflow-hidden bg-transparent">
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${Math.min(actualPct, 100)}%`, backgroundColor: color, opacity: p.anyLoading ? 0.3 : 1 }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 

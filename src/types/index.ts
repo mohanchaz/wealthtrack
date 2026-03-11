@@ -1,7 +1,7 @@
 import type { User, Session } from '@supabase/supabase-js'
 export type { User, Session }
 
-// ── Ideal Allocation ───────────────────────────────────────────
+// ── Allocation ───────────────────────────────────────────────
 export interface IdealAllocation {
   id:          string
   user_id:     string

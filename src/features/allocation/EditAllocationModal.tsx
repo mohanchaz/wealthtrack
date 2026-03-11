@@ -66,7 +66,7 @@ export function EditAllocationModal({ open, onClose, allocations, onSave }: Prop
     <Modal
       open={open}
       onClose={() => { resetRows(); onClose() }}
-      title="Edit Ideal Allocation"
+      title="Edit Allocation"
       maxWidth="max-w-xl"
       footer={
         <>

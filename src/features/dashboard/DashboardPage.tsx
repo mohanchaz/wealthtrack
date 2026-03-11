@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePortfolioTotals } from '../../hooks/usePortfolioTotals'
-import { useAllocations } from '../../hooks/useAllocations'
 import { useAuthStore } from '../../store/authStore'
 import { INR } from '../../lib/utils'
 
@@ -133,7 +132,6 @@ export default function DashboardPage() {
 
   // ← Single hook, same React Query keys as AssetsOverviewPage → zero duplicate fetches
   const p = usePortfolioTotals()
-  const { data: allocations = [] } = useAllocations()
 
   const isUp   = p.totalPos
   const date   = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -342,124 +340,6 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-
-
-        {/* ── Target vs Actual Allocation ─────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <div>
-              <h2 className="text-[13px] font-bold text-[#1A1A1A]">Target Allocation</h2>
-              <p className="text-[11px] text-[#767676] mt-0.5">Target vs current portfolio weights</p>
-            </div>
-            <button onClick={() => navigate('/allocation')}
-              className="text-[11px] text-[#0F766E] font-semibold hover:underline">
-              Edit targets →
-            </button>
-          </div>
-
-          {allocations.length === 0 && !p.anyLoading && (
-            <div className="px-5 pb-5">
-              <div className="rounded-xl bg-[#F5F4F0] border border-dashed border-[#E0DDD6] p-4 text-center">
-                <p className="text-[12px] text-[#767676] mb-2">No target allocation set yet</p>
-                <button onClick={() => navigate('/allocation')}
-                  className="text-[11px] font-bold text-[#0F766E] hover:underline">
-                  Set your targets →
-                </button>
-              </div>
-            </div>
-          )}
-
-          {allocations.length > 0 && (
-            <div className="px-5 pb-5 space-y-1">
-              {allocations.map((alloc) => {
-                const bucket = p.allocationBuckets.find(b => b.key === alloc.item)
-                const targetPct = alloc.percentage * 100
-                const actualPct = p.totalVal > 0 && bucket ? (bucket.val / p.totalVal) * 100 : 0
-                const color = bucket?.color ?? '#767676'
-                const diff = actualPct - targetPct
-                const diffAbs = Math.abs(diff)
-                const over = diff > 0.5
-                const under = diff < -0.5
-                const onTrack = !over && !under
-
-                return (
-                  <div key={alloc.id} className="py-2.5">
-                    {/* Label row */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                        <span className="text-[13px] font-semibold text-[#1A1A1A]">{alloc.item}</span>
-                        {!p.anyLoading && (
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                            onTrack ? 'bg-green-50 text-[#1A7A3C]'
-                            : over   ? 'bg-amber-50 text-amber-700'
-                            :          'bg-red-50 text-[#C0392B]'
-                          }`}>
-                            {onTrack ? '✓ on track'
-                              : over ? `+${diffAbs.toFixed(1)}% over`
-                              :        `${diffAbs.toFixed(1)}% under`}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-right">
-                        <div className="text-right">
-                          <span className="text-[11px] font-mono text-[#767676]">
-                            {p.anyLoading ? '…' : `${actualPct.toFixed(1)}%`}
-                          </span>
-                          <span className="text-[11px] text-[#C8C4BC] mx-1">/</span>
-                          <span className="text-[11px] font-mono text-[#1A1A1A] font-bold">{targetPct.toFixed(1)}%</span>
-                        </div>
-                        {bucket && !p.anyLoading && (
-                          <span className="text-[11px] font-mono text-[#767676] w-20 text-right">
-                            {fmt(bucket.val)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Dual progress bar */}
-                    <div className="relative h-5">
-                      {/* Target ghost bar */}
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full h-1.5 rounded-full bg-[#F0EEE9]">
-                          <div className="h-full rounded-full opacity-25"
-                            style={{ width: `${targetPct}%`, backgroundColor: color }} />
-                        </div>
-                      </div>
-                      {/* Target tick mark */}
-                      <div className="absolute top-0 bottom-0 w-px bg-[#C8C4BC] opacity-60"
-                        style={{ left: `${targetPct}%` }} />
-                      {/* Actual filled bar */}
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full h-2 rounded-full bg-transparent">
-                          <div className="h-full rounded-full transition-all duration-700"
-                            style={{ width: `${Math.min(actualPct, 100)}%`, backgroundColor: color, opacity: p.anyLoading ? 0.3 : 0.9 }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-
-              {/* Legend */}
-              <div className="flex items-center gap-4 pt-2 border-t border-[#F0EEE9]">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-10 h-1.5 rounded-full bg-[#1A1A1A] opacity-90" />
-                  <span className="text-[10px] text-[#767676]">Actual</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-10 h-px bg-[#C8C4BC]" />
-                  <span className="text-[10px] text-[#767676]">Target mark</span>
-                </div>
-                <div className="ml-auto flex items-center gap-1 text-[10px] text-[#767676]">
-                  <span className="font-mono">actual%</span>
-                  <span className="text-[#C8C4BC]">/</span>
-                  <span className="font-mono font-bold text-[#1A1A1A]">target%</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* ── Quick nav ──────────────────────────────────────────── */}
         <div>
