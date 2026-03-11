@@ -58,7 +58,10 @@ interface CryptoActualEntry { id: string; user_id: string; entry_date: string; g
 
 function CryptoActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number }) {
   const qcPanel = useQueryClient()
-  const invalidateActual = () => qcPanel.invalidateQueries({ queryKey: ['crypto_actual_invested', userId] })
+  const invalidateActual = () => {
+    qcPanel.invalidateQueries({ queryKey: ['crypto_actual_invested', userId] })
+    qcPanel.invalidateQueries({ queryKey: ['dashboard-stats'] })
+  }
   const [showForm,    setShowForm]    = useState(false)
   const [gbpAmount,   setGbpAmount]   = useState('')
   const [inrRate,     setInrRate]     = useState(String(gbpInr.toFixed(2)))
@@ -377,6 +380,7 @@ export default function CryptoPage() {
     })
     await replaceAssets('crypto_holdings', userId, merged)
     qc.invalidateQueries({ queryKey: ['crypto_holdings', userId] })
+    qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
     toast(`${parsed.length} holdings imported ✅`, 'success')
   }
 

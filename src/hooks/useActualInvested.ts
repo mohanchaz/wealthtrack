@@ -19,21 +19,26 @@ export function useActualInvested(table: ActualTable) {
     enabled:  !!userId,
   })
 
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: qKey })
+    qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+  }
+
   const addMutation = useMutation({
     mutationFn: ({ amount, entryDate }: { amount: number; entryDate?: string }) =>
       addActualEntry(table, userId!, amount, entryDate),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qKey }),
+    onSuccess: invalidateAll,
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, amount, entryDate }: { id: string; amount: number; entryDate?: string }) =>
       updateActualEntry(table, id, amount, entryDate),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qKey }),
+    onSuccess: invalidateAll,
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteActualEntry(table, id),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: qKey }),
+    onSuccess:  invalidateAll,
   })
 
   return { ...query, addMutation, updateMutation, deleteMutation }

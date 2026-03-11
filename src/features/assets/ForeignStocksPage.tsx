@@ -95,7 +95,10 @@ interface ForeignActualEntry {
 
 function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number }) {
   const qcPanel = useQueryClient()
-  const invalidateActual = () => qcPanel.invalidateQueries({ queryKey: ['foreign_actual_invested', userId] })
+  const invalidateActual = () => {
+    qcPanel.invalidateQueries({ queryKey: ['foreign_actual_invested', userId] })
+    qcPanel.invalidateQueries({ queryKey: ['dashboard-stats'] })
+  }
   const [showForm,    setShowForm]    = useState(false)
   const [gbpAmount,   setGbpAmount]   = useState('')
   const [inrRate,     setInrRate]     = useState(String(gbpInr.toFixed(2)))
@@ -450,6 +453,7 @@ export default function ForeignStocksPage() {
     })
     await replaceAssets('foreign_stock_holdings', userId, merged)
     qc.invalidateQueries({ queryKey: ['foreign_stock_holdings', userId] })
+    qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
     toast(`${parsed.length} holdings imported ✅`, 'success')
   }
 

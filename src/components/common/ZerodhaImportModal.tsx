@@ -225,6 +225,7 @@ export function ZerodhaImportModal({ onClose }: Props) {
         qc.invalidateQueries({ queryKey: ['zerodha_stocks', userId] }),
         qc.invalidateQueries({ queryKey: ['mf_holdings',    userId] }),
         qc.invalidateQueries({ queryKey: ['gold_holdings',  userId] }),
+        qc.invalidateQueries({ queryKey: ['dashboard-stats'] }),
       ])
       const parts = [
         preview.stocks.length ? `${preview.stocks.length} stock${preview.stocks.length !== 1 ? 's' : ''}` : '',

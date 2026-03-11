@@ -57,7 +57,10 @@ function daysUntil(d?: string) {
 // ── Actual Invested Panel ────────────────────────────────────
 function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number }) {
   const qc = useQueryClient()
-  const invalidateActual = () => qc.invalidateQueries({ queryKey: ['bank_savings_actual_invested', userId] })
+  const invalidateActual = () => {
+    qc.invalidateQueries({ queryKey: ['bank_savings_actual_invested', userId] })
+    qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+  }
   const [showForm,    setShowForm]    = useState(false)
   const [gbpAmount,   setGbpAmount]   = useState('')
   const [inrRate,     setInrRate]     = useState(String(gbpInr.toFixed(2)))

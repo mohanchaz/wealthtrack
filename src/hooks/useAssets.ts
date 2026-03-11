@@ -13,14 +13,19 @@ export function useAssets<T = Record<string, unknown>>(table: TableName) {
     enabled:  !!userId,
   })
 
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: qKey })
+    qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+  }
+
   const upsertMutation = useMutation({
     mutationFn: (row: Record<string, unknown>) => upsertAsset(table, { ...row, user_id: userId }),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: qKey }),
+    onSuccess:  invalidateAll,
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteAsset(table, id),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: qKey }),
+    onSuccess:  invalidateAll,
   })
 
   return { ...query, upsertMutation, deleteMutation }
