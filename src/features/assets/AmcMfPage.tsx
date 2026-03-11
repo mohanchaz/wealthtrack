@@ -303,8 +303,8 @@ export default function AmcMfPage() {
         stats={
           <div className="space-y-2">
             <StatGrid items={stats} cols={4} />
-            <div className="flex flex-wrap gap-x-6 gap-y-1 px-1 py-2 bg-ink/[0.03] border border-border rounded-xl">
-              <span className="text-[10px] text-textmut uppercase tracking-widest self-center font-semibold">£ GBP</span>
+            <div className="flex flex-wrap gap-y-1 py-2 bg-ink/[0.03] border border-border rounded-xl px-3">
+              <span className="text-[10px] text-textmut uppercase tracking-widest self-center font-semibold pr-3">£ GBP</span>
               {[
                 { label: 'Invested',        val: GBP(totalInvested) },
                 { label: 'Current Value',   val: GBP(totalValue) },
@@ -313,13 +313,13 @@ export default function AmcMfPage() {
                   { label: 'Actual Inv',    val: GBP(actual) },
                   ...(actualGain ? [{ label: 'Actual Gain', val: `${actualGain.isPositive?'+':''}${GBP(actualGain.gain)}`, color: actualGain.isPositive ? 'text-green' : 'text-red' }] : []),
                 ] : []),
-              ].map(({ label, val, color }) => (
-                <div key={label} className="flex items-center gap-1.5">
+              ].map(({ label, val, color }, i) => (
+                <div key={label} className={`flex items-center gap-1.5 px-3 ${i > 0 ? 'border-l border-border' : ''}`}>
                   <span className="text-[10px] text-textmut">{label}</span>
                   <span className={`text-[11px] font-bold font-mono ${color ?? 'text-textprim'}`}>{val}</span>
                 </div>
               ))}
-              <span className="text-[9px] text-textfade self-center ml-auto">@ ₹{gbpInr.toFixed(1)}/£</span>
+              <span className="text-[9px] text-textfade self-center ml-auto pl-3">@ ₹{gbpInr.toFixed(1)}/£</span>
             </div>
           </div>
         }

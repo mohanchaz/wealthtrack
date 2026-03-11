@@ -318,8 +318,8 @@ export default function ForeignOverviewPage() {
       </div>
 
       {/* GBP bar */}
-      <div className="bg-surface border border-border rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center gap-x-6 gap-y-1">
-        <span className="text-[10px] font-bold text-textmut uppercase tracking-widest">£ GBP</span>
+      <div className="bg-surface border border-border rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center gap-y-1">
+        <span className="text-[10px] font-bold text-textmut uppercase tracking-widest pr-4">£ GBP</span>
         {[
           { label: 'Portfolio',       val: fmtGbp(nativeValGbp),                                                                                                  color: 'text-textprim' },
           { label: 'Invested',        val: fmtGbp(nativeInvGbp),                                                                                                  color: 'text-textprim' },
@@ -328,13 +328,13 @@ export default function ForeignOverviewPage() {
             { label: 'Actual Inv',    val: fmtGbp(nativeActualGbp),                                                                                               color: 'text-textprim' },
             { label: 'Actual Gain',   val: `${nativeActGainPos?'+':'-'}${fmtGbp(Math.abs(nativeActGainGbp))} (${nativeActGainPos?'+':''}${nativeActGainPct.toFixed(1)}%)`, color: nativeActGainPos ? 'text-green' : 'text-red' },
           ] : []),
-        ].map(({ label, val, color }) => (
-          <div key={label} className="flex items-center gap-1.5">
+        ].map(({ label, val, color }, i) => (
+          <div key={label} className={`flex items-center gap-1.5 px-4 ${i > 0 ? 'border-l border-border' : ''}`}>
             <span className="text-[10px] text-textmut">{label}</span>
             <span className={`text-[12px] font-extrabold font-mono ${color}`}>{anyLoading ? '…' : val}</span>
           </div>
         ))}
-        <span className="text-[9px] text-textfade ml-auto">@ ₹{gbpInr.toFixed(1)}/£</span>
+        <span className="text-[9px] text-textfade ml-auto pl-4">@ ₹{gbpInr.toFixed(1)}/£</span>
       </div>
 
       {/* Section cards */}
