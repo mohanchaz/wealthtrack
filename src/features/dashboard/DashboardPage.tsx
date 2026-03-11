@@ -143,13 +143,9 @@ export default function DashboardPage() {
     }))
   , [p.allocationBuckets, p.totalVal])
 
-  const topBucket = useMemo(() =>
-    p.allocationBuckets.length ? [...p.allocationBuckets].sort((a, b) => b.val - a.val)[0] : null
-  , [p.allocationBuckets])
-
   return (
     <div className="min-h-screen bg-[#F5F4F0]">
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-5xl mx-auto px-3 py-4 space-y-4">
 
         {/* ── Hero banner ──────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-3xl"
@@ -204,15 +200,16 @@ export default function DashboardPage() {
 
             {/* bottom stats */}
             <div className="flex gap-6 flex-wrap">
-              {[
-                { label: 'INVESTED',   val: fmt(p.totalInv) },
-                { label: 'ACTUAL INV', val: p.totalActual > 0 ? fmt(p.totalActual) : '—' },
-                { label: 'POSITIONS',  val: String(p.assetCount) },
-                { label: 'FX RATE',    val: `₹${p.gbpInr.toFixed(1)}/£` },
-              ].map(({ label, val }) => (
+              {([
+                { label: 'INVESTED',    val: fmt(p.totalInv) },
+                { label: 'ACTUAL INV',  val: p.totalActual > 0 ? fmt(p.totalActual) : '—' },
+                { label: 'ACTUAL GAIN', val: p.totalActual > 0 ? `${p.actualPos ? '+' : ''}${fmt(p.actualGain)}` : '—', color: p.totalActual > 0 ? (p.actualPos ? '#6EE7B7' : '#FCA5A5') : undefined },
+                { label: 'ACTUAL %',    val: p.totalActual > 0 ? `${p.actualPos ? '+' : ''}${p.actualGainPct.toFixed(1)}%` : '—', color: p.totalActual > 0 ? (p.actualPos ? '#6EE7B7' : '#FCA5A5') : undefined },
+                { label: 'FX RATE',     val: `₹${p.gbpInr.toFixed(1)}/£` },
+              ] as { label: string; val: string; color?: string }[]).map(({ label, val, color }) => (
                 <div key={label} className="flex flex-col">
                   <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-white/40 mb-1">{label}</span>
-                  <span className="text-[15px] font-bold text-white/90 font-mono">
+                  <span className="text-[15px] font-bold font-mono" style={{ color: color ?? 'rgba(255,255,255,0.9)' }}>
                     {p.anyLoading ? '…' : val}
                   </span>
                 </div>
@@ -221,24 +218,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── 4-chip metrics ─────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* ── 2-chip metrics ─────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-3">
           <MetricChip icon="₹" label="Invested"
             value={p.anyLoading ? '…' : fmt(p.totalInv)}
-            sub="Total cost basis" />
+            sub="Total cost basis · avg price × qty" />
           <MetricChip icon="↑" label="Gain / Loss"
             value={p.anyLoading ? '…' : `${p.totalPos ? '+' : ''}${fmt(p.totalGain)}`}
-            sub={`${p.totalPos ? '+' : ''}${p.totalGainPct.toFixed(1)}% return`}
+            sub={`${p.totalPos ? '+' : ''}${p.totalGainPct.toFixed(1)}% on book invested`}
             color={isUp ? '#0F766E' : '#C0392B'} />
-          <MetricChip icon="⊡" label="Actual Invested"
-            value={p.anyLoading ? '…' : p.totalActual > 0 ? fmt(p.totalActual) : '—'}
-            sub={p.actualPos
-              ? `+${p.actualGainPct.toFixed(1)}% on cash deployed`
-              : p.totalActual > 0 ? `${p.actualGainPct.toFixed(1)}% on cash deployed` : 'Log entries to track'}
-            color={p.actualPos ? '#0F766E' : undefined} />
-          <MetricChip icon="◈" label="Positions"
-            value={p.anyLoading ? '…' : String(p.assetCount)}
-            sub={topBucket ? `Top: ${topBucket.key}` : 'Across all accounts'} />
         </div>
 
         {/* ── Donut + breakdown ──────────────────────────────────── */}
@@ -306,41 +294,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-
-        {/* ── Actual vs Invested ──────────────────────────────────── */}
-        {!p.anyLoading && p.totalActual > 0 && (
-          <div className="bg-white rounded-2xl border border-[#E0DDD6] p-5 shadow-sm">
-            <h2 className="text-[12px] font-bold uppercase tracking-widest text-[#767676] mb-4">
-              Actual Cost Basis vs Current Value
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { label: 'Actual Invested', val: p.totalActual,  color: '#1D4ED8', note: 'Real cash deployed' },
-                { label: 'Book Invested',   val: p.totalInv,     color: '#0F766E', note: 'Avg cost × qty' },
-                { label: 'Current Value',   val: p.totalVal,     color: '#0D9488', note: 'Live portfolio value' },
-              ].map(({ label, val, color, note }) => (
-                <div key={label} className="flex flex-col gap-1 p-4 rounded-xl bg-[#F5F4F0]">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#767676]">{label}</span>
-                  <span className="text-[24px] font-extrabold font-mono leading-none" style={{ color }}>{fmt(val)}</span>
-                  <span className="text-[11px] text-[#767676]">{note}</span>
-                </div>
-              ))}
-            </div>
-            <div className={`mt-4 flex items-center gap-3 p-3 rounded-xl border ${
-              p.actualPos ? 'bg-green-50/50 border-green-200' : 'bg-red-50/50 border-red-200'}`}>
-              <span className={`text-xl ${p.actualPos ? 'text-[#0F766E]' : 'text-[#C0392B]'}`}>
-                {p.actualPos ? '▲' : '▼'}
-              </span>
-              <span className={`text-[14px] font-extrabold font-mono ${p.actualPos ? 'text-[#0F766E]' : 'text-[#C0392B]'}`}>
-                {p.actualPos ? '+' : ''}{fmt(p.actualGain)}
-              </span>
-              <span className="text-[12px] text-[#767676]">
-                actual gain ({p.actualPos ? '+' : ''}{p.actualGainPct.toFixed(1)}% on real cash)
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* ── Quick nav ──────────────────────────────────────────── */}
         <div>
           <h2 className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-3">Quick Access</h2>
