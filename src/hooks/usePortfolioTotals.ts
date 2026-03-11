@@ -45,6 +45,26 @@ export interface CategoryTotal {
   path:   string
 }
 
+
+export interface AllocationBucket {
+  key:   string
+  val:   number
+  inv:   number
+  color: string
+}
+
+export const ALLOC_COLORS: Record<string, string> = {
+  'India Equity MF':     '#1A1A1A',
+  'India Equity Stocks': '#767676',
+  'Foreign Equity/ETF':  '#ABABAB',
+  'Gold':                '#1A7A3C',
+  'Bonds':               '#C0392B',
+  'Fixed Deposit':       '#B45309',
+  'Cash':                '#2563EB',
+  'UK Savings':          '#7C3AED',
+  'Crypto':              '#0891B2',
+}
+
 export interface PortfolioTotals {
   // Raw holdings (passed through so overview page doesn't re-fetch)
   zStocks:   StockHolding[];   zMfs:   MfHolding[];    zGold:   GoldHolding[]
@@ -104,7 +124,8 @@ export interface PortfolioTotals {
   bondsActual:    number
 
   // Categories for dashboard donut / breakdown
-  categories: CategoryTotal[]
+  categories:        CategoryTotal[]
+  allocationBuckets: AllocationBucket[]
 
   // Loading flags
   anyLoading:  boolean
@@ -347,6 +368,30 @@ export function usePortfolioTotals(): PortfolioTotals {
     foreignInv, foreignVal, cryptoInv, cryptoVal, bankInv,
   ])
 
+  // ── Allocation buckets (grouped by ideal_allocations keys) ──
+  const allocationBuckets: AllocationBucket[] = useMemo(() => {
+    const b = [
+      { key: 'India Equity MF',     val: zMfVal  + amcMfVal,                inv: zMfInv  + amcMfInv,               color: ALLOC_COLORS['India Equity MF']     },
+      { key: 'India Equity Stocks', val: zStocksVal + aiStocksVal,           inv: zStocksInv + aiStocksInv,         color: ALLOC_COLORS['India Equity Stocks'] },
+      { key: 'Foreign Equity/ETF',  val: foreignVal,                         inv: foreignInv,                       color: ALLOC_COLORS['Foreign Equity/ETF']  },
+      { key: 'Gold',                val: zGoldVal + aiGoldVal,               inv: zGoldInv + aiGoldInv,             color: ALLOC_COLORS['Gold']                },
+      { key: 'Bonds',               val: bondsVal,                           inv: bondsInv,                         color: ALLOC_COLORS['Bonds']               },
+      { key: 'Fixed Deposit',       val: fdVal + efVal,                      inv: fdInv + efInv,                    color: ALLOC_COLORS['Fixed Deposit']       },
+      { key: 'Cash',                val: cashVal,                            inv: cashInv,                          color: ALLOC_COLORS['Cash']                },
+      { key: 'UK Savings',          val: bankVal,                            inv: bankInv,                          color: ALLOC_COLORS['UK Savings']          },
+      { key: 'Crypto',              val: cryptoVal,                          inv: cryptoInv,                        color: ALLOC_COLORS['Crypto']              },
+    ]
+    return b
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    zMfVal, amcMfVal, zMfInv, amcMfInv,
+    zStocksVal, aiStocksVal, zStocksInv, aiStocksInv,
+    foreignVal, foreignInv,
+    zGoldVal, aiGoldVal, zGoldInv, aiGoldInv,
+    bondsVal, bondsInv, fdVal, fdInv, efVal, efInv,
+    cashVal, cashInv, bankVal, bankInv, cryptoVal, cryptoInv,
+  ])
+
   return {
     zStocks, zMfs, zGold, aiStocks, aiGold, amcMf,
     cash, fds, ef, bonds, foreign, crypto, bankSav,
@@ -375,7 +420,7 @@ export function usePortfolioTotals(): PortfolioTotals {
     actFdAmt, actEfAmt,
     actForeignAmt, actCryptoAmt, actBankAmt,
     cashActual, bondsActual,
-    categories,
+    categories, allocationBuckets,
     anyLoading, nFetching, yFetching,
     assetCount,
   }

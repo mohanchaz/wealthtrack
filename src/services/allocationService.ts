@@ -37,7 +37,8 @@ const DEFAULT_ALLOCATIONS = [
   { item: 'Gold',                percentage: 0.100 },
   { item: 'Bonds',               percentage: 0.060 },
   { item: 'Fixed Deposit',       percentage: 0.060 },
-  { item: 'Cash',                percentage: 0.040 },
+  { item: 'Cash',                percentage: 0.035 },
+  { item: 'UK Savings',          percentage: 0.010 },
   { item: 'Crypto',              percentage: 0.005 },
 ]
 
