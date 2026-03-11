@@ -284,7 +284,7 @@ export default function AssetsOverviewPage() {
   // ── Helper: get yahoo price ──────────────────────────────────
   const yPrice = (sym: string | null | undefined) => {
     if (!sym) return null
-    const k = sym.replace(/\.(BO|NS)$/, '').replace(/-(GBP|USD|EUR|USDT)$/i, '')
+    const k = sym.replace(/\.(BO|NS|L|US)$/, '').replace(/-(GBP|USD|EUR|USDT)$/i, '')
     return yahooPrices[k]?.price ?? yahooPrices[sym]?.price ?? null
   }
 

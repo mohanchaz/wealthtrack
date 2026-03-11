@@ -161,7 +161,7 @@ export default function ForeignOverviewPage() {
   const { data: prices = {}, isFetching: pricesFetching } = useYahooPrices(allSyms)
   const yPrice = (sym?: string | null) => {
     if (!sym) return null
-    const k = sym.replace(/\.(NS|BO)$/, '').replace(/-(GBP|USD|EUR|USDT)$/i, '')
+    const k = sym.replace(/\.(NS|BO|L|US)$/, '').replace(/-(GBP|USD|EUR|USDT)$/i, '')
     return prices[k]?.price ?? prices[sym]?.price ?? null
   }
 
