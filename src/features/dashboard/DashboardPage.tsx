@@ -139,15 +139,15 @@ export default function DashboardPage() {
   const date   = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
 
   const donutSlices = useMemo(() =>
-    p.categories.map(c => ({
-      pct:   p.totalVal > 0 ? (c.val / p.totalVal) * 100 : 0,
-      color: c.color,
+    p.allocationBuckets.filter(b => b.val > 0).map(b => ({
+      pct:   p.totalVal > 0 ? (b.val / p.totalVal) * 100 : 0,
+      color: b.color,
     }))
-  , [p.categories, p.totalVal])
+  , [p.allocationBuckets, p.totalVal])
 
-  const topCategory = useMemo(() =>
-    p.categories.length ? [...p.categories].sort((a, b) => b.val - a.val)[0] : null
-  , [p.categories])
+  const topBucket = useMemo(() =>
+    p.allocationBuckets.length ? [...p.allocationBuckets].sort((a, b) => b.val - a.val)[0] : null
+  , [p.allocationBuckets])
 
   return (
     <div className="min-h-screen bg-[#F5F4F0]">
@@ -240,7 +240,7 @@ export default function DashboardPage() {
             color={p.actualPos ? '#0F766E' : undefined} />
           <MetricChip icon="◈" label="Positions"
             value={p.anyLoading ? '…' : String(p.assetCount)}
-            sub={topCategory ? `Top: ${topCategory.label}` : 'Across all accounts'} />
+            sub={topBucket ? `Top: ${topBucket.key}` : 'Across all accounts'} />
         </div>
 
         {/* ── Donut + breakdown ──────────────────────────────────── */}
@@ -259,18 +259,15 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="w-full space-y-1.5">
-              {p.categories.slice(0, 6).map(c => (
-                <div key={c.label} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                  <span className="text-[11px] text-[#767676] flex-1">{c.label}</span>
+              {p.allocationBuckets.filter(b => b.val > 0).map(b => (
+                <div key={b.key} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: b.color }} />
+                  <span className="text-[11px] text-[#767676] flex-1">{b.key}</span>
                   <span className="text-[11px] font-mono font-semibold text-[#1A1A1A]">
-                    {p.totalVal > 0 ? ((c.val / p.totalVal) * 100).toFixed(0) : 0}%
+                    {p.totalVal > 0 ? ((b.val / p.totalVal) * 100).toFixed(0) : 0}%
                   </span>
                 </div>
               ))}
-              {p.categories.length > 6 && (
-                <div className="text-[10px] text-[#767676] pl-4">+{p.categories.length - 6} more</div>
-              )}
             </div>
           </div>
 
@@ -285,9 +282,9 @@ export default function DashboardPage() {
             {/* stacked bar */}
             {!p.anyLoading && p.totalVal > 0 && (
               <div className="flex h-2.5 rounded-full overflow-hidden mb-4 mt-3 gap-px">
-                {p.categories.filter(c => c.val > 0).map(c => (
-                  <div key={c.label}
-                    style={{ width: `${(c.val / p.totalVal) * 100}%`, backgroundColor: c.color }}
+                {p.allocationBuckets.filter(b => b.val > 0).map(b => (
+                  <div key={b.key}
+                    style={{ width: `${(b.val / p.totalVal) * 100}%`, backgroundColor: b.color }}
                     className="transition-all duration-700 first:rounded-l-full last:rounded-r-full" />
                 ))}
               </div>
@@ -299,13 +296,13 @@ export default function DashboardPage() {
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <div key={i} className="h-9 rounded-xl bg-[#F5F4F0] animate-pulse" />
                   ))
-                : p.categories.map(c => (
-                    <CategoryRow key={c.label}
-                      label={c.label} inv={c.inv} val={c.val}
-                      color={c.color} total={p.totalVal} path={c.path} />
+                : p.allocationBuckets.filter(b => b.val > 0 || b.inv > 0).map(b => (
+                    <CategoryRow key={b.key}
+                      label={b.key} inv={b.inv} val={b.val}
+                      color={b.color} total={p.totalVal} path="/assets/overview" />
                   ))
               }
-              {!p.anyLoading && p.categories.length === 0 && (
+              {!p.anyLoading && p.allocationBuckets.every(b => b.val === 0) && (
                 <p className="text-[12px] text-[#767676] py-6 text-center">No assets yet — add your first holding</p>
               )}
             </div>
