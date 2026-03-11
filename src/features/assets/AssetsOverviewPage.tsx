@@ -4,6 +4,7 @@ import { useAssets }        from '../../hooks/useAssets'
 import { useAuthStore }      from '../../store/authStore'
 import { useActualInvested } from '../../hooks/useActualInvested'
 import { useNsePrices, useYahooPrices, useFxRates } from '../../hooks/useLivePrices'
+import { toForeignYahooSymbol, getForeignLtpGbp, getForeignAvgGbp } from '../../lib/foreignPriceHelpers'
 import { INR, calcGain }    from '../../lib/utils'
 import { supabase }          from '../../lib/supabase'
 import { GOLD_OPTIONS }      from '../../components/common/GoldInstrumentInput'
@@ -248,13 +249,14 @@ export default function AssetsOverviewPage() {
   const goldSymbols   = useMemo(() => [...new Set(zGold.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [zGold])
   const aiGoldSymbols = useMemo(() => [...new Set(aiGold.map(r => resolveAiGoldYahoo(r.instrument)).filter(Boolean))], [aiGold])
   const cryptoSyms  = useMemo(() => [...new Set(crypto.map(r => r.yahoo_symbol).filter(Boolean) as string[])], [crypto])
-  const foreignSyms = useMemo(() => [...new Set(foreign.map(r => r.symbol).filter(Boolean) as string[])], [foreign])
+  const foreignSyms = useMemo(() => [...new Set(foreign.map(r => toForeignYahooSymbol(r.symbol, r.currency)).filter(Boolean))], [foreign])
   const allYahoo    = useMemo(() => [...new Set([...mfSymbols, ...goldSymbols, ...aiGoldSymbols, ...cryptoSyms, ...foreignSyms])], [mfSymbols, goldSymbols, aiGoldSymbols, cryptoSyms, foreignSyms])
   const { data: yahooPrices = {}, isFetching: yFetching } = useYahooPrices(allYahoo)
 
   const { data: fx } = useFxRates()
   const usdInr = fx?.usdInr ?? 83.5
   const gbpInr = fx?.gbpInr ?? (fx?.gbpUsd ?? 1.27) * usdInr
+  const gbpUsd = fx?.gbpUsd ?? (gbpInr / usdInr)
 
   // crypto_actual_invested has custom schema (gbp_amount+inr_rate) — fetch directly
   const [actCryptoGbp, setActCryptoGbp] = useState(0)
@@ -356,20 +358,19 @@ export default function AssetsOverviewPage() {
 
   // Foreign
   const foreignInv = useMemo(() => foreign.reduce((s, r) => {
-    const rate = (r.currency === 'USD') ? usdInr : (r.currency === 'GBP' || r.currency === 'GBX') ? gbpInr : 1
-    return s + Number(r.qty) * Number(r.avg_price) * (r.currency === 'GBX' ? 0.01 : 1) * rate
-  }, 0), [foreign, usdInr, gbpInr])
+    return s + Number(r.qty) * getForeignAvgGbp(r, gbpUsd) * gbpInr
+  }, 0), [foreign, gbpUsd, gbpInr])
   const foreignVal = useMemo(() => foreign.reduce((s, r) => {
-    const p = yPrice(r.symbol)
-    const rate = (r.currency === 'USD') ? usdInr : (r.currency === 'GBP' || r.currency === 'GBX') ? gbpInr : 1
-    const qty = Number(r.qty); const unitMult = r.currency === 'GBX' ? 0.01 : 1
-    return s + (p != null ? qty * p * unitMult * rate : qty * Number(r.avg_price) * unitMult * rate)
-  }, 0), [foreign, yahooPrices, usdInr, gbpInr])
+    const ltpGbp = getForeignLtpGbp(r, yahooPrices, gbpUsd)
+    const avgGbp = getForeignAvgGbp(r, gbpUsd)
+    return s + Number(r.qty) * (ltpGbp ?? avgGbp) * gbpInr
+  }, 0), [foreign, yahooPrices, gbpUsd, gbpInr])
 
   // Crypto
   const cryptoInv = useMemo(() => crypto.reduce((s, r) => s + Number(r.qty) * Number(r.avg_price_gbp) * gbpInr, 0), [crypto, gbpInr])
   const cryptoVal = useMemo(() => crypto.reduce((s, r) => {
-    const p = yPrice(r.yahoo_symbol)
+    const key = r.yahoo_symbol.replace(/-(GBP|USD|EUR|USDT)$/i, '')
+    const p = yahooPrices[key]?.price ?? null
     return s + (p != null ? Number(r.qty) * p * gbpInr : Number(r.qty) * Number(r.avg_price_gbp) * gbpInr)
   }, 0), [crypto, yahooPrices, gbpInr])
 
