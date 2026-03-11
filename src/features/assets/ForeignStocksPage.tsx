@@ -112,8 +112,16 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
   const [editSaving,  setEditSaving]  = useState(false)
   const toast = useToastStore(s => s.show)
 
-  const [entries, setEntries] = useState<ForeignActualEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  // Use the same query key as the main page — invalidateActual() refreshes both together
+  const { data: entries = [], isFetching: loading } = useQuery({
+    queryKey: ['foreign_actual_invested', userId],
+    queryFn: async () => {
+      const { data } = await supabase.from('foreign_actual_invested')
+        .select('*').eq('user_id', userId).order('entry_date', { ascending: false })
+      return (data ?? []) as ForeignActualEntry[]
+    },
+    enabled: !!userId,
+  })
 
   const openEdit = (e: ForeignActualEntry) => {
     setEditEntry(e); setEditGbp(String(e.gbp_amount)); setEditRate(String(e.inr_rate)); setEditDate(e.entry_date)
@@ -126,20 +134,10 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
         gbp_amount: parseFloat(editGbp), inr_rate: parseFloat(editRate), entry_date: editDate
       }).eq('id', editEntry.id)
       if (err) throw new Error(err.message)
-      setEditEntry(null); await load(); invalidateActual(); toast('Updated ✅', 'success')
+      setEditEntry(null); await invalidateActual(); toast('Updated ✅', 'success')
     } catch (e2) { toast((e2 as Error).message, 'error') }
     finally { setEditSaving(false) }
   }
-
-  const load = async () => {
-    setLoading(true)
-    const { data } = await supabase.from('foreign_actual_invested')
-      .select('*').eq('user_id', userId).order('entry_date', { ascending: false })
-    setEntries((data ?? []) as ForeignActualEntry[])
-    setLoading(false)
-  }
-
-  useMemo(() => { load() }, [userId])
 
   const totalInr = entries.reduce((s, e) => s + Number(e.gbp_amount) * Number(e.inr_rate), 0)
   const totalGbp = entries.reduce((s, e) => s + Number(e.gbp_amount), 0)
@@ -155,7 +153,7 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
       })
       if (err) throw new Error(err.message)
       setGbpAmount(''); setEntryDate(''); setShowForm(false)
-      await load(); invalidateActual()
+      await invalidateActual()
       toast('Entry added ✅', 'success')
     } catch (e) { setError((e as Error).message) }
     finally { setSaving(false) }
@@ -167,7 +165,7 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
       for (const id of selected) {
         await supabase.from('foreign_actual_invested').delete().eq('id', id)
       }
-      setSelected(new Set()); await load(); invalidateActual()
+      setSelected(new Set()); await invalidateActual()
       toast(`Deleted ${selected.size}`, 'success')
     } finally { setDeleting(false) }
   }
