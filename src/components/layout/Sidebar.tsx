@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { NAV_ITEMS, type NavItem } from '../../constants/navItems'
+import { NAV_ITEMS, NAV_BOTTOM, type NavItem } from '../../constants/navItems'
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -19,7 +19,6 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
   const navigate  = useNavigate()
   const hasChildren = !!item.children?.length
 
-  // A section is "active" if the current path starts with its path
   const isSectionActive = location.pathname === item.path ||
     location.pathname.startsWith(item.path + '/') ||
     !!(item.children?.some(c =>
@@ -27,7 +26,6 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
       c.children?.some(gc => location.pathname === gc.path)
     ))
 
-  // Assets top-level always open; Zerodha/Aionion/Foreign collapsed by default
   const alwaysOpen = item.id === 'assets'
   const [open, setOpen] = useState(alwaysOpen || isSectionActive)
 
@@ -38,10 +36,7 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
     return (
       <div>
         <button
-          onClick={() => {
-            navigate(item.path)
-            setOpen(true)   // always open when navigating to it
-          }}
+          onClick={() => { navigate(item.path); setOpen(true) }}
           className={`${base} ${
             location.pathname === item.path
               ? 'bg-ink text-chalk font-semibold shadow-card'
@@ -100,23 +95,29 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
     <aside className="flex flex-col h-full bg-surface border-r border-border w-56 shrink-0">
+      {/* Main nav — scrollable */}
       <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-0.5">
         <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-textfade">
           Overview
         </p>
-        {NAV_ITEMS.slice(0, 2).map(item => (
-          <NavNode key={item.id} item={item} onClose={onClose} />
-        ))}
+        <NavNode item={NAV_ITEMS[0]} onClose={onClose} />
 
         <div className="my-3 border-t border-border" />
 
         <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-textfade">
           Assets
         </p>
-        {NAV_ITEMS.slice(2).map(item => (
+        {NAV_ITEMS.slice(1).map(item => (
           <NavNode key={item.id} item={item} onClose={onClose} />
         ))}
       </nav>
+
+      {/* Bottom pinned items */}
+      <div className="px-2.5 pb-2 space-y-0.5 border-t border-border pt-2">
+        {NAV_BOTTOM.map(item => (
+          <NavNode key={item.id} item={item} onClose={onClose} />
+        ))}
+      </div>
 
       {/* Footer badge */}
       <div className="p-3 border-t border-border">
