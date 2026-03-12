@@ -193,7 +193,7 @@ export default function AssetsOverviewPage() {
               ? <div className="h-10 w-40 rounded-xl bg-white/10 animate-pulse" />
               : <div className="flex items-end gap-3 flex-wrap">
                   <span className="text-4xl font-black text-white font-mono leading-none">{fmt(p.totalVal)}</span>
-                  <span className={`text-base font-bold font-mono mb-0.5 ${totalPos ? 'text-teal-200' : 'text-red-300'}`}>
+                  <span className={`text-base font-bold font-mono mb-0.5 ${totalPos ? 'text-[#99F6E4]' : 'text-red-300'}`}>
                     {totalPos ? '+' : ''}{fmt(totalGain)}
                   </span>
                 </div>

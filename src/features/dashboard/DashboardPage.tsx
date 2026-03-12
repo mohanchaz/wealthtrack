@@ -190,7 +190,7 @@ export default function DashboardPage() {
             {/* top row */}
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-teal-200/70 mb-1">
+                <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#99F6E4]/70 mb-1">
                   WEALTHTRACK · {date.toUpperCase()}
                 </p>
                 <h1 className="text-[17px] font-bold text-white/90">{greeting()}, {firstName} 👋</h1>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
 
             {/* net worth */}
             <div className="mb-4">
-              <p className="text-[11px] font-semibold tracking-widest uppercase text-teal-200/60 mb-2">NET WORTH</p>
+              <p className="text-[11px] font-semibold tracking-widest uppercase text-[#99F6E4]/60 mb-2">NET WORTH</p>
               {p.anyLoading
                 ? <div className="w-48 h-12 rounded-2xl bg-white/10 animate-pulse" />
                 : <div className="flex items-end gap-4 flex-wrap">
@@ -228,7 +228,7 @@ export default function DashboardPage() {
                       {fmt(p.totalVal)}
                     </span>
                     <div className="mb-2">
-                      <div className={`text-[16px] font-bold font-mono ${isUp ? 'text-teal-200' : 'text-red-300'}`}>
+                      <div className={`text-[16px] font-bold font-mono ${isUp ? 'text-[#99F6E4]' : 'text-red-300'}`}>
                         {isUp ? '+' : ''}{fmt(p.totalGain)}
                       </div>
                       <div className="text-[11px] text-white/50">unrealised gain</div>
