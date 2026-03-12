@@ -143,7 +143,12 @@ export default function DashboardPage() {
   const alreadySaved  = snapshots.some(s => s.month === currentMonth)
 
   async function handleSnapshot() {
-    if (p.anyLoading || alreadySaved) return
+    if (p.anyLoading) return
+    const monthName = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+    if (alreadySaved) {
+      const ok = window.confirm(`A snapshot for ${monthName} already exists. Do you want to override it?`)
+      if (!ok) return
+    }
     setSnapping(true)
     try {
       await saveMutation.mutateAsync({
@@ -152,7 +157,7 @@ export default function DashboardPage() {
         invested:        p.totalInv,
         actual_invested: p.totalActual,
       })
-      showToast(`Snapshot saved for ${new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}`, 'success')
+      showToast(`Snapshot saved for ${monthName}`, 'success')
     } catch {
       showToast('Failed to save snapshot', 'error')
     } finally {
@@ -200,17 +205,14 @@ export default function DashboardPage() {
                 )}
                 <button
                   onClick={handleSnapshot}
-                  disabled={p.anyLoading || snapping || alreadySaved}
-                  title={alreadySaved ? `Already saved for ${new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}` : 'Save monthly snapshot'}
+                  disabled={p.anyLoading || snapping}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold
                              bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all
                              disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {snapping
                     ? <><span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin" /><span>Saving…</span></>
-                    : alreadySaved
-                      ? <><span>✓</span><span className="hidden sm:inline">Saved</span></>
-                      : <><span>📸</span><span className="hidden sm:inline">Snapshot</span></>
+                    : <><span>📸</span><span className="hidden sm:inline">{alreadySaved ? 'Override' : 'Snapshot'}</span></>
                   }
                 </button>
               </div>
