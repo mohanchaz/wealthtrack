@@ -145,7 +145,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F4F0]">
-      <div className="max-w-5xl mx-auto px-3 py-4 space-y-4">
+      <div className="max-w-5xl mx-auto px-3 py-3 space-y-3">
 
         {/* ── Hero banner ──────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-3xl"
@@ -155,9 +155,9 @@ export default function DashboardPage() {
           <div className="absolute bottom-0 left-1/3 w-48 h-48 rounded-full opacity-[0.07]"
             style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)', transform: 'translateY(50%)' }} />
 
-          <div className="relative z-10 p-7">
+          <div className="relative z-10 p-5">
             {/* top row */}
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-teal-200/70 mb-1">
                   WEALTHTRACK · {date.toUpperCase()}
@@ -175,12 +175,12 @@ export default function DashboardPage() {
             </div>
 
             {/* net worth */}
-            <div className="mb-6">
+            <div className="mb-4">
               <p className="text-[11px] font-semibold tracking-widest uppercase text-teal-200/60 mb-2">NET WORTH</p>
               {p.anyLoading
                 ? <div className="w-48 h-12 rounded-2xl bg-white/10 animate-pulse" />
                 : <div className="flex items-end gap-4 flex-wrap">
-                    <span className="text-[52px] font-black text-white leading-none tracking-tight font-mono">
+                    <span className="text-[44px] font-black text-white leading-none tracking-tight font-mono">
                       {fmt(p.totalVal)}
                     </span>
                     <div className="mb-2">
@@ -194,7 +194,7 @@ export default function DashboardPage() {
             </div>
 
             {/* sparkline */}
-            <div className="h-16 w-full opacity-60 mb-5">
+            <div className="h-12 w-full opacity-60 mb-4">
               <Sparkline positive={isUp} />
             </div>
 
@@ -219,7 +219,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── 4-chip metrics ─────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <MetricChip icon="₹" label="Invested"
             value={p.anyLoading ? '…' : fmt(p.totalInv)}
             sub="Total cost basis · avg price × qty" />
