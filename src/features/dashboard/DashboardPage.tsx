@@ -121,8 +121,10 @@ function MetricChip({ icon, label, value, sub, color }: {
           </div>
         </div>
       )}
+    </>
   )
 }
+
 
 // ── Category row ───────────────────────────────────────────────
 function CategoryRow({ label, inv, val, color, total, path }: {
@@ -216,6 +218,7 @@ export default function DashboardPage() {
   , [p.allocationBuckets, p.totalVal])
 
   return (
+    <>
     <div className="space-y-3">
 
         {/* ── Hero banner ──────────────────────────────────────── */}
@@ -460,5 +463,7 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+    </>
   )
 }
+

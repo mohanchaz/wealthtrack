@@ -1,136 +1,251 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '../../store/authStore'
+import {
+  AreaChart, Area, BarChart, Bar, Cell,
+  ResponsiveContainer, XAxis, CartesianGrid,
+} from 'recharts'
 
-// ── Slideshow data ─────────────────────────────────────────────
-const SLIDES = [
-  {
-    title: 'Your entire wealth,\none clear picture.',
-    body: 'Track stocks, mutual funds, gold, crypto, fixed deposits and savings — all in one place. No juggling between apps.',
-    stat: '₹21.4L',
-    statLabel: 'Average portfolio tracked',
-    icon: '◈',
-    accent: '#0F766E',
-    light: '#99F6E4',
-    tags: ['Zerodha', 'Aionion', 'AMC MF', 'Crypto', 'FD'],
-  },
-  {
-    title: 'Book value vs\nactual invested.',
-    body: 'Know exactly how much cash you\'ve put in vs what your broker shows. Track real returns on money actually deployed.',
-    stat: '₹3.2L',
-    statLabel: 'Avg. actual gain tracked',
-    icon: '◎',
-    accent: '#1D4ED8',
-    light: '#BFDBFE',
-    tags: ['Actual invested', 'Real returns', 'Cash flow', 'P&L'],
-  },
-  {
-    title: 'Live prices.\nAlways up to date.',
-    body: 'NSE live prices for stocks, Yahoo Finance NAVs for mutual funds, and real-time crypto rates — all auto-refreshed.',
-    stat: '< 15s',
-    statLabel: 'Price refresh interval',
-    icon: '⬡',
-    accent: '#7C3AED',
-    light: '#DDD6FE',
-    tags: ['NSE Live', 'Yahoo NAV', 'Crypto', 'FX Rates'],
-  },
-  {
-    title: 'Set targets.\nStay on track.',
-    body: 'Define your ideal allocation across equity, debt, gold and international assets. See at a glance where you\'re over or under.',
-    stat: '6',
-    statLabel: 'Asset classes tracked',
-    icon: '○',
-    accent: '#D97706',
-    light: '#FDE68A',
-    tags: ['Equity', 'Debt', 'Gold', 'Foreign', 'Crypto'],
-  },
-  {
-    title: 'Net worth history.\nWatch it grow.',
-    body: 'Snapshot your portfolio monthly and watch your wealth journey unfold. Compare net worth, invested, and actual deployed over time.',
-    stat: '12mo',
-    statLabel: 'Historical tracking',
-    icon: '▲',
-    accent: '#059669',
-    light: '#A7F3D0',
-    tags: ['Snapshots', 'Trend chart', 'Month-on-month', 'Growth'],
-  },
+// ── Chart data ─────────────────────────────────────────────────
+const netWorthHistory = [
+  { m: 'Aug', v: 14.2 }, { m: 'Sep', v: 15.1 }, { m: 'Oct', v: 14.8 },
+  { m: 'Nov', v: 16.4 }, { m: 'Dec', v: 17.2 }, { m: 'Jan', v: 18.9 },
+  { m: 'Feb', v: 19.4 }, { m: 'Mar', v: 21.1 },
 ]
 
-// ── Mini portfolio card (inside slideshow) ─────────────────────
-function MiniCard({ slide, idx }: { slide: typeof SLIDES[0]; idx: number }) {
+const monthlyGain = [
+  { m: 'Aug', g: 1.2 }, { m: 'Sep', g: 2.8 }, { m: 'Oct', g: -0.9 },
+  { m: 'Nov', g: 3.1 }, { m: 'Dec', g: 2.4 }, { m: 'Jan', g: 4.2 },
+  { m: 'Feb', g: 1.8 }, { m: 'Mar', g: 3.6 },
+]
+
+// ── Card 1 — Area chart: net worth growth ──────────────────────
+function Card1() {
   return (
-    <div
-      className="animate-fade-up"
-      style={{ animationDelay: `${idx * 80}ms` }}
-    >
-      {/* Stat pill */}
-      <div
-        className="inline-flex items-center gap-2 rounded-full px-4 py-2 mb-6 text-sm font-bold"
-        style={{ background: `${slide.accent}22`, color: slide.light, border: `1px solid ${slide.accent}44` }}
-      >
-        <span className="text-lg">{slide.icon}</span>
-        <span className="font-mono text-xl">{slide.stat}</span>
-        <span className="text-xs font-semibold opacity-70">{slide.statLabel}</span>
-      </div>
-
-      {/* Mini portfolio preview */}
-      <div
-        className="rounded-2xl p-5 mb-6"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>NET WORTH</div>
-            <div className="text-2xl font-black font-mono text-white mt-0.5">₹21.11L</div>
-          </div>
-          <div
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-            style={{ background: `${slide.accent}44`, color: slide.light }}
-          >
-            ▲ +1.24%
-          </div>
+    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>NET WORTH GROWTH</div>
+          <div className="text-2xl font-black font-mono text-white">₹21.11L</div>
         </div>
-
-        {/* Allocation bar */}
-        <div className="flex h-1.5 rounded-full overflow-hidden mb-3 gap-px">
-          {[
-            { w: 38, c: '#0F766E' }, { w: 22, c: '#1D4ED8' }, { w: 14, c: '#D97706' },
-            { w: 12, c: '#7C3AED' }, { w: 8,  c: '#059669' }, { w: 6,  c: '#E11D48' },
-          ].map((s, i) => (
-            <div key={i} className="transition-all duration-700" style={{ width: `${s.w}%`, background: s.c }} />
-          ))}
+        <div className="text-right">
+          <div className="px-2.5 py-1 rounded-full text-[11px] font-bold mb-1" style={{ background: '#0F766E44', color: '#99F6E4' }}>▲ +48.6%</div>
+          <div className="text-[9px]" style={{ color: 'rgba(255,255,255,0.35)' }}>8 months</div>
         </div>
-
-        {/* Mini asset rows */}
-        {[
-          { label: 'Zerodha Stocks', val: '₹8.4L',  dot: '#0F766E' },
-          { label: 'Mutual Funds',   val: '₹5.2L',  dot: '#1D4ED8' },
-          { label: 'Fixed Deposits', val: '₹3.8L',  dot: '#059669' },
-        ].map((r, i) => (
-          <div key={i} className="flex items-center justify-between py-1.5 border-b last:border-0" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: r.dot }} />
-              <span className="text-[11px] font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>{r.label}</span>
-            </div>
-            <span className="text-[11px] font-bold font-mono text-white">{r.val}</span>
-          </div>
-        ))}
       </div>
-
-      {/* Tags */}
-      <div className="flex flex-wrap gap-2">
-        {slide.tags.map(tag => (
-          <span
-            key={tag}
-            className="text-[10px] font-bold px-2.5 py-1 rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}
-          >
-            {tag}
-          </span>
+      <ResponsiveContainer width="100%" height={100}>
+        <AreaChart data={netWorthHistory} margin={{ top: 5, right: 0, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id="aGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#0F766E" stopOpacity={0.5}/>
+              <stop offset="95%" stopColor="#0F766E" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <Area type="monotone" dataKey="v" stroke="#99F6E4" strokeWidth={2} fill="url(#aGrad)" dot={false} />
+          <XAxis dataKey="m" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 9 }} axisLine={false} tickLine={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+      <div className="flex justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        {[{ l: 'Started', v: '₹14.2L' }, { l: 'Now', v: '₹21.1L' }, { l: 'Gain', v: '+₹6.9L' }].map(s => (
+          <div key={s.l} className="text-center">
+            <div className="text-[9px] font-bold uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>{s.l}</div>
+            <div className="text-[13px] font-black font-mono text-white">{s.v}</div>
+          </div>
         ))}
       </div>
     </div>
   )
 }
+
+// ── Card 2 — Asset breakdown list (no chart) ───────────────────
+function Card2() {
+  const assets = [
+    { label: 'Zerodha Stocks',   val: '₹8.4L',  pct: 40, color: '#0F766E', icon: '📈', gain: '+12.4%' },
+    { label: 'Mutual Funds',     val: '₹5.2L',  pct: 25, color: '#1D4ED8', icon: '◈',  gain: '+8.1%'  },
+    { label: 'Fixed Deposits',   val: '₹3.8L',  pct: 18, color: '#059669', icon: '🏦', gain: '+7.2%'  },
+    { label: 'Gold',             val: '₹1.9L',  pct: 9,  color: '#D97706', icon: '🏅', gain: '+5.3%'  },
+    { label: 'Crypto',           val: '₹1.8L',  pct: 8,  color: '#7C3AED', icon: '₿',  gain: '+22.1%' },
+  ]
+  return (
+    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className="text-[9px] font-bold uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>YOUR PORTFOLIO BREAKDOWN</div>
+      {/* Allocation strip */}
+      <div className="flex h-2 rounded-full overflow-hidden mb-4 gap-px">
+        {assets.map(a => <div key={a.label} style={{ width: `${a.pct}%`, background: a.color }} />)}
+      </div>
+      <div className="space-y-2.5">
+        {assets.map(a => (
+          <div key={a.label} className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0"
+              style={{ background: `${a.color}22`, border: `1px solid ${a.color}40` }}>
+              {a.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[11px] font-semibold text-white truncate">{a.label}</span>
+                <span className="text-[11px] font-black font-mono text-white ml-2">{a.val}</span>
+              </div>
+              <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <div className="h-full rounded-full" style={{ width: `${a.pct * 2}%`, background: a.color }} />
+              </div>
+            </div>
+            <span className="text-[10px] font-bold shrink-0" style={{ color: '#99F6E4' }}>{a.gain}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Card 3 — Bar chart: monthly P&L ───────────────────────────
+function Card3() {
+  return (
+    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className="flex items-center justify-between mb-1">
+        <div>
+          <div className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>MONTHLY GAINS · P&L</div>
+          <div className="text-sm font-bold text-white">Consistent upward trend</div>
+        </div>
+        <div className="px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: '#1D4ED844', color: '#BFDBFE' }}>7/8 positive</div>
+      </div>
+      <ResponsiveContainer width="100%" height={120}>
+        <BarChart data={monthlyGain} margin={{ top: 10, right: 0, bottom: 0, left: 0 }} barSize={16}>
+          <Bar dataKey="g" radius={[4, 4, 0, 0]}>
+            {monthlyGain.map((e, i) => <Cell key={i} fill={e.g >= 0 ? '#1D4ED8' : '#E11D48'} fillOpacity={0.85} />)}
+          </Bar>
+          <XAxis dataKey="m" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 9 }} axisLine={false} tickLine={false} />
+          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" />
+        </BarChart>
+      </ResponsiveContainer>
+      <div className="flex justify-between mt-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        {[{ l: 'Best month', v: '+₹4.2L' }, { l: 'Total gain', v: '+₹18.2L' }, { l: 'Win rate', v: '87.5%' }].map(s => (
+          <div key={s.l} className="text-center">
+            <div className="text-[9px] font-bold uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>{s.l}</div>
+            <div className="text-[12px] font-black font-mono text-white">{s.v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Card 4 — Actual vs book stats (no chart) ───────────────────
+function Card4() {
+  const items = [
+    { label: 'Book invested',   val: '₹21.1L', sub: 'Avg price × qty',    color: '#D97706', icon: '📒' },
+    { label: 'Actual deployed', val: '₹19.3L', sub: 'Real cash put in',   color: '#99F6E4', icon: '💸' },
+    { label: 'Actual gain',     val: '+₹1.8L', sub: 'On cash deployed',   color: '#99F6E4', icon: '📈' },
+    { label: 'Actual return',   val: '9.3%',   sub: 'True ROI on cash',   color: '#A7F3D0', icon: '✦'  },
+  ]
+  return (
+    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className="text-[9px] font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>BOOK VALUE VS ACTUAL CASH</div>
+      <div className="grid grid-cols-2 gap-3">
+        {items.map(item => (
+          <div key={item.label} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-base">{item.icon}</span>
+              <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.4)' }}>{item.label}</span>
+            </div>
+            <div className="text-[18px] font-black font-mono" style={{ color: item.color }}>{item.val}</div>
+            <div className="text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{item.sub}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 rounded-xl px-3 py-2 flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.05)' }}>
+        <span className="text-[11px]">💡</span>
+        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Actual invested differs from book value due to stock averaging and SIP timing.</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Card 5 — Target allocation targets (no chart) ──────────────
+function Card5() {
+  const targets = [
+    { label: 'Equity',   actual: 38, target: 40, color: '#0F766E' },
+    { label: 'Debt',     actual: 30, target: 25, color: '#1D4ED8' },
+    { label: 'Gold',     actual: 14, target: 15, color: '#D97706' },
+    { label: 'Foreign',  actual: 10, target: 12, color: '#7C3AED' },
+    { label: 'Crypto',   actual: 8,  target: 8,  color: '#E11D48' },
+  ]
+  const getStatus = (a: number, t: number) => {
+    const d = a - t
+    if (Math.abs(d) <= 1) return { label: '✓', bg: '#0F766E20', color: '#99F6E4' }
+    if (d > 0)            return { label: `+${d}%`, bg: '#D9770620', color: '#FDE68A' }
+    return                       { label: `${d}%`,  bg: '#E11D4820', color: '#FCA5A5' }
+  }
+  return (
+    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>ALLOCATION TARGETS</div>
+        <div className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>
+          actual / <strong className="text-white">target</strong>
+        </div>
+      </div>
+      <div className="space-y-3">
+        {targets.map(t => {
+          const status = getStatus(t.actual, t.target)
+          return (
+            <div key={t.label} className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 w-16 shrink-0">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color }} />
+                <span className="text-[11px] font-semibold text-white">{t.label}</span>
+              </div>
+              <div className="flex-1 relative h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                {/* target ghost */}
+                <div className="absolute inset-y-0 left-0 opacity-25 rounded-full" style={{ width: `${t.target * 2}%`, background: t.color }} />
+                {/* actual */}
+                <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-700" style={{ width: `${t.actual * 2}%`, background: t.color }} />
+                {/* target tick */}
+                <div className="absolute inset-y-0 w-0.5 rounded-full" style={{ left: `${t.target * 2}%`, background: 'rgba(255,255,255,0.5)' }} />
+              </div>
+              <div className="flex items-center gap-1.5 w-20 justify-end shrink-0">
+                <span className="text-[10px] font-mono text-white/60">{t.actual}%</span>
+                <span className="text-[8px] text-white/30">/</span>
+                <span className="text-[10px] font-mono font-bold text-white">{t.target}%</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: status.bg, color: status.color }}>{status.label}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Slides config ──────────────────────────────────────────────
+const SLIDES = [
+  {
+    title: 'Your entire wealth,\none clear picture.',
+    body: 'Track stocks, mutual funds, gold, crypto, FDs and savings — all in one place. Watch your net worth grow month on month.',
+    accent: '#0F766E', light: '#99F6E4',
+    card: <Card1 />,
+  },
+  {
+    title: 'Every asset class,\none dashboard.',
+    body: 'Zerodha, Aionion, AMC mutual funds, crypto, gold, cash and bonds — all summarised with live gain tracking.',
+    accent: '#0F766E', light: '#99F6E4',
+    card: <Card2 />,
+  },
+  {
+    title: 'Month-on-month\ngains, visualised.',
+    body: 'Know exactly which months were winners. Track P&L trends with colour-coded bars — green for gains, red for dips.',
+    accent: '#1D4ED8', light: '#BFDBFE',
+    card: <Card3 />,
+  },
+  {
+    title: 'Book value vs\nactual invested.',
+    body: 'Know exactly how much cash you\'ve deployed vs what your broker shows. Track your true return on real money.',
+    accent: '#D97706', light: '#FDE68A',
+    card: <Card4 />,
+  },
+  {
+    title: 'Set targets.\nStay on track.',
+    body: 'Define your ideal allocation mix across equity, debt, gold and foreign. See at a glance where you\'re over or under.',
+    accent: '#7C3AED', light: '#DDD6FE',
+    card: <Card5 />,
+  },
+]
 
 // ── Google icon ────────────────────────────────────────────────
 const GoogleIcon = () => (
@@ -151,21 +266,15 @@ export default function LoginPage() {
   const [error, setError]         = useState('')
   const [slide, setSlide]         = useState(0)
   const [animating, setAnimating] = useState(false)
-  const [tab, setTab]             = useState<'signin' | 'magic'>('signin')
 
   const goTo = useCallback((n: number) => {
     if (animating) return
     setAnimating(true)
-    setTimeout(() => {
-      setSlide(n)
-      setAnimating(false)
-    }, 300)
+    setTimeout(() => { setSlide(n); setAnimating(false) }, 320)
   }, [animating])
 
   useEffect(() => {
-    const t = setInterval(() => {
-      goTo((slide + 1) % SLIDES.length)
-    }, 5000)
+    const t = setInterval(() => goTo((slide + 1) % SLIDES.length), 5500)
     return () => clearInterval(t)
   }, [slide, goTo])
 
@@ -187,92 +296,65 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex" style={{ fontFamily: 'Mulish, system-ui, sans-serif' }}>
 
-      {/* ── LEFT PANEL — slideshow ──────────────────────────────── */}
-      <div
-        className="hidden lg:flex flex-col justify-between w-[55%] relative overflow-hidden p-10"
-        style={{
-          background: 'linear-gradient(145deg, #0A2E2B 0%, #0D4F4A 40%, #0F5F58 70%, #0B3D48 100%)',
-          transition: 'background 0.6s ease',
-        }}
-      >
-        {/* Decorative blobs */}
-        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-[0.07] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full opacity-[0.05] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #99F6E4 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
-        <div
-          className="absolute top-1/2 left-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
-          style={{
-            background: `radial-gradient(circle, ${current.accent}22 0%, transparent 65%)`,
-            transform: 'translate(-50%, -50%)',
-            transition: 'background 0.8s ease',
-          }}
-        />
+      {/* ── LEFT PANEL ─────────────────────────────────────────── */}
+      <div className="hidden lg:flex flex-col justify-between w-[55%] relative overflow-hidden p-10"
+        style={{ background: 'linear-gradient(145deg, #0A2E2B 0%, #0D4F4A 40%, #0F5F58 70%, #0B3D48 100%)' }}>
 
-        {/* Top — logo + tagline */}
+        {/* Blobs */}
+        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-[0.07] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)', transform: 'translate(30%,-30%)' }} />
+        <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${current.accent}30 0%, transparent 70%)`, transform: 'translate(-30%,30%)', transition: 'background 0.8s' }} />
+        <div className="absolute top-1/2 left-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${current.accent}14 0%, transparent 60%)`, transform: 'translate(-50%,-50%)', transition: 'background 0.8s' }} />
+
+        {/* Logo */}
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm font-bold tracking-tight border border-white/15">
-              <span className="opacity-60">₹</span>
-              <span>WealthTrack</span>
+          <div className="flex items-center gap-3 mb-10">
+            <div className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm font-bold border border-white/15">
+              <span className="opacity-60">₹</span><span>WealthTrack</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold" style={{ background: '#0F766E33', color: '#99F6E4', border: '1px solid #0F766E55' }}>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold"
+              style={{ background: '#0F766E33', color: '#99F6E4', border: '1px solid #0F766E55' }}>
               <span className="w-1.5 h-1.5 rounded-full bg-[#99F6E4] animate-pulse" />
               Live prices
             </div>
           </div>
 
-          {/* Slide headline */}
-          <div
-            className="mb-8"
-            style={{ opacity: animating ? 0 : 1, transform: animating ? 'translateY(12px)' : 'translateY(0)', transition: 'all 0.3s ease' }}
-          >
-            <h2
-              className="text-[38px] font-black text-white leading-tight mb-4"
-              style={{ letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}
-            >
+          {/* Headline */}
+          <div style={{ opacity: animating ? 0 : 1, transform: animating ? 'translateY(10px)' : 'translateY(0)', transition: 'all 0.32s ease' }}>
+            <h2 className="text-[36px] font-black text-white leading-tight mb-3"
+              style={{ letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}>
               {current.title}
             </h2>
-            <p className="text-[15px] leading-relaxed max-w-md" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            <p className="text-[14px] leading-relaxed max-w-md" style={{ color: 'rgba(255,255,255,0.5)' }}>
               {current.body}
             </p>
           </div>
         </div>
 
-        {/* Middle — animated card */}
-        <div
-          className="relative z-10 flex-1 flex items-center"
-          style={{ opacity: animating ? 0 : 1, transition: 'opacity 0.3s ease' }}
-        >
-          <div className="w-full max-w-sm">
-            <MiniCard slide={current} idx={slide} />
+        {/* Card */}
+        <div className="relative z-10 flex-1 flex items-center py-6">
+          <div className="w-full max-w-md"
+            style={{ opacity: animating ? 0 : 1, transform: animating ? 'translateY(8px)' : 'translateY(0)', transition: 'all 0.32s ease' }}>
+            {current.card}
           </div>
         </div>
 
-        {/* Bottom — slide dots + trust badges */}
+        {/* Dots + trust badges */}
         <div className="relative z-10">
-          {/* Dots */}
-          <div className="flex items-center gap-2 mb-8">
-            {SLIDES.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => goTo(i)}
+          <div className="flex items-center gap-2 mb-7">
+            {SLIDES.map((_, i) => (
+              <button key={i} onClick={() => goTo(i)}
                 className="transition-all duration-300 rounded-full"
-                style={{
-                  width:   i === slide ? 24 : 6,
-                  height:  6,
-                  background: i === slide ? current.light : 'rgba(255,255,255,0.2)',
-                }}
-              />
+                style={{ width: i === slide ? 24 : 6, height: 6, background: i === slide ? current.light : 'rgba(255,255,255,0.2)' }} />
             ))}
           </div>
-
-          {/* Trust badges */}
           <div className="flex gap-6">
             {[
               { icon: '🔒', label: 'No broker credentials', sub: 'Read-only tracking' },
-              { icon: '🇮🇳', label: 'India focused', sub: 'NSE · BSE · INR' },
-              { icon: '📵', label: 'No ads, ever', sub: 'Private & secure' },
+              { icon: '🇮🇳', label: 'India focused',         sub: 'NSE · BSE · INR'   },
+              { icon: '📵', label: 'No ads, ever',           sub: 'Private & secure'  },
             ].map(b => (
               <div key={b.label} className="flex items-center gap-2">
                 <span className="text-lg">{b.icon}</span>
@@ -286,33 +368,23 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── RIGHT PANEL — login form ────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#F5F4F0] relative">
+      {/* ── RIGHT PANEL ────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#F5F4F0]">
 
-        {/* Mobile logo */}
-        <div className="lg:hidden flex items-center gap-2 bg-[#1A1A1A] text-white px-5 py-2.5 rounded-full text-sm font-bold tracking-tight mb-10 shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
-          <span className="opacity-60">₹</span>
-          <span>WealthTrack</span>
+        <div className="lg:hidden flex items-center gap-2 bg-[#1A1A1A] text-white px-5 py-2.5 rounded-full text-sm font-bold mb-10 shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+          <span className="opacity-60">₹</span><span>WealthTrack</span>
         </div>
 
         <div className="w-full max-w-[380px] animate-fade-up">
-
-          {/* Heading */}
           <div className="mb-8">
             <h1 className="text-[28px] font-black text-[#1A1A1A] tracking-tight mb-1.5">Welcome back</h1>
             <p className="text-[14px] text-[#767676]">Sign in to your portfolio dashboard</p>
           </div>
 
-          {/* Card */}
           <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_12px_rgba(0,0,0,0.04)] p-6 mb-4">
-
-            {/* Google SSO */}
-            <button
-              onClick={signInWithGoogle}
-              className="w-full h-11 rounded-xl border border-[#E0DDD6] bg-white hover:bg-[#F5F4F0] hover:border-[#C8C4BC] text-[13px] font-semibold text-[#1A1A1A] flex items-center justify-center gap-2.5 transition-all duration-150 mb-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-            >
-              <GoogleIcon />
-              Continue with Google
+            <button onClick={signInWithGoogle}
+              className="w-full h-11 rounded-xl border border-[#E0DDD6] bg-white hover:bg-[#F5F4F0] hover:border-[#C8C4BC] text-[13px] font-semibold text-[#1A1A1A] flex items-center justify-center gap-2.5 transition-all mb-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <GoogleIcon />Continue with Google
             </button>
 
             <div className="flex items-center gap-3 mb-5">
@@ -321,31 +393,22 @@ export default function LoginPage() {
               <div className="flex-1 h-px bg-[#E0DDD6]" />
             </div>
 
-            {/* Email + Password */}
             <div className="flex flex-col gap-3 mb-5">
               <div>
                 <label className="text-[11px] font-bold text-[#767676] uppercase tracking-wider mb-1.5 block">Email</label>
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
+                <input type="email" placeholder="you@example.com" value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full h-10 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] text-[13px] text-[#1A1A1A] placeholder:text-[#ABABAB] outline-none px-3.5 focus:border-[#1A1A1A] focus:ring-2 focus:ring-[#1A1A1A]/10 focus:bg-white transition-all"
-                />
+                  className="w-full h-10 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] text-[13px] text-[#1A1A1A] placeholder:text-[#ABABAB] outline-none px-3.5 focus:border-[#1A1A1A] focus:ring-2 focus:ring-[#1A1A1A]/10 focus:bg-white transition-all" />
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-[11px] font-bold text-[#767676] uppercase tracking-wider">Password</label>
                   <button className="text-[11px] text-[#767676] hover:text-[#1A1A1A] transition-colors font-medium">Forgot?</button>
                 </div>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
+                <input type="password" placeholder="••••••••" value={password}
                   onChange={e => setPass(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  className="w-full h-10 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] text-[13px] text-[#1A1A1A] placeholder:text-[#ABABAB] outline-none px-3.5 focus:border-[#1A1A1A] focus:ring-2 focus:ring-[#1A1A1A]/10 focus:bg-white transition-all"
-                />
+                  className="w-full h-10 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] text-[13px] text-[#1A1A1A] placeholder:text-[#ABABAB] outline-none px-3.5 focus:border-[#1A1A1A] focus:ring-2 focus:ring-[#1A1A1A]/10 focus:bg-white transition-all" />
               </div>
             </div>
 
@@ -356,31 +419,20 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Sign in button */}
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full h-11 rounded-xl bg-[#1A1A1A] hover:bg-[#333333] text-white text-[13px] font-bold transition-all shadow-[0_4px_14px_rgba(0,0,0,0.18)] disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98]"
-            >
-              {loading
-                ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                : null
-              }
+            <button onClick={handleSubmit} disabled={loading}
+              className="w-full h-11 rounded-xl bg-[#1A1A1A] hover:bg-[#333333] text-white text-[13px] font-bold transition-all shadow-[0_4px_14px_rgba(0,0,0,0.18)] disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98]">
+              {loading && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
               {loading ? 'Signing in…' : 'Sign In →'}
             </button>
           </div>
 
-          {/* What you get — small feature list */}
           <div className="bg-white rounded-2xl border border-[#E0DDD6] p-4 mb-6">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#ABABAB] mb-3">What you get</p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { icon: '📈', text: 'Live stock prices' },
-                { icon: '◈',  text: 'Multi-broker view' },
-                { icon: '◎',  text: 'Allocation targets' },
-                { icon: '📸', text: 'Monthly snapshots' },
-                { icon: '💱', text: 'FX rate tracking' },
-                { icon: '🔒', text: 'No data shared' },
+                { icon: '📈', text: 'Live stock prices'  }, { icon: '◈',  text: 'Multi-broker view'  },
+                { icon: '◎',  text: 'Allocation targets' }, { icon: '📸', text: 'Monthly snapshots'  },
+                { icon: '💱', text: 'FX rate tracking'   }, { icon: '🔒', text: 'No data shared'     },
               ].map(f => (
                 <div key={f.text} className="flex items-center gap-2">
                   <span className="text-sm">{f.icon}</span>
@@ -390,16 +442,14 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Footer */}
           <p className="text-center text-[11px] text-[#ABABAB]">
             Your data is private and never shared.&nbsp;
             <span className="text-[#767676] font-semibold">WealthTrack v2</span>
           </p>
         </div>
 
-        {/* Mobile-only slide dots */}
         <div className="lg:hidden flex items-center gap-2 mt-10">
-          {SLIDES.map((s, i) => (
+          {SLIDES.map((_, i) => (
             <div key={i} className="rounded-full transition-all duration-300"
               style={{ width: i === slide ? 20 : 5, height: 5, background: i === slide ? '#1A1A1A' : '#C8C4BC' }} />
           ))}
