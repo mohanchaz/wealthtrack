@@ -237,16 +237,20 @@ export default function AnalyticsPage() {
                 <XAxis dataKey="month" tickFormatter={monthLabel}
                   tick={{ fontSize: 10, fill: '#767676' }} axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={v => fmt(v)}
-                  tick={{ fontSize: 10, fill: '#767676' }} axisLine={false} tickLine={false} width={60} />
+                  tick={{ fontSize: 10, fill: '#767676' }} axisLine={false} tickLine={false} width={60}
+                  domain={[
+                    (dataMin: number) => Math.floor(dataMin * 0.85 / 100000) * 100000,
+                    (dataMax: number) => Math.ceil(dataMax * 1.05 / 100000) * 100000,
+                  ]} />
                 <Tooltip content={<ChartTooltip />} />
                 <Area type="monotone" dataKey="net_worth" stroke="#0F766E" strokeWidth={2.5}
                   fill="url(#nwGrad)" dot={{ r: 4, fill: '#0F766E', strokeWidth: 0 }}
                   activeDot={{ r: 6 }} name="Net Worth" />
-                <Line type="monotone" dataKey="invested" stroke="#2563EB" strokeWidth={1.5}
-                  strokeDasharray="4 3" dot={false} name="Invested" />
+                <Line type="monotone" dataKey="invested" stroke="#2563EB" strokeWidth={2}
+                  strokeDasharray="5 3" dot={{ r: 3, fill: '#2563EB', strokeWidth: 0 }} name="Invested" />
                 {hasActual && (
-                  <Line type="monotone" dataKey="actual_invested" stroke="#D97706" strokeWidth={1.5}
-                    strokeDasharray="4 3" dot={false} name="Actual Invested" />
+                  <Line type="monotone" dataKey="actual_invested" stroke="#D97706" strokeWidth={2}
+                    strokeDasharray="5 3" dot={{ r: 3, fill: '#D97706', strokeWidth: 0 }} name="Actual Invested" />
                 )}
               </AreaChart>
             </ResponsiveContainer>
