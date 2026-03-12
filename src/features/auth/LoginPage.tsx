@@ -442,10 +442,15 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="text-center text-[11px] text-[#ABABAB]">
-            Your data is private and never shared.&nbsp;
-            <span className="text-[#767676] font-semibold">WealthTrack v2</span>
-          </p>
+          <div className="text-center space-y-1">
+            <p className="text-[11px] text-[#ABABAB]">
+              Your data is private and never shared.
+            </p>
+            <p className="text-[10px] text-[#BFBFBF]">
+              Developed by <span className="font-semibold text-[#767676]">Chaz Tech Ltd.</span>
+              {' · '}© {new Date().getFullYear()} All rights reserved.
+            </p>
+          </div>
         </div>
 
         <div className="lg:hidden flex items-center gap-2 mt-10">

@@ -128,6 +128,14 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           </div>
           No broker credentials ever stored
         </div>
+        <div className="mt-2.5 px-1 space-y-0.5">
+          <div className="text-[10px] font-bold text-textmut">
+            Developed by <span className="text-textsec">Chaz Tech Ltd.</span>
+          </div>
+          <div className="text-[9px] text-textmut">
+            © {new Date().getFullYear()} Chaz Tech Ltd. All rights reserved.
+          </div>
+        </div>
       </div>
     </aside>
   )

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Topbar } from './Topbar'
 import { Sidebar } from './Sidebar'
+import { CookieConsent } from '../CookieConsent'
 
 export function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -39,6 +40,8 @@ export function AppShell() {
           </div>
         </main>
       </div>
+
+      <CookieConsent />
     </div>
   )
 }
