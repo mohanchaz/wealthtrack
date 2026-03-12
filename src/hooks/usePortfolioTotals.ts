@@ -318,20 +318,30 @@ export function usePortfolioTotals(): PortfolioTotals {
     cashVal + fdVal + efVal + bondsVal +
     foreignVal + cryptoVal + bankVal
 
+  // ── Actual Invested Logic ────────────────────────────────────
+  // HAS OWN TABLE  → use table sum (0 if no entries; never fall back to book)
+  //   Zerodha Stocks, Zerodha MF, Aionion Stocks, AMC MF,
+  //   Fixed Deposits, Emergency Fund,
+  //   Foreign Stocks, Crypto, Bank Savings (GBP × rate)
+  //
+  // EXCLUDED (gold is price-based, not cash-in tracking)
+  //   Zerodha Gold → 0, Aionion Gold → 0
+  //
+  // NO TABLE → use book invested as proxy
+  //   Cash → cashInv, Bonds → bondsInv
   const totalActual =
-    (actZStocksAmt  ?? zStocksInv)  +
-    (actZMfAmt      ?? zMfInv)      +
-    (actZGoldAmt    ?? zGoldInv)    +
-    (actAiStocksAmt ?? aiStocksInv) +
-    (actAiGoldAmt   ?? aiGoldInv)   +
-    (actAmcMfAmt    ?? amcMfInv)    +
-    cashActual +
-    (actFdAmt       ?? fdInv)       +
-    (actEfAmt       ?? efInv)       +
-    bondsActual +
-    (actForeignAmt  ?? foreignInv)  +
-    (actCryptoAmt   ?? cryptoInv)   +
-    (actBankAmt     ?? bankInv)
+    (actZStocksAmt  ?? 0) +   // zerodha_actual_invested
+    (actZMfAmt      ?? 0) +   // mf_actual_invested
+    (actAiStocksAmt ?? 0) +   // aionion_actual_invested
+    (actAmcMfAmt    ?? 0) +   // amc_mf_actual_invested
+    (actFdAmt       ?? 0) +   // fd_actual_invested
+    (actEfAmt       ?? 0) +   // ef_actual_invested
+    (actForeignAmt  ?? 0) +   // foreign_actual_invested
+    (actCryptoAmt   ?? 0) +   // crypto_actual_invested
+    (actBankAmt     ?? 0) +   // bank_savings_actual_invested
+    cashInv         +          // no table — use book invested
+    bondsInv                   // no table — use book invested
+    // Zerodha Gold + Aionion Gold intentionally excluded
 
   const { gain: totalGain,  gainPct: totalGainPct,  isPositive: totalPos  } = calcGain(totalVal, totalInv)
   const { gain: actualGain, gainPct: actualGainPct, isPositive: actualPos } = calcGain(totalVal, totalActual)
