@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useSnapshots } from '../../hooks/useSnapshots'
 import type { SnapshotWithDerived } from '../../services/snapshotService'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 function fmt(n: number) {
   if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)}Cr`
@@ -13,6 +14,7 @@ function monthLabel(m: string) {
   return new Date(+y, +mo - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
 }
 
+// ── Chart tooltip ────────────────────────────────────────────────
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   const d: SnapshotWithDerived = payload[0]?.payload
@@ -53,10 +55,124 @@ function ChartTooltip({ active, payload, label }: any) {
   )
 }
 
-export default function AnalyticsPage() {
-  const { data: snapshots = [], isLoading, deleteMutation } = useSnapshots()
+// ── Add Entry Modal ──────────────────────────────────────────────
+function AddEntryModal({ existingMonths, onSave, onClose, saving }: {
+  existingMonths: string[]
+  onSave: (data: { month: string; net_worth: number; invested: number; actual_invested: number }) => void
+  onClose: () => void
+  saving: boolean
+}) {
+  const [month,          setMonth]          = useState('')
+  const [netWorth,       setNetWorth]       = useState('')
+  const [invested,       setInvested]       = useState('')
+  const [actualInvested, setActualInvested] = useState('')
+  const [error,          setError]          = useState('')
 
-  const chartData = snapshots.map(s => ({ ...s }))
+  const isDuplicate = existingMonths.includes(month)
+
+  function handleSubmit() {
+    setError('')
+    if (!month)                        return setError('Please select a month.')
+    if (!netWorth || isNaN(+netWorth)) return setError('Enter a valid net worth.')
+    if (!invested  || isNaN(+invested)) return setError('Enter a valid invested amount.')
+    if (isDuplicate)                   return setError(`A snapshot for ${monthLabel(month)} already exists.`)
+    onSave({
+      month,
+      net_worth:       +netWorth,
+      invested:        +invested,
+      actual_invested: actualInvested ? +actualInvested : 0,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-fade-up">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[15px] font-black text-[#1A1A1A]">Add Snapshot Entry</h2>
+          <button onClick={onClose} className="text-[#ABABAB] hover:text-[#1A1A1A] transition-colors text-lg leading-none">✕</button>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {/* Month */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-1.5 block">Month</label>
+            <input
+              type="month"
+              value={month}
+              onChange={e => { setMonth(e.target.value); setError('') }}
+              max={new Date().toISOString().slice(0, 7)}
+              className="w-full border border-[#E0DDD6] rounded-xl px-3 py-2.5 text-[13px] text-[#1A1A1A] outline-none focus:border-[#0F766E] transition-colors"
+            />
+            {isDuplicate && month && (
+              <p className="text-[10px] text-amber-600 mt-1">⚠ A snapshot already exists for this month.</p>
+            )}
+          </div>
+
+          {/* Net Worth */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-1.5 block">Net Worth (₹)</label>
+            <input
+              type="number"
+              value={netWorth}
+              onChange={e => setNetWorth(e.target.value)}
+              placeholder="e.g. 2500000"
+              className="w-full border border-[#E0DDD6] rounded-xl px-3 py-2.5 text-[13px] text-[#1A1A1A] outline-none focus:border-[#0F766E] transition-colors font-mono"
+            />
+          </div>
+
+          {/* Invested */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-1.5 block">Invested (₹)</label>
+            <input
+              type="number"
+              value={invested}
+              onChange={e => setInvested(e.target.value)}
+              placeholder="e.g. 2000000"
+              className="w-full border border-[#E0DDD6] rounded-xl px-3 py-2.5 text-[13px] text-[#1A1A1A] outline-none focus:border-[#0F766E] transition-colors font-mono"
+            />
+          </div>
+
+          {/* Actual Invested */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-1.5 block">
+              Actual Invested (₹) <span className="normal-case font-normal text-[#ABABAB]">optional</span>
+            </label>
+            <input
+              type="number"
+              value={actualInvested}
+              onChange={e => setActualInvested(e.target.value)}
+              placeholder="Leave blank if unknown"
+              className="w-full border border-[#E0DDD6] rounded-xl px-3 py-2.5 text-[13px] text-[#1A1A1A] outline-none focus:border-[#0F766E] transition-colors font-mono"
+            />
+          </div>
+
+          {error && <p className="text-[11px] text-[#C0392B] font-semibold">{error}</p>}
+
+          <button
+            onClick={handleSubmit}
+            disabled={saving || isDuplicate}
+            className="w-full bg-[#0F766E] text-white font-bold text-[13px] py-3 rounded-xl
+                       hover:bg-[#0D4F4A] active:scale-[0.98] transition-all
+                       disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {saving
+              ? <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />Saving…</>
+              : 'Save Entry'
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main page ────────────────────────────────────────────────────
+export default function AnalyticsPage() {
+  const { data: snapshots = [], isLoading, saveMutation } = useSnapshots()
+  const [showModal, setShowModal] = useState(false)
+
+  const existingMonths = snapshots.map(s => s.month)
+  const hasActual      = snapshots.some(s => s.actual_invested > 0)
 
   const growthRows = snapshots.map((s, i) => {
     const prev = i > 0 ? snapshots[i - 1] : null
@@ -64,13 +180,25 @@ export default function AnalyticsPage() {
     return { ...s, mom }
   })
 
-  const hasActual = snapshots.some(s => s.actual_invested > 0)
+  async function handleManualSave(data: { month: string; net_worth: number; invested: number; actual_invested: number }) {
+    await saveMutation.mutateAsync(data)
+    setShowModal(false)
+  }
 
   return (
     <div className="pb-8">
-      <div className="mb-5">
-        <h1 className="text-xl font-black text-[#1A1A1A] tracking-tight">Analytics</h1>
-        <p className="text-[11px] text-[#767676] mt-0.5">Net worth snapshots and growth over time</p>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-xl font-black text-[#1A1A1A] tracking-tight">Analytics</h1>
+          <p className="text-[11px] text-[#767676] mt-0.5">Net worth snapshots and growth over time</p>
+        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-1.5 text-[12px] font-bold px-3 py-2 rounded-xl
+                     bg-[#0F766E] text-white hover:bg-[#0D4F4A] active:scale-95 transition-all"
+        >
+          <span>+</span><span>Add Entry</span>
+        </button>
       </div>
 
       {isLoading && (
@@ -86,7 +214,7 @@ export default function AnalyticsPage() {
           <div>
             <h3 className="text-[15px] font-bold text-[#1A1A1A] mb-1">No snapshots yet</h3>
             <p className="text-[12px] text-[#767676] max-w-xs leading-relaxed">
-              Click the <strong>Snapshot</strong> button on the Dashboard to save your current net worth. Do it once a month to track growth.
+              Click <strong>Snapshot</strong> on the Dashboard or <strong>Add Entry</strong> above to record your first data point.
             </p>
           </div>
         </div>
@@ -98,7 +226,7 @@ export default function AnalyticsPage() {
           <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm p-5 mb-5">
             <h2 className="text-[12px] font-bold text-[#1A1A1A] uppercase tracking-widest mb-4">Net Worth Growth</h2>
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+              <AreaChart data={growthRows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor="#0F766E" stopOpacity={0.18} />
@@ -161,12 +289,11 @@ export default function AnalyticsPage() {
                       <th className="text-right px-3 py-2.5 hidden md:table-cell">Act %</th>
                     </>}
                     <th className="text-right px-3 py-2.5 hidden lg:table-cell">MoM</th>
-                    <th className="px-3 py-2.5" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F5F4F0]">
                   {[...growthRows].reverse().map(row => (
-                    <tr key={row.id} className="hover:bg-[#FAFAF8] transition-colors group">
+                    <tr key={row.id} className="hover:bg-[#FAFAF8] transition-colors">
                       <td className="px-4 py-3 font-bold text-[#1A1A1A]">{monthLabel(row.month)}</td>
                       <td className="px-3 py-3 text-right font-bold text-[#0F766E] font-mono">{fmt(row.net_worth)}</td>
                       <td className="px-3 py-3 text-right text-[#1A1A1A] font-mono">{fmt(row.invested)}</td>
@@ -197,13 +324,6 @@ export default function AnalyticsPage() {
                           : <span className="text-[#ABABAB]">—</span>
                         }
                       </td>
-                      <td className="px-3 py-3 text-right">
-                        <button
-                          onClick={() => { if (confirm(`Delete ${monthLabel(row.month)} snapshot?`)) deleteMutation.mutate(row.id) }}
-                          className="opacity-0 group-hover:opacity-100 text-[#ABABAB] hover:text-[#C0392B] transition-all text-[11px] font-bold">
-                          ✕
-                        </button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -211,6 +331,15 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </>
+      )}
+
+      {showModal && (
+        <AddEntryModal
+          existingMonths={existingMonths}
+          onSave={handleManualSave}
+          onClose={() => setShowModal(false)}
+          saving={saveMutation.isPending}
+        />
       )}
     </div>
   )

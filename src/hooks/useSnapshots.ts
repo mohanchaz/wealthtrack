@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/authStore'
-import { loadSnapshots, upsertSnapshot, deleteSnapshot, deriveSnapshot } from '../services/snapshotService'
+import { loadSnapshots, upsertSnapshot, deriveSnapshot } from '../services/snapshotService'
 
 export function useSnapshots() {
   const userId = useAuthStore(s => s.user?.id)
@@ -22,10 +22,5 @@ export function useSnapshots() {
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteSnapshot(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
-  })
-
-  return { ...query, saveMutation, deleteMutation }
+  return { ...query, saveMutation }
 }
