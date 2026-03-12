@@ -40,11 +40,11 @@ function AssetCard({ icon, label, sublabel, invested, actual, value, count, unit
     <button
       onClick={() => navigate(path)}
       style={{ animationDelay: `${delay}ms` }}
-      className="group animate-fade-up w-full text-left rounded-2xl overflow-hidden
+      className="group animate-fade-up w-full h-full text-left rounded-2xl overflow-hidden
                  hover:scale-[1.015] hover:shadow-xl transition-all duration-200 active:scale-[0.98]
-                 shadow-sm border border-[#E8E6E1]"
+                 shadow-sm border border-[#E8E6E1] flex flex-col"
     >
-      <div className="p-4" style={{ background: bg }}>
+      <div className="p-4 flex flex-col flex-1" style={{ background: bg }}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 shadow-sm"
@@ -103,7 +103,7 @@ function AssetCard({ icon, label, sublabel, invested, actual, value, count, unit
           </div>
         )}
 
-        <div className="mt-2.5 flex items-center gap-1 text-[10px] font-semibold transition-opacity opacity-40 group-hover:opacity-70"
+        <div className="mt-auto pt-2.5 flex items-center gap-1 text-[10px] font-semibold transition-opacity opacity-40 group-hover:opacity-70"
           style={{ color }}>
           <span>View details</span>
           <span className="group-hover:translate-x-0.5 transition-transform">→</span>
@@ -222,7 +222,7 @@ export default function AssetsOverviewPage() {
           invested={p.zerodhaTotalInv + p.aionionTotalInv + p.amcMfInv}
           value={p.zerodhaTotalVal + p.aionionTotalVal + p.amcMfVal}
           color="#0F766E" loading={p.anyLoading} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 items-stretch">
           <AssetCard icon="📈" label="Zerodha Stocks" sublabel="NSE · Live prices"
             invested={p.zStocksInv} actual={p.actZStocksAmt ?? p.zStocksInv} value={p.zStocksVal}
             count={p.zStocks.filter(r => Number(r.qty) > 0).length} unit="stocks"
@@ -262,7 +262,7 @@ export default function AssetsOverviewPage() {
           invested={p.cashInv + p.fdInv + p.efInv + p.bondsInv}
           value={p.cashVal + p.fdVal + p.efVal + p.bondsVal}
           color="#059669" loading={p.anyLoading} />
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
           <AssetCard icon="💰" label="Cash" sublabel="Savings / Wallets"
             invested={p.cashInv} actual={p.cashActual} value={p.cashVal}
             count={p.cash.length} unit="accounts" loading={p.anyLoading}
@@ -288,7 +288,7 @@ export default function AssetsOverviewPage() {
           invested={p.foreignInv + p.cryptoInv + p.bankInv}
           value={p.foreignVal + p.cryptoVal + p.bankVal}
           color="#0891B2" loading={p.anyLoading} />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch">
           <AssetCard icon="🌐" label="Foreign Stocks" sublabel="USD / GBP · Live"
             invested={p.foreignInv} actual={p.actForeignAmt ?? p.foreignInv} value={p.foreignVal}
             count={p.foreign.filter(r => Number(r.qty) > 0).length} unit="stocks"
