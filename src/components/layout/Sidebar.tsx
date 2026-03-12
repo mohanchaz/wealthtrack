@@ -27,7 +27,9 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
       c.children?.some(gc => location.pathname === gc.path)
     ))
 
-  const [open, setOpen] = useState(isSectionActive)
+  // Assets top-level always open; Zerodha/Aionion/Foreign collapsed by default
+  const alwaysOpen = item.id === 'assets'
+  const [open, setOpen] = useState(alwaysOpen || isSectionActive)
 
   const pad = depth === 0 ? 'px-3 py-2.5' : depth === 1 ? 'pl-8 pr-3 py-2' : 'pl-12 pr-3 py-1.5'
   const base = `w-full flex items-center gap-2.5 rounded-xl text-sm transition-all duration-150 ${pad}`
