@@ -144,8 +144,7 @@ export default function DashboardPage() {
   , [p.allocationBuckets, p.totalVal])
 
   return (
-    <div className="min-h-screen bg-[#F5F4F0]">
-      <div className="max-w-5xl mx-auto px-3 py-3 space-y-3">
+    <div className="space-y-3">
 
         {/* ── Hero banner ──────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-3xl"
@@ -337,7 +336,5 @@ export default function DashboardPage() {
           </div>
         )}
 
-      </div>
-    </div>
   )
 }

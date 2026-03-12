@@ -34,7 +34,7 @@ export function AppShell() {
 
         {/* Main */}
         <main className="flex-1 overflow-y-auto bg-bg">
-          <div className="px-4 py-4">
+          <div className="px-2 py-2">
             <Outlet />
           </div>
         </main>
