@@ -218,7 +218,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── 2-chip metrics ─────────────────────────────────────── */}
+        {/* ── 4-chip metrics ─────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">
           <MetricChip icon="₹" label="Invested"
             value={p.anyLoading ? '…' : fmt(p.totalInv)}
@@ -227,6 +227,13 @@ export default function DashboardPage() {
             value={p.anyLoading ? '…' : `${p.totalPos ? '+' : ''}${fmt(p.totalGain)}`}
             sub={`${p.totalPos ? '+' : ''}${p.totalGainPct.toFixed(1)}% on book invested`}
             color={isUp ? '#0F766E' : '#C0392B'} />
+          <MetricChip icon="⊡" label="Actual Invested"
+            value={p.anyLoading ? '…' : p.totalActual > 0 ? fmt(p.totalActual) : '—'}
+            sub="Real cash deployed" />
+          <MetricChip icon="◎" label="Actual Gain"
+            value={p.anyLoading ? '…' : p.totalActual > 0 ? `${p.actualPos ? '+' : ''}${fmt(p.actualGain)}` : '—'}
+            sub={p.totalActual > 0 ? `${p.actualPos ? '+' : ''}${p.actualGainPct.toFixed(1)}% on actual cash` : 'Log entries to track'}
+            color={p.totalActual > 0 ? (p.actualPos ? '#0F766E' : '#C0392B') : undefined} />
         </div>
 
         {/* ── Donut + breakdown ──────────────────────────────────── */}
