@@ -83,6 +83,44 @@ function MetricChip({ icon, label, value, sub, color }: {
       </div>
       {sub && <div className="text-[11px] text-[#767676] mt-0.5">{sub}</div>}
     </div>
+
+      {/* ── In-app snapshot confirm modal ─────────────────── */}
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setConfirmOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.18)] w-full max-w-sm p-6 animate-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#F5F4F0] flex items-center justify-center text-xl">📸</div>
+              <div>
+                <h3 className="text-[15px] font-black text-[#1A1A1A]">Update snapshot?</h3>
+                <p className="text-[11px] text-[#767676] mt-0.5">A snapshot for {monthName} already exists</p>
+              </div>
+            </div>
+            <p className="text-[13px] text-[#3D3D3D] leading-relaxed mb-5">
+              This will overwrite the existing snapshot with your current net worth, invested, and actual invested amounts.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmOpen(false)}
+                className="flex-1 h-10 rounded-xl border border-[#E0DDD6] bg-[#F5F4F0] text-[#767676] text-[13px] font-semibold hover:bg-[#EFEDE8] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={doSnapshot}
+                className="flex-1 h-10 rounded-xl bg-[#1A1A1A] text-white text-[13px] font-bold hover:bg-[#333] transition-all shadow-[0_4px_14px_rgba(0,0,0,0.15)] active:scale-[0.98]"
+              >
+                Yes, update it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
   )
 }
 
@@ -137,19 +175,16 @@ export default function DashboardPage() {
 
   const { saveMutation, data: snapshots = [] } = useSnapshots()
   const showToast = useToastStore(s => s.show)
-  const [snapping, setSnapping] = useState(false)
+  const [snapping, setSnapping]       = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
-  const currentMonth  = new Date().toISOString().slice(0, 7) // 'YYYY-MM'
-  const alreadySaved  = snapshots.some(s => s.month === currentMonth)
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  const monthName    = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+  const alreadySaved = snapshots.some(s => s.month === currentMonth)
 
-  async function handleSnapshot() {
-    if (p.anyLoading) return
-    const monthName = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
-    if (alreadySaved) {
-      const ok = window.confirm(`A snapshot for ${monthName} already exists. Do you want to override it?`)
-      if (!ok) return
-    }
+  async function doSnapshot() {
     setSnapping(true)
+    setConfirmOpen(false)
     try {
       await saveMutation.mutateAsync({
         month:           currentMonth,
@@ -163,6 +198,11 @@ export default function DashboardPage() {
     } finally {
       setSnapping(false)
     }
+  }
+
+  function handleSnapshot() {
+    if (p.anyLoading) return
+    if (alreadySaved) { setConfirmOpen(true) } else { doSnapshot() }
   }
 
   const isUp   = p.totalPos
@@ -212,7 +252,7 @@ export default function DashboardPage() {
                 >
                   {snapping
                     ? <><span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin" /><span>Saving…</span></>
-                    : <><span>📸</span><span className="hidden sm:inline">{alreadySaved ? 'Override' : 'Snapshot'}</span></>
+                    : <><span>📸</span><span className="hidden sm:inline">Snapshot</span></>
                   }
                 </button>
               </div>
@@ -382,5 +422,43 @@ export default function DashboardPage() {
         )}
 
     </div>
+
+      {/* ── In-app snapshot confirm modal ─────────────────── */}
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setConfirmOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.18)] w-full max-w-sm p-6 animate-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#F5F4F0] flex items-center justify-center text-xl">📸</div>
+              <div>
+                <h3 className="text-[15px] font-black text-[#1A1A1A]">Update snapshot?</h3>
+                <p className="text-[11px] text-[#767676] mt-0.5">A snapshot for {monthName} already exists</p>
+              </div>
+            </div>
+            <p className="text-[13px] text-[#3D3D3D] leading-relaxed mb-5">
+              This will overwrite the existing snapshot with your current net worth, invested, and actual invested amounts.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmOpen(false)}
+                className="flex-1 h-10 rounded-xl border border-[#E0DDD6] bg-[#F5F4F0] text-[#767676] text-[13px] font-semibold hover:bg-[#EFEDE8] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={doSnapshot}
+                className="flex-1 h-10 rounded-xl bg-[#1A1A1A] text-white text-[13px] font-bold hover:bg-[#333] transition-all shadow-[0_4px_14px_rgba(0,0,0,0.15)] active:scale-[0.98]"
+              >
+                Yes, update it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
   )
 }
