@@ -140,7 +140,19 @@ function SectionHeader({ label, invested, value, loading, color }: {
 export default function AssetsOverviewPage() {
   const navigate = useNavigate()
   const p = usePortfolioTotals()
-  const anyLive = !p.nFetching && !p.yFetching && Object.keys(p.nsePrices).length > 0
+  const nPriceCount = Object.keys(p.nsePrices).length
+  const yPriceCount = Object.keys(p.yahooPrices).length
+  const anyLive     = nPriceCount > 0 || yPriceCount > 0
+  // Still loading if React Query is fetching OR if portfolio data itself is loading
+  const isFetching  = p.nFetching || p.yFetching || p.anyLoading
+  // Unavailable only when: not loading, prices are empty, but portfolio has value
+  // AND we actually have assets that should have prices (MF, stocks, etc.)
+  const hasPriceableAssets = (p.zMfs.filter(r => Number(r.qty) > 0).length > 0) ||
+    (p.zStocks.filter(r => Number(r.qty) > 0).length > 0) ||
+    (p.amcMf.filter(r => Number(r.qty) > 0).length > 0) ||
+    (p.foreign.filter(r => Number(r.qty) > 0).length > 0) ||
+    (p.crypto.filter(r => Number(r.qty) > 0).length > 0)
+  const pricesUnavailable = !isFetching && !anyLive && hasPriceableAssets
   const { gain: totalGain, gainPct: totalGainPct, isPositive: totalPos } = calcGain(p.totalVal, p.totalInv)
   const { gain: actualGain, gainPct: actualGainPct, isPositive: actualPos } = calcGain(p.totalVal, p.totalActual)
 
@@ -154,17 +166,19 @@ export default function AssetsOverviewPage() {
           <p className="text-[11px] text-[#767676] mt-0.5">All assets across brokers and asset classes</p>
         </div>
         <div className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 rounded-xl border ${
-          p.nFetching || p.yFetching ? 'text-amber-600 bg-amber-50 border-amber-200'
-          : anyLive ? 'text-green-700 bg-green-50 border-green-200'
+          isFetching        ? 'text-amber-600 bg-amber-50 border-amber-200'
+          : anyLive         ? 'text-green-700 bg-green-50 border-green-200'
+          : pricesUnavailable ? 'text-red-600 bg-red-50 border-red-200'
           : 'text-[#767676] bg-[#F5F4F0] border-[#E0DDD6]'
         }`}>
           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-            p.nFetching || p.yFetching ? 'bg-amber-400 animate-pulse'
-            : anyLive ? 'bg-green-500 animate-pulse-dot'
+            isFetching          ? 'bg-amber-400 animate-pulse'
+            : anyLive           ? 'bg-green-500 animate-pulse-dot'
+            : pricesUnavailable ? 'bg-red-400'
             : 'bg-[#ABABAB]'
           }`} />
           <span className="hidden sm:inline">
-            {p.nFetching || p.yFetching ? 'Loading…' : anyLive ? 'Live prices' : 'Prices unavailable'}
+            {isFetching ? 'Loading…' : anyLive ? 'Live prices' : pricesUnavailable ? 'Prices unavailable' : 'No live assets'}
           </span>
         </div>
       </div>
