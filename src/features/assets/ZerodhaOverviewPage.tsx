@@ -111,7 +111,7 @@ export default function ZerodhaOverviewPage() {
   const totalActual = (stocksActualTotal ?? 0) + (mfsActualTotal ?? 0)
   const { gain: actGain, gainPct: actGainPct, isPositive: actPos } = calcGain(totalVal, totalActual)
 
-  const liveTag = (sf || mf || gf) ? '🔄 Fetching…'
+  const liveTag = (sf || mf || gf) ? '⟳ Fetching…'
     : Object.keys(stockPrices).length > 0 ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
 
   return (

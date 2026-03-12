@@ -265,7 +265,7 @@ export default function ForeignOverviewPage() {
   const fmtGbp = (v: number) => `£${Math.abs(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const fmtGbpSigned = (v: number) => `${v >= 0 ? '+' : '-'}£${Math.abs(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-  const liveLabel = pricesFetching ? '🔄 Fetching…'
+  const liveLabel = pricesFetching ? '⟳ Fetching…'
     : Object.keys(prices).length > 0 ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
 
   const anyLoading = l1 || l2 || l3

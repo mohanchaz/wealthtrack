@@ -138,7 +138,7 @@ export default function ZerodhaStocksPage() {
 
   const hasLive   = Object.keys(priceMap).length > 0
   const liveLabel = pricesFetching
-    ? '🔄 Fetching live prices…'
+    ? '⟳ Fetching live prices…'
     : hasLive ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
 
   const handleSave = async (data: Partial<StockHolding>) => {
@@ -238,7 +238,7 @@ export default function ZerodhaStocksPage() {
       subtitle={`${rows.length} stock${rows.length !== 1 ? 's' : ''}`}
       actions={[
         { label: 'Add Holding', onClick: () => setEditRow({}),      variant: 'primary'   },
-        { label: '🔄',            onClick: () => refreshPrices(),     variant: 'outline'   },
+        { label: <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#fff'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh</span>,            onClick: () => refreshPrices(), variant: 'teal' },
       ]}
     >
       <AssetPageLayout

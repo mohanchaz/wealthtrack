@@ -1,7 +1,7 @@
 import { type ButtonHTMLAttributes, forwardRef } from 'react'
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'import'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'import' | 'teal'
   size?:    'sm' | 'md' | 'lg'
   loading?: boolean
 }
@@ -60,6 +60,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(
       ghost:     'hover:bg-surface2 text-textmut hover:text-textprim',
       danger:    'bg-red/8 hover:bg-red/12 text-red border border-red/20',
       outline:   'border border-border text-textmut hover:bg-surface2 hover:border-border2',
+      teal:      'bg-[#0F766E] hover:bg-[#0D5F58] text-white active:scale-[0.98]',
     }
 
     const sizes: Record<string, string> = {

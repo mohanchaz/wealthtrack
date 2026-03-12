@@ -109,7 +109,7 @@ export default function AionionOverviewPage() {
   const totalActual = (stocksActualTotal ?? 0)
   const { gain: actGain, gainPct: actGainPct, isPositive: actPos } = calcGain(totalVal, totalActual)
 
-  const liveTag = (sf || gf) ? '🔄 Fetching…'
+  const liveTag = (sf || gf) ? '⟳ Fetching…'
     : Object.keys(stockPrices).length > 0 ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
 
   return (

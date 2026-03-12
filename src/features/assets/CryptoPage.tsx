@@ -351,7 +351,7 @@ export default function CryptoPage() {
   const actIsUp       = actGainGbp != null ? actGainGbp >= 0 : true
 
   const liveLabel = priceFetching
-    ? '🔄 Fetching…'
+    ? '⟳ Fetching…'
     : Object.keys(priceMap).length ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
 
   // Row 1: ₹  |  Row 2: £
@@ -502,7 +502,7 @@ export default function CryptoPage() {
       }
       actions={[
         { label: 'Add Crypto',  onClick: () => setEditRow({}),      variant: 'primary' },
-        { label: '🔄',            onClick: () => refetch(),            variant: 'secondary' },
+        { label: <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#fff'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh</span>,            onClick: () => refetch(), variant: 'teal' },
       ]}
     >
       <AssetPageLayout
