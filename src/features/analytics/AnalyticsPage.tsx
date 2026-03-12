@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSnapshots } from '../../hooks/useSnapshots'
 import type { SnapshotWithDerived } from '../../services/snapshotService'
-import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 function fmt(n: number) {
   if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)}Cr`
@@ -225,34 +225,42 @@ export default function AnalyticsPage() {
           {/* ── Chart ─────────────────────────────────────────── */}
           <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm p-5 mb-5">
             <h2 className="text-[12px] font-bold text-[#1A1A1A] uppercase tracking-widest mb-4">Net Worth Growth</h2>
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={growthRows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={growthRows} margin={{ top: 4, right: 60, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#0F766E" stopOpacity={0.18} />
+                    <stop offset="5%"  stopColor="#0F766E" stopOpacity={0.15} />
                     <stop offset="95%" stopColor="#0F766E" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F0EEE9" />
                 <XAxis dataKey="month" tickFormatter={monthLabel}
                   tick={{ fontSize: 10, fill: '#767676' }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={v => fmt(v)}
-                  tick={{ fontSize: 10, fill: '#767676' }} axisLine={false} tickLine={false} width={60}
+                {/* Left axis — net worth */}
+                <YAxis yAxisId="left" tickFormatter={v => fmt(v)}
+                  tick={{ fontSize: 10, fill: '#0F766E' }} axisLine={false} tickLine={false} width={62}
                   domain={[
-                    (dataMin: number) => Math.floor(dataMin * 0.85 / 100000) * 100000,
+                    (dataMin: number) => Math.floor(dataMin * 0.92 / 100000) * 100000,
                     (dataMax: number) => Math.ceil(dataMax * 1.05 / 100000) * 100000,
                   ]} />
+                {/* Right axis — invested / actual invested */}
+                <YAxis yAxisId="right" orientation="right" tickFormatter={v => fmt(v)}
+                  tick={{ fontSize: 10, fill: '#2563EB' }} axisLine={false} tickLine={false} width={62}
+                  domain={[
+                    (dataMin: number) => Math.floor(dataMin * 0.85 / 100000) * 100000,
+                    (dataMax: number) => Math.ceil(dataMax * 1.15 / 100000) * 100000,
+                  ]} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="net_worth" stroke="#0F766E" strokeWidth={2.5}
+                <Area yAxisId="left" type="monotone" dataKey="net_worth" stroke="#0F766E" strokeWidth={2.5}
                   fill="url(#nwGrad)" dot={{ r: 4, fill: '#0F766E', strokeWidth: 0 }}
                   activeDot={{ r: 6 }} name="Net Worth" />
-                <Line type="monotone" dataKey="invested" stroke="#2563EB" strokeWidth={2}
+                <Line yAxisId="right" type="monotone" dataKey="invested" stroke="#2563EB" strokeWidth={2}
                   strokeDasharray="5 3" dot={{ r: 3, fill: '#2563EB', strokeWidth: 0 }} name="Invested" />
                 {hasActual && (
-                  <Line type="monotone" dataKey="actual_invested" stroke="#D97706" strokeWidth={2}
+                  <Line yAxisId="right" type="monotone" dataKey="actual_invested" stroke="#D97706" strokeWidth={2}
                     strokeDasharray="5 3" dot={{ r: 3, fill: '#D97706', strokeWidth: 0 }} name="Actual Invested" />
                 )}
-              </AreaChart>
+              </ComposedChart>
             </ResponsiveContainer>
             <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-[#F0EEE9]">
               <div className="flex items-center gap-1.5">
