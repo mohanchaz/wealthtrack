@@ -1,4 +1,4 @@
-# WealthTrack v2 —m Module 1
+# WealthTrack v2 — Module 1
 
 Modern React + TypeScript rewrite. Cloudflare Pages compatible.
 
