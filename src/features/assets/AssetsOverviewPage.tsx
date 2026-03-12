@@ -228,32 +228,32 @@ export default function AssetsOverviewPage() {
             invested={p.zStocksInv} actual={p.actZStocksAmt ?? p.zStocksInv} value={p.zStocksVal}
             count={p.zStocks.filter(r => Number(r.qty) > 0).length} unit="stocks"
             live={Object.keys(p.nsePrices).length > 0} loading={p.anyLoading}
-            color="#0F766E" bg="linear-gradient(135deg,#F0FAFA,#E6F7F5)" path="/assets/zerodha-stocks" delay={0} />
+            color="#0F766E" bg="#FFFFFF" path="/assets/zerodha-stocks" delay={0} />
           <AssetCard icon="◈" label="Zerodha MF" sublabel="BSE NAV · Live"
             invested={p.zMfInv} actual={p.actZMfAmt ?? p.zMfInv} value={p.zMfVal}
             count={p.zMfs.filter(r => Number(r.qty) > 0).length} unit="funds"
             live={Object.keys(p.yahooPrices).length > 0} loading={p.anyLoading}
-            color="#2563EB" bg="linear-gradient(135deg,#EFF6FF,#DBEAFE)" path="/assets/mutual-funds" delay={50} />
+            color="#2563EB" bg="#FFFFFF" path="/assets/mutual-funds" delay={50} />
           <AssetCard icon="⬡" label="Zerodha Gold" sublabel="ETF / MF"
             invested={p.zGoldInv} actual={p.actZGoldAmt ?? p.zGoldInv} value={p.zGoldVal}
             count={p.zGold.filter(r => Number(r.qty) > 0).length} unit="holdings"
             live={Object.keys(p.yahooPrices).length > 0} loading={p.anyLoading}
-            color="#D97706" bg="linear-gradient(135deg,#FFFBEB,#FEF3C7)" path="/assets/gold" delay={100} />
+            color="#D97706" bg="#FFFFFF" path="/assets/gold" delay={100} />
           <AssetCard icon="📊" label="Aionion Stocks" sublabel="NSE · Live"
             invested={p.aiStocksInv} actual={p.actAiStocksAmt ?? p.aiStocksInv} value={p.aiStocksVal}
             count={p.aiStocks.filter(r => Number(r.qty) > 0).length} unit="stocks"
             live={Object.keys(p.nsePrices).length > 0} loading={p.anyLoading}
-            color="#7C3AED" bg="linear-gradient(135deg,#F5F3FF,#EDE9FE)" path="/assets/aionion-stocks" delay={150} />
+            color="#7C3AED" bg="#FFFFFF" path="/assets/aionion-stocks" delay={150} />
           <AssetCard icon="◎" label="Aionion Gold" sublabel="SGB / Gold MF"
             invested={p.aiGoldInv} actual={p.actAiGoldAmt ?? p.aiGoldInv} value={p.aiGoldVal}
             count={p.aiGold.filter(r => Number(r.qty) > 0).length} unit="holdings"
             loading={p.anyLoading}
-            color="#F59E0B" bg="linear-gradient(135deg,#FFFBEB,#FEF3C7)" path="/assets/aionion-gold" delay={200} />
+            color="#F59E0B" bg="#FFFFFF" path="/assets/aionion-gold" delay={200} />
           <AssetCard icon="◆" label="AMC Mutual Funds" sublabel="Direct · Live NAV"
             invested={p.amcMfInv} actual={p.actAmcMfAmt ?? p.amcMfInv} value={p.amcMfVal}
             count={p.amcMf.filter(r => Number(r.qty) > 0).length} unit="funds"
             live={Object.keys(p.yahooPrices).length > 0} loading={p.anyLoading}
-            color="#DB2777" bg="linear-gradient(135deg,#FDF2F8,#FCE7F3)" path="/assets/amc-mf" delay={250} />
+            color="#DB2777" bg="#FFFFFF" path="/assets/amc-mf" delay={250} />
         </div>
       </section>
 
@@ -267,19 +267,19 @@ export default function AssetsOverviewPage() {
           <AssetCard icon="💰" label="Cash" sublabel="Savings / Wallets"
             invested={p.cashInv} actual={p.cashActual} value={p.cashVal}
             count={p.cash.length} unit="accounts" loading={p.anyLoading}
-            color="#059669" bg="linear-gradient(135deg,#ECFDF5,#D1FAE5)" path="/assets/cash" delay={0} />
+            color="#059669" bg="#FFFFFF" path="/assets/cash" delay={0} />
           <AssetCard icon="🏦" label="Fixed Deposits" sublabel="Bank / NBFC"
             invested={p.fdInv} actual={p.actFdAmt ?? p.fdInv} value={p.fdVal}
             count={p.fds.length} unit="FDs" loading={p.anyLoading}
-            color="#0891B2" bg="linear-gradient(135deg,#ECFEFF,#CFFAFE)" path="/assets/fd" delay={50} />
+            color="#0891B2" bg="#FFFFFF" path="/assets/fd" delay={50} />
           <AssetCard icon="🛡" label="Emergency Fund" sublabel="Liquid safety net"
             invested={p.efInv} actual={p.actEfAmt ?? p.efInv} value={p.efVal}
             count={p.ef.length} unit="entries" loading={p.anyLoading}
-            color="#6366F1" bg="linear-gradient(135deg,#EEF2FF,#E0E7FF)" path="/assets/ef" delay={100} />
+            color="#6366F1" bg="#FFFFFF" path="/assets/ef" delay={100} />
           <AssetCard icon="📜" label="Bonds" sublabel="G-Sec / NCD / SGB"
             invested={p.bondsInv} actual={p.bondsActual} value={p.bondsVal}
             count={p.bonds.length} unit="bonds" loading={p.anyLoading}
-            color="#B45309" bg="linear-gradient(135deg,#FFFBEB,#FEF3C7)" path="/assets/bonds" delay={150} />
+            color="#B45309" bg="#FFFFFF" path="/assets/bonds" delay={150} />
         </div>
       </section>
 
@@ -294,16 +294,16 @@ export default function AssetsOverviewPage() {
             invested={p.foreignInv} actual={p.actForeignAmt ?? p.foreignInv} value={p.foreignVal}
             count={p.foreign.filter(r => Number(r.qty) > 0).length} unit="stocks"
             live={Object.keys(p.yahooPrices).length > 0} loading={p.anyLoading}
-            color="#0891B2" bg="linear-gradient(135deg,#ECFEFF,#BAE6FD)" path="/assets/foreign" delay={0} />
+            color="#0891B2" bg="#FFFFFF" path="/assets/foreign" delay={0} />
           <AssetCard icon="₿" label="Crypto" sublabel="GBP pairs · Live"
             invested={p.cryptoInv} actual={p.actCryptoAmt ?? p.cryptoInv} value={p.cryptoVal}
             count={p.crypto.filter(r => Number(r.qty) > 0).length} unit="coins"
             live={Object.keys(p.yahooPrices).length > 0} loading={p.anyLoading}
-            color="#EA580C" bg="linear-gradient(135deg,#FFF7ED,#FFEDD5)" path="/assets/crypto" delay={50} />
+            color="#EA580C" bg="#FFFFFF" path="/assets/crypto" delay={50} />
           <AssetCard icon="🏦" label="Bank Savings" sublabel="GBP · UK Accounts"
             invested={p.bankInv} actual={p.actBankAmt ?? p.bankInv} value={p.bankVal}
             count={p.bankSav.length} unit="accounts" loading={p.anyLoading}
-            color="#9333EA" bg="linear-gradient(135deg,#FAF5FF,#F3E8FF)" path="/assets/bank-savings" delay={100} />
+            color="#9333EA" bg="#FFFFFF" path="/assets/bank-savings" delay={100} />
         </div>
       </section>
 
