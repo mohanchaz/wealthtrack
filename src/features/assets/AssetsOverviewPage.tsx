@@ -42,9 +42,9 @@ function AssetCard({ icon, label, sublabel, invested, actual, value, count, unit
       style={{ animationDelay: `${delay}ms` }}
       className="group animate-fade-up w-full text-left rounded-2xl overflow-hidden
                  hover:scale-[1.015] hover:shadow-xl transition-all duration-200 active:scale-[0.98]
-                 shadow-sm border border-black/5"
+                 shadow-sm border border-[#E8E6E1]"
     >
-      <div className="p-4 border-l-4" style={{ background: bg, borderLeftColor: color }}>
+      <div className="p-4" style={{ background: bg }}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 shadow-sm"

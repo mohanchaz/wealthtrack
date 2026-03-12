@@ -291,16 +291,16 @@ export default function ForeignOverviewPage() {
       </div>
 
       {/* Summary totals bar */}
-      <div className="bg-surface border border-border rounded-2xl p-4 mb-2 flex items-stretch divide-x divide-border w-full">
-        <div className="flex flex-col justify-center pr-6 flex-1">
+      <div className="bg-surface border border-border rounded-2xl p-4 mb-2 grid grid-cols-2 sm:flex sm:items-stretch sm:divide-x sm:divide-border gap-3 sm:gap-0 w-full">
+        <div className="flex flex-col justify-center sm:pr-6 flex-1">
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Total Value</div>
           <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalVal)}</div>
         </div>
-        <div className="flex flex-col justify-center px-6 flex-1">
+        <div className="flex flex-col justify-center sm:px-6 flex-1">
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Invested</div>
           <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalInv)}</div>
         </div>
-        <div className="flex flex-col justify-center px-6 flex-1">
+        <div className="flex flex-col justify-center sm:px-6 flex-1">
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Gain / Loss</div>
           <div className={`text-xl font-extrabold font-mono ${totalPos ? 'text-green' : 'text-red'}`}>
             {anyLoading ? '…' : `${totalPos ? '+' : ''}${INR(totalGain)}`}
@@ -309,11 +309,11 @@ export default function ForeignOverviewPage() {
             {anyLoading ? '' : `${totalPos ? '+' : ''}${totalGainPct.toFixed(1)}%`}
           </div>
         </div>
-        <div className="flex flex-col justify-center px-6 flex-1">
+        <div className="flex flex-col justify-center sm:px-6 flex-1">
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Actual Invested</div>
           <div className="text-xl font-extrabold text-textprim font-mono">{anyLoading ? '…' : INR(totalActual)}</div>
         </div>
-        <div className="flex flex-col justify-center pl-6 flex-1">
+        <div className="flex flex-col justify-center sm:pl-6 flex-1">
           <div className="text-[10px] font-bold text-textmut uppercase tracking-widest mb-1">Actual Gain</div>
           <div className={`text-xl font-extrabold font-mono ${actPos ? 'text-green' : 'text-red'}`}>
             {anyLoading ? '…' : `${actPos ? '+' : ''}${INR(actGain)}`}
@@ -336,7 +336,7 @@ export default function ForeignOverviewPage() {
             { label: 'Actual Gain',   val: `${nativeActGainPos?'+':'-'}${fmtGbp(Math.abs(nativeActGainGbp))} (${nativeActGainPos?'+':''}${nativeActGainPct.toFixed(1)}%)`, color: nativeActGainPos ? 'text-green' : 'text-red' },
           ] : []),
         ].map(({ label, val, color }, i) => (
-          <div key={label} className={`flex items-center gap-1.5 px-4 ${i > 0 ? 'border-l border-border' : ''}`}>
+          <div key={label} className={`flex items-center gap-1.5 px-3 ${i > 0 ? 'border-l border-border' : ''}`}>
             <span className="text-[10px] text-textmut">{label}</span>
             <span className={`text-[12px] font-extrabold font-mono ${color}`}>{anyLoading ? '…' : val}</span>
           </div>
