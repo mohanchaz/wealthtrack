@@ -1,7 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePortfolioTotals } from '../../hooks/usePortfolioTotals'
 import { useAuthStore } from '../../store/authStore'
+import { useSnapshots } from '../../hooks/useSnapshots'
+import { useToastStore } from '../../store/toastStore'
 import { INR } from '../../lib/utils'
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -133,6 +135,31 @@ export default function DashboardPage() {
   // ← Single hook, same React Query keys as AssetsOverviewPage → zero duplicate fetches
   const p = usePortfolioTotals()
 
+  const { saveMutation, data: snapshots = [] } = useSnapshots()
+  const showToast = useToastStore(s => s.show)
+  const [snapping, setSnapping] = useState(false)
+
+  const currentMonth  = new Date().toISOString().slice(0, 7) // 'YYYY-MM'
+  const alreadySaved  = snapshots.some(s => s.month === currentMonth)
+
+  async function handleSnapshot() {
+    if (p.anyLoading || alreadySaved) return
+    setSnapping(true)
+    try {
+      await saveMutation.mutateAsync({
+        month:           currentMonth,
+        net_worth:       p.totalVal,
+        invested:        p.totalInv,
+        actual_invested: p.totalActual,
+      })
+      showToast(`Snapshot saved for ${new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}`, 'success')
+    } catch {
+      showToast('Failed to save snapshot', 'error')
+    } finally {
+      setSnapping(false)
+    }
+  }
+
   const isUp   = p.totalPos
   const date   = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
 
@@ -163,14 +190,30 @@ export default function DashboardPage() {
                 </p>
                 <h1 className="text-[17px] font-bold text-white/90">{greeting()}, {firstName} 👋</h1>
               </div>
-              {p.anyLoading
-                ? <div className="w-24 h-8 rounded-full bg-white/10 animate-pulse" />
-                : <div className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-bold ${
+              <div className="flex items-center gap-2">
+                {!p.anyLoading && (
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold ${
                     isUp ? 'bg-white/15 text-white' : 'bg-red-500/20 text-red-200'}`}>
                     <span>{isUp ? '▲' : '▼'}</span>
                     <span>{isUp ? '+' : ''}{p.totalGainPct.toFixed(1)}%</span>
                   </div>
-              }
+                )}
+                <button
+                  onClick={handleSnapshot}
+                  disabled={p.anyLoading || snapping || alreadySaved}
+                  title={alreadySaved ? `Already saved for ${new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}` : 'Save monthly snapshot'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold
+                             bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {snapping
+                    ? <><span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin" /><span>Saving…</span></>
+                    : alreadySaved
+                      ? <><span>✓</span><span className="hidden sm:inline">Saved</span></>
+                      : <><span>📸</span><span className="hidden sm:inline">Snapshot</span></>
+                  }
+                </button>
+              </div>
             </div>
 
             {/* net worth */}

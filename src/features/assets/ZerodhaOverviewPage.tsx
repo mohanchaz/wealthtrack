@@ -105,8 +105,10 @@ export default function ZerodhaOverviewPage() {
   const anyLoading = l1 || l2 || l3
   const { gain: totalGain, gainPct: totalGainPct, isPositive: totalPos } = calcGain(totalVal, totalInv)
 
+  // HAS TABLE → use sum only (0 if no entries; never fall back to book)
+  // Zerodha Gold → excluded (price-based, not cash-in tracking)
   const hasActual = (stocksActualTotal ?? 0) > 0 || (mfsActualTotal ?? 0) > 0
-  const totalActual = (stocksActualTotal ?? stocksInv) + (mfsActualTotal ?? mfsInv) + goldInv
+  const totalActual = (stocksActualTotal ?? 0) + (mfsActualTotal ?? 0)
   const { gain: actGain, gainPct: actGainPct, isPositive: actPos } = calcGain(totalVal, totalActual)
 
   const liveTag = (sf || mf || gf) ? '🔄 Fetching…'

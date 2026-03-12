@@ -7,6 +7,7 @@ import LoginPage        from './features/auth/LoginPage'
 import DashboardPage    from './features/dashboard/DashboardPage'
 import AllocationPage   from './features/allocation/AllocationPage'
 import AssetsPage       from './features/assets/AssetsPage'
+import AnalyticsPage    from './features/analytics/AnalyticsPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const user    = useAuthStore(s => s.user)
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/allocation"         element={<AllocationPage />} />
           <Route path="/assets/:assetClass" element={<AssetsPage />} />
           <Route path="/assets"             element={<Navigate to="/assets/overview" replace />} />
+          <Route path="/analytics"           element={<AnalyticsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

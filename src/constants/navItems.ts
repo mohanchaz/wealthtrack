@@ -9,6 +9,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard',  label: 'Dashboard',       icon: '◈', path: '/dashboard' },
   { id: 'allocation', label: 'Allocation', icon: '◎', path: '/allocation' },
+  { id: 'analytics',  label: 'Analytics',  icon: '📈', path: '/analytics'  },
   {
     id: 'assets', label: 'Assets', icon: '⬡', path: '/assets/overview',
     children: [
