@@ -83,48 +83,8 @@ function MetricChip({ icon, label, value, sub, color }: {
       </div>
       {sub && <div className="text-[11px] text-[#767676] mt-0.5">{sub}</div>}
     </div>
-
-      {/* ── In-app snapshot confirm modal ─────────────────── */}
-      {confirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setConfirmOpen(false)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.18)] w-full max-w-sm p-6 animate-fade-up"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[#F5F4F0] flex items-center justify-center text-xl">📸</div>
-              <div>
-                <h3 className="text-[15px] font-black text-[#1A1A1A]">Update snapshot?</h3>
-                <p className="text-[11px] text-[#767676] mt-0.5">A snapshot for {monthName} already exists</p>
-              </div>
-            </div>
-            <p className="text-[13px] text-[#3D3D3D] leading-relaxed mb-5">
-              This will overwrite the existing snapshot with your current net worth, invested, and actual invested amounts.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setConfirmOpen(false)}
-                className="flex-1 h-10 rounded-xl border border-[#E0DDD6] bg-[#F5F4F0] text-[#767676] text-[13px] font-semibold hover:bg-[#EFEDE8] transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={doSnapshot}
-                className="flex-1 h-10 rounded-xl bg-[#1A1A1A] text-white text-[13px] font-bold hover:bg-[#333] transition-all shadow-[0_4px_14px_rgba(0,0,0,0.15)] active:scale-[0.98]"
-              >
-                Yes, update it
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
   )
 }
-
 
 // ── Category row ───────────────────────────────────────────────
 function CategoryRow({ label, inv, val, color, total, path }: {
