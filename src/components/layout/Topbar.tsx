@@ -30,13 +30,13 @@ export function Topbar({ onMenuClick }: Props) {
   const go = (path: string) => { setOpen(false); navigate(path) }
 
   return (
-    <header className="h-14 shrink-0 flex items-center justify-between px-5 sticky top-0 z-40" style={{ background: 'linear-gradient(135deg, #0D4F4A 0%, #0F766E 55%, #14B8A6 100%)' }}>
+    <header className="h-14 shrink-0 flex items-center justify-between px-5 border-b border-border bg-surface sticky top-0 z-40">
       {/* Left */}
       <div className="flex items-center gap-3">
         {onMenuClick && (
           <button
             onClick={onMenuClick}
-            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-xl text-white/70 hover:bg-white/10 transition-colors"
+            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-xl text-textmut hover:bg-surface2 hover:text-textprim transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
@@ -46,33 +46,33 @@ export function Topbar({ onMenuClick }: Props) {
           </button>
         )}
         <button onClick={() => navigate('/dashboard')} className="flex items-center hover:opacity-80 transition-opacity">
-          <INFolioLogo variant="hero" height={32} />
+          <INFolioLogo variant="light" height={32} />
         </button>
       </div>
 
       {/* Right */}
       <div className="flex items-center gap-3">
-        <span className="text-sm text-white/60 hidden sm:inline">
-          Hi, <span className="font-semibold text-white">{firstName}</span>
+        <span className="text-sm text-textmut hidden sm:inline">
+          Hi, <span className="font-semibold text-textprim">{firstName}</span>
         </span>
 
         {/* Profile button */}
         <div className="relative" ref={dropRef}>
           <button
             onClick={() => setOpen(o => !o)}
-            className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-surface2 transition-colors"
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt={firstName}
-                className="w-8 h-8 rounded-full ring-2 ring-white/20 object-cover" />
+                className="w-8 h-8 rounded-full ring-2 ring-border object-cover" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold text-white shadow-card">
+              <div className="w-8 h-8 rounded-full bg-ink flex items-center justify-center text-xs font-bold text-chalk shadow-card">
                 {getInitials(fullName || 'U')}
               </div>
             )}
             <svg
               width="12" height="12" viewBox="0 0 12 12"
-              className={`text-white/60 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+              className={`text-textmut transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
             >
               <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
