@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '../../store/authStore'
+import { INFolioLogo } from '../../components/INFolioLogo'
 import {
   AreaChart, Area, BarChart, Bar, Cell,
   ResponsiveContainer, XAxis, CartesianGrid,
@@ -311,9 +312,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-10">
-            <div className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm font-bold border border-white/15">
-              <span className="opacity-60">₹</span><span>WealthTrack</span>
-            </div>
+            <INFolioLogo variant="hero" height={32} />
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold"
               style={{ background: '#0F766E33', color: '#99F6E4', border: '1px solid #0F766E55' }}>
               <span className="w-1.5 h-1.5 rounded-full bg-[#99F6E4] animate-pulse" />
@@ -371,8 +370,8 @@ export default function LoginPage() {
       {/* ── RIGHT PANEL ────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#F5F4F0]">
 
-        <div className="lg:hidden flex items-center gap-2 bg-[#1A1A1A] text-white px-5 py-2.5 rounded-full text-sm font-bold mb-10 shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
-          <span className="opacity-60">₹</span><span>WealthTrack</span>
+        <div className="lg:hidden flex items-center justify-center mb-10">
+          <INFolioLogo variant="light" height={30} />
         </div>
 
         <div className="w-full max-w-[380px] animate-fade-up">

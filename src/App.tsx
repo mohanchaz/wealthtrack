@@ -3,6 +3,7 @@ import { useAuthStore } from './store/authStore'
 import { AppShell }     from './components/layout/AppShell'
 import { ToastContainer } from './components/ui/Toast'
 import { PageSpinner }  from './components/ui/Spinner'
+import { INFolioLogo }  from './components/INFolioLogo'
 import LoginPage        from './features/auth/LoginPage'
 import DashboardPage    from './features/dashboard/DashboardPage'
 import AllocationPage   from './features/allocation/AllocationPage'
@@ -18,10 +19,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2 bg-ink text-chalk px-4 py-2 rounded-full text-sm font-bold shadow-card">
-            <span className="opacity-60">₹</span>
-            <span>WealthTrack</span>
-          </div>
+          <INFolioLogo variant="light" height={32} />
           <PageSpinner />
         </div>
       </div>

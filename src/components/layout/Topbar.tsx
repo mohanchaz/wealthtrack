@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { getInitials } from '../../lib/utils'
+import { INFolioLogo } from '../INFolioLogo'
 
 interface Props { onMenuClick?: () => void }
 
@@ -44,10 +45,9 @@ export function Topbar({ onMenuClick }: Props) {
             </svg>
           </button>
         )}
-        <div className="flex items-center gap-1.5 bg-ink text-chalk px-3 py-1.5 rounded-full text-xs font-bold tracking-tight shadow-card">
-          <span className="opacity-70">₹</span>
-          <span>WealthTrack</span>
-        </div>
+        <div className="flex items-center">
+            <INFolioLogo variant="light" height={28} />
+          </div>
       </div>
 
       {/* Right */}
@@ -129,7 +129,7 @@ export function Topbar({ onMenuClick }: Props) {
               {/* Footer */}
               <div className="px-4 py-2 border-t border-border bg-surface2">
                 <p className="text-[9px] text-textmut">
-                  © {new Date().getFullYear()} <span className="font-semibold">Chaz Tech Ltd.</span> · WealthTrack v2
+                  © {new Date().getFullYear()} <span className="font-semibold">Chaz Tech Ltd.</span> · INFolio
                 </p>
               </div>
             </div>

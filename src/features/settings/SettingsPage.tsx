@@ -99,7 +99,7 @@ export default function SettingsPage() {
 
       {/* About */}
       <Section title="About">
-        <Row icon="₹" label="WealthTrack v2" sub="Personal portfolio tracker for India" />
+        <Row icon="📊" label="INFolio" sub="Personal portfolio tracker for India" />
         <Row icon="🏢" label="Developed by Chaz Tech Ltd." sub="© 2026 All rights reserved" />
         <Row icon="🔒" label="Privacy" sub="Auth-only cookies · No tracking · No ads" />
       </Section>
