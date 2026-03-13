@@ -23,5 +23,5 @@ export async function sendCSVByEmail(
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error ?? 'Failed to send email')
+  if (!res.ok) throw new Error(data.error ?? data.message ?? `Edge function error (${res.status})`)
 }

@@ -115,20 +115,19 @@ export default function SettingsPage() {
 
   // ── Delete modal ──────────────────────────────────────────────────────────
   // Email export state
-  const [emailAddr, setEmailAddr] = useState('')
   const [emailing,  setEmailing]  = useState(false)
   const [emailErr,  setEmailErr]  = useState('')
   const [emailSent, setEmailSent] = useState(false)
 
   const handleSendEmail = async () => {
-    if (!user || !emailAddr.trim()) return
+    if (!user) return
     setEmailing(true); setEmailErr(''); setEmailSent(false)
     try {
       await sendCSVByEmail(
         user.id,
         user.email ?? '',
         user.user_metadata?.full_name ?? user.email ?? '',
-        emailAddr.trim(),
+        user.email ?? '',
       )
       setEmailSent(true)
       setTimeout(() => setEmailSent(false), 4000)
@@ -241,37 +240,26 @@ export default function SettingsPage() {
 
       {/* Email export */}
       <Section title="Email Backup">
-        <div className="px-4 py-3.5">
-          <div className="flex items-center gap-3.5 mb-3">
-            <span className="w-8 h-8 rounded-xl bg-surface2 flex items-center justify-center text-base shrink-0">✉️</span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold text-textprim">Send CSV to email</div>
-              <div className="text-[11px] text-textmut mt-0.5">Sends a full CSV backup as an email attachment · Also runs automatically on the 1st of every month</div>
+        <div className="flex items-center gap-3.5 px-4 py-3.5">
+          <span className="w-8 h-8 rounded-xl bg-surface2 flex items-center justify-center text-base shrink-0">✉️</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-semibold text-textprim">Send CSV to my email</div>
+            <div className="text-[11px] text-textmut mt-0.5">
+              Sends to <span className="font-semibold text-textprim">{email}</span> · Also auto-sends on the 1st of every month
             </div>
+            {emailErr  && <p className="text-[11px] text-[#C0392B] mt-1">{emailErr}</p>}
+            {emailSent && <p className="text-[11px] text-[#1A7A3C] mt-1">✓ Sent! Check your inbox.</p>}
           </div>
-          <div className="flex gap-2 ml-11">
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={emailAddr}
-              onChange={e => { setEmailAddr(e.target.value); setEmailErr(''); setEmailSent(false) }}
-              className="flex-1 h-9 px-3 rounded-xl border border-border bg-surface2 text-[12px] text-textprim placeholder:text-textmut focus:outline-none focus:ring-2 focus:ring-[#0F766E]/30 focus:border-[#0F766E] transition-all"
-            />
-            <button
-              onClick={handleSendEmail}
-              disabled={emailing || !emailAddr.trim()}
-              className="h-9 px-4 rounded-xl bg-[#0F766E] text-white text-[12px] font-bold hover:bg-[#0D4F4A] transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
-            >
-              {emailing
-                ? <><span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Sending…</>
-                : emailSent
-                  ? <>✓ Sent!</>
-                  : <>📨 Send</>
-              }
-            </button>
-          </div>
-          {emailErr  && <p className="text-[11px] text-[#C0392B] mt-2 ml-11">{emailErr}</p>}
-          {emailSent && <p className="text-[11px] text-[#1A7A3C] mt-2 ml-11">✓ Backup sent successfully! Check your inbox.</p>}
+          <button
+            onClick={handleSendEmail}
+            disabled={emailing}
+            className="h-9 px-4 rounded-xl bg-[#0F766E] text-white text-[12px] font-bold hover:bg-[#0D4F4A] transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+          >
+            {emailing
+              ? <><span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Sending…</>
+              : emailSent ? <>✓ Sent!</> : <>📨 Send now</>
+            }
+          </button>
         </div>
       </Section>
 
