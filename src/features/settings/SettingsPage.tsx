@@ -6,6 +6,7 @@ import {
   importFromJSON, importFromCSV, readFileAsText,
   type ExportBundle, type ImportResult,
 } from '../../services/dataPortService'
+import { sendCSVByEmail } from '../../services/emailExportService'
 import { useQueryClient } from '@tanstack/react-query'
 import { getInitials } from '../../lib/utils'
 
@@ -113,6 +114,31 @@ export default function SettingsPage() {
   const [importResults, setImportResults]     = useState<ImportResult[] | null>(null)
 
   // ── Delete modal ──────────────────────────────────────────────────────────
+  // Email export state
+  const [emailAddr, setEmailAddr] = useState('')
+  const [emailing,  setEmailing]  = useState(false)
+  const [emailErr,  setEmailErr]  = useState('')
+  const [emailSent, setEmailSent] = useState(false)
+
+  const handleSendEmail = async () => {
+    if (!user || !emailAddr.trim()) return
+    setEmailing(true); setEmailErr(''); setEmailSent(false)
+    try {
+      await sendCSVByEmail(
+        user.id,
+        user.email ?? '',
+        user.user_metadata?.full_name ?? user.email ?? '',
+        emailAddr.trim(),
+      )
+      setEmailSent(true)
+      setTimeout(() => setEmailSent(false), 4000)
+    } catch (e: any) {
+      setEmailErr(e.message ?? 'Failed to send')
+    } finally {
+      setEmailing(false)
+    }
+  }
+
   const [confirmOpen, setConfirm] = useState(false)
   const [deleting, setDeleting]   = useState(false)
   const [delError, setDelError]   = useState('')
@@ -211,6 +237,42 @@ export default function SettingsPage() {
       <Section title="Data">
         <Row icon="📤" label="Export data" sub="Download a full backup of all your portfolio data" onClick={() => { setExportDone(false); setExportErr(''); setExportOpen(true) }} />
         <Row icon="📥" label="Import & restore" sub="Restore from a previously exported JSON or CSV backup" onClick={() => { setPendingFile(null); setImportErr(''); setImportOpen(true) }} />
+      </Section>
+
+      {/* Email export */}
+      <Section title="Email Backup">
+        <div className="px-4 py-3.5">
+          <div className="flex items-center gap-3.5 mb-3">
+            <span className="w-8 h-8 rounded-xl bg-surface2 flex items-center justify-center text-base shrink-0">✉️</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-semibold text-textprim">Send CSV to email</div>
+              <div className="text-[11px] text-textmut mt-0.5">Sends a full CSV backup as an email attachment · Also runs automatically on the 1st of every month</div>
+            </div>
+          </div>
+          <div className="flex gap-2 ml-11">
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={emailAddr}
+              onChange={e => { setEmailAddr(e.target.value); setEmailErr(''); setEmailSent(false) }}
+              className="flex-1 h-9 px-3 rounded-xl border border-border bg-surface2 text-[12px] text-textprim placeholder:text-textmut focus:outline-none focus:ring-2 focus:ring-[#0F766E]/30 focus:border-[#0F766E] transition-all"
+            />
+            <button
+              onClick={handleSendEmail}
+              disabled={emailing || !emailAddr.trim()}
+              className="h-9 px-4 rounded-xl bg-[#0F766E] text-white text-[12px] font-bold hover:bg-[#0D4F4A] transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+            >
+              {emailing
+                ? <><span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Sending…</>
+                : emailSent
+                  ? <>✓ Sent!</>
+                  : <>📨 Send</>
+              }
+            </button>
+          </div>
+          {emailErr  && <p className="text-[11px] text-[#C0392B] mt-2 ml-11">{emailErr}</p>}
+          {emailSent && <p className="text-[11px] text-[#1A7A3C] mt-2 ml-11">✓ Backup sent successfully! Check your inbox.</p>}
+        </div>
       </Section>
 
       {/* About */}
