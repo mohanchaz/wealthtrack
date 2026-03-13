@@ -39,7 +39,7 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
           onClick={() => { navigate(item.path); setOpen(true) }}
           className={`${base} ${
             location.pathname === item.path
-              ? 'bg-ink text-chalk font-semibold shadow-card'
+              ? 'bg-[#0F766E] text-white font-semibold shadow-card'
               : isSectionActive
                 ? 'text-textprim font-semibold hover:bg-surface2'
                 : 'text-textmut hover:text-textprim hover:bg-surface2'
@@ -76,7 +76,7 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
       className={({ isActive }) => `
         ${base}
         ${isActive
-          ? 'bg-ink text-chalk font-semibold shadow-card'
+          ? 'bg-[#0F766E] text-white font-semibold shadow-card'
           : 'text-textmut hover:text-textprim hover:bg-surface2'
         }
       `}
@@ -94,7 +94,7 @@ function NavNode({ item, depth = 0, onClose }: { item: NavItem; depth?: number; 
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
-    <aside className="flex flex-col h-full bg-surface border-r border-border w-56 shrink-0">
+    <aside className="flex flex-col h-full bg-bg border-r border-border w-56 shrink-0">
       {/* Main nav — scrollable */}
       <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-0.5">
         <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-textfade">
@@ -121,7 +121,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       {/* Footer badge */}
       <div className="p-3 border-t border-border">
-        <div className="rounded-xl bg-surface2 border border-border px-3 py-2.5 text-[10px] text-textmut">
+        <div className="rounded-xl bg-surface border border-border px-3 py-2.5 text-[10px] text-textmut">
           <div className="flex items-center gap-1.5 mb-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse-dot" />
             <span className="font-semibold text-textsec">Secure &amp; Private</span>
