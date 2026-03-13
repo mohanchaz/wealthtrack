@@ -45,8 +45,9 @@ export function Topbar({ onMenuClick }: Props) {
             </svg>
           </button>
         )}
-        <div className="flex items-center">
-            <INFolioLogo variant="light" height={28} />
+        <div className="flex items-center gap-2">
+            <INFolioLogo iconOnly height={32} />
+            <span className="hidden sm:block text-sm font-bold text-ink tracking-tight">INFolio</span>
           </div>
       </div>
 
