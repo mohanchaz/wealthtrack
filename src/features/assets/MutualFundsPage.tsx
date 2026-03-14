@@ -205,7 +205,8 @@ export default function MutualFundsPage() {
 
   const cols = [
     {
-      key: 'fund_name', header: 'Fund',
+      key: 'fund_name',
+      mobilePrimary: true, header: 'Fund',
       render: (r: MfHolding) => (
         <div>
           <div className="font-semibold text-textprim text-xs">{r.fund_name}</div>
@@ -259,7 +260,8 @@ export default function MutualFundsPage() {
     { key: 'invested',
       hideOnMobile: true, header: 'Invested',  align: 'right' as const, render: (r: MfHolding) => INR(r.qty * r.avg_cost) },
     {
-      key: 'value', header: 'Cur. Value', align: 'right' as const,
+      key: 'value',
+      mobileValue: true, header: 'Cur. Value', align: 'right' as const,
       render: (r: MfHolding) => {
         const nav = getLiveNAV(r)
         const val = nav != null ? r.qty * nav : r.qty * r.avg_cost
@@ -268,7 +270,8 @@ export default function MutualFundsPage() {
       },
     },
     {
-      key: 'gain', header: 'Gain / Loss', align: 'right' as const,
+      key: 'gain',
+      mobileSubValue: true, header: 'Gain / Loss', align: 'right' as const,
       render: (r: MfHolding) => {
         const nav = getLiveNAV(r)
         const inv = r.qty * r.avg_cost

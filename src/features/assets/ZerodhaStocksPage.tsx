@@ -192,7 +192,8 @@ export default function ZerodhaStocksPage() {
 
   const cols = [
     {
-      key: 'instrument', header: 'Instrument',
+      key: 'instrument',
+      mobilePrimary: true, header: 'Instrument',
       render: (r: StockHolding) => (
         <div>
           <div className="font-bold text-textprim">{r.instrument}</div>
@@ -243,14 +244,16 @@ export default function ZerodhaStocksPage() {
     { key: 'invested',
       hideOnMobile: true, header: 'Invested',   align: 'right' as const, render: (r: StockHolding) => INR(r.qty * r.avg_cost) },
     {
-      key: 'value', header: 'Cur. Value', align: 'right' as const,
+      key: 'value',
+      mobileValue: true, header: 'Cur. Value', align: 'right' as const,
       render: (r: StockHolding) => {
         const ltp = getLTP(r)
         return <span className={`font-bold ${(ltp ?? r.avg_cost) >= r.avg_cost ? "text-green" : "text-red"}`}>{INR(ltp != null ? r.qty * ltp : r.qty * r.avg_cost)}</span>
       },
     },
     {
-      key: 'gain', header: 'Gain / Loss', align: 'right' as const,
+      key: 'gain',
+      mobileSubValue: true, header: 'Gain / Loss', align: 'right' as const,
       render: (r: StockHolding) => {
         const ltp  = getLTP(r)
         const inv  = r.qty * r.avg_cost

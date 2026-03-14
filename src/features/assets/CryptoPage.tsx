@@ -407,7 +407,8 @@ export default function CryptoPage() {
 
   const cols = [
     {
-      key: 'coin', header: 'Coin',
+      key: 'coin',
+      mobilePrimary: true, header: 'Coin',
       render: (r: CryptoHolding) => {
         const ticker  = cryptoTicker(r.yahoo_symbol)
         const rawName = priceMap[priceKey(r.yahoo_symbol)]?.name ?? null
@@ -488,7 +489,8 @@ export default function CryptoPage() {
       ),
     },
     {
-      key: 'value', header: 'Cur. Value', align: 'right' as const,
+      key: 'value',
+      mobileValue: true, header: 'Cur. Value', align: 'right' as const,
       render: (r: CryptoHolding) => {
         const ltp    = getLtpGbp(r)
         const valGbp = r.qty * (ltp ?? r.avg_price_gbp)
@@ -501,7 +503,8 @@ export default function CryptoPage() {
       },
     },
     {
-      key: 'gain', header: 'Gain / Loss', align: 'right' as const,
+      key: 'gain',
+      mobileSubValue: true, header: 'Gain / Loss', align: 'right' as const,
       render: (r: CryptoHolding) => {
         const ltp     = getLtpGbp(r)
         const valGbp  = r.qty * (ltp ?? r.avg_price_gbp)

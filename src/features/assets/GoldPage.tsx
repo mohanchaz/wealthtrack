@@ -113,7 +113,8 @@ export default function GoldPage() {
         try { await deleteMutation.mutateAsync(id); toast('Deleted', 'success') } catch (e) { toast((e as Error).message, 'error') }
   }
   const cols = [
-    { key: 'yahoo_symbol', header: 'Name', render: (r: GoldHolding) => (
+    { key: 'yahoo_symbol',
+      mobilePrimary: true, header: 'Name', render: (r: GoldHolding) => (
       <div>
         <div className="font-bold">{getName(r) ?? r.yahoo_symbol ?? '—'}</div>
         {r.yahoo_symbol && <div className="text-[10px] text-textmut font-mono">{r.yahoo_symbol}</div>}
@@ -150,8 +151,10 @@ export default function GoldPage() {
       hideOnMobile: true,      header: 'Live Price', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span> }},
     { key: 'invested',
       hideOnMobile: true, header: 'Invested',  align: 'right' as const, render: (r: GoldHolding) => INR(r.qty * r.avg_cost) },
-    { key: 'value',    header: 'Cur. Value', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); const val = ltp != null ? r.qty * ltp : r.qty * r.avg_cost; return <span className={`font-bold ${val >= r.qty * r.avg_cost ? "text-green" : "text-red"}`}>{INR(val)}</span> }},
-    { key: 'gain',     header: 'Gain / Loss', align: 'right' as const, render: (r: GoldHolding) => {
+    { key: 'value',
+      mobileValue: true,    header: 'Cur. Value', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); const val = ltp != null ? r.qty * ltp : r.qty * r.avg_cost; return <span className={`font-bold ${val >= r.qty * r.avg_cost ? "text-green" : "text-red"}`}>{INR(val)}</span> }},
+    { key: 'gain',
+      mobileSubValue: true,     header: 'Gain / Loss', align: 'right' as const, render: (r: GoldHolding) => {
       const ltp = getLTP(r); const inv = r.qty * r.avg_cost; const val = ltp != null ? r.qty * ltp : inv
       const { gain, gainPct, isPositive } = calcGain(val, inv)
       return <span className={`font-bold ${isPositive ? 'text-green' : 'text-red'}`}>{isPositive ? '+' : ''}{INR(gain)}<br /><span className="text-[10px] font-medium opacity-80">{isPositive?'+':''}{gainPct.toFixed(1)}%</span></span>

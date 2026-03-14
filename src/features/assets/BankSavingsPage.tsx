@@ -365,7 +365,8 @@ export default function BankSavingsPage() {
 
   const cols = [
     {
-      key: 'platform', header: 'Account',
+      key: 'platform',
+      mobilePrimary: true, header: 'Account',
       render: (r: BankSaving) => (
         <div>
           <div className="font-bold text-textprim">{r.platform}</div>
@@ -383,7 +384,8 @@ export default function BankSavingsPage() {
       ),
     },
     {
-      key: 'amount_gbp', header: 'Amount (£)',
+      key: 'amount_gbp',
+      mobileValue: true, header: 'Amount (£)',
       editable:   true,
       editValue:  (r: BankSaving) => Number(r.amount_gbp).toFixed(2),
       editStep:   '0.01',

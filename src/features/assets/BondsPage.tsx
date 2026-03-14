@@ -218,7 +218,8 @@ export default function BondsPage() {
 
   const cols = [
     {
-      key: 'name', header: 'Bond',
+      key: 'name',
+      mobilePrimary: true, header: 'Bond',
       render: (r: BondAsset) => {
         const type = getBondType(r.name)
         return (
@@ -242,7 +243,8 @@ export default function BondsPage() {
       },
     },
     {
-      key: 'invested', header: 'Invested',
+      key: 'invested',
+      mobileValue: true, header: 'Invested',
       editable:   true,
       editValue:  (r: BondAsset) => Number(r.invested).toFixed(2),
       editStep:   '0.01',

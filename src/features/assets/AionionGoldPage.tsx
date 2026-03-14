@@ -159,7 +159,8 @@ export default function AionionGoldPage() {
 
   const cols = [
     {
-      key: 'instrument', header: 'Instrument',
+      key: 'instrument',
+      mobilePrimary: true, header: 'Instrument',
       render: (r: AionionGoldHolding) => {
         const yahoo = resolveYahoo(r.instrument)
         return (
@@ -216,14 +217,16 @@ export default function AionionGoldPage() {
       render: (r: AionionGoldHolding) => INR(r.qty * r.avg_cost),
     },
     {
-      key: 'value', header: 'Cur. Value', align: 'right' as const,
+      key: 'value',
+      mobileValue: true, header: 'Cur. Value', align: 'right' as const,
       render: (r: AionionGoldHolding) => {
         const ltp = getLTP(r); const val = ltp != null ? r.qty * ltp : r.qty * r.avg_cost
         return <span className={`font-bold ${val >= r.qty * r.avg_cost ? 'text-green' : 'text-red'}`}>{INR(val)}</span>
       },
     },
     {
-      key: 'gain', header: 'Gain / Loss', align: 'right' as const,
+      key: 'gain',
+      mobileSubValue: true, header: 'Gain / Loss', align: 'right' as const,
       render: (r: AionionGoldHolding) => {
         const ltp = getLTP(r); const inv = r.qty * r.avg_cost; const val = ltp != null ? r.qty * ltp : inv
         const { gain, gainPct, isPositive } = calcGain(val, inv)

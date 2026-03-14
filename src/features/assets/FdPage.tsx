@@ -218,7 +218,8 @@ export default function FdPage() {
 
   const cols = [
     {
-      key: 'category', header: 'FD Details',
+      key: 'category',
+      mobilePrimary: true, header: 'FD Details',
       render: (r: FdAsset) => (
         <div>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${CAT_COLORS[r.category] ?? 'bg-textmut/10 text-textmut'}`}>
@@ -235,7 +236,8 @@ export default function FdPage() {
       ),
     },
     {
-      key: 'invested', header: 'Principal',
+      key: 'invested',
+      mobileValue: true, header: 'Principal',
       editable:   true,
       editValue:  (r: FdAsset) => Number(r.invested).toFixed(2),
       editStep:   '0.01',

@@ -229,7 +229,8 @@ export default function EfPage() {
 
   const cols = [
     {
-      key: 'category', header: 'Account / Platform',
+      key: 'category',
+      mobilePrimary: true, header: 'Account / Platform',
       render: (r: EfAsset) => (
         <div>
           {r.category
@@ -246,7 +247,8 @@ export default function EfPage() {
       ),
     },
     {
-      key: 'invested', header: 'Amount',
+      key: 'invested',
+      mobileValue: true, header: 'Amount',
       editable:   true,
       editValue:  (r: EfAsset) => Number(r.invested).toFixed(2),
       editStep:   '0.01',

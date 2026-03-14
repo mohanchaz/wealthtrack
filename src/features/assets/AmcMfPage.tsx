@@ -207,7 +207,8 @@ export default function AmcMfPage() {
 
   const cols = [
     {
-      key: 'nav_symbol', header: 'Fund',
+      key: 'nav_symbol',
+      mobilePrimary: true, header: 'Fund',
       render: (r: AmcMfHolding) => {
         const name = getName(r)
         return (
@@ -287,7 +288,8 @@ export default function AmcMfPage() {
       render: (r: AmcMfHolding) => INR(Number(r.qty) * Number(r.avg_cost)),
     },
     {
-      key: 'value', header: 'Cur. Value', align: 'right' as const,
+      key: 'value',
+      mobileValue: true, header: 'Cur. Value', align: 'right' as const,
       render: (r: AmcMfHolding) => {
         const ltp = getLTP(r)
         const val = ltp != null ? Number(r.qty) * ltp : Number(r.qty) * Number(r.avg_cost)
@@ -296,7 +298,8 @@ export default function AmcMfPage() {
       },
     },
     {
-      key: 'gain', header: 'Gain / Loss', align: 'right' as const,
+      key: 'gain',
+      mobileSubValue: true, header: 'Gain / Loss', align: 'right' as const,
       render: (r: AmcMfHolding) => {
         const ltp = getLTP(r)
         const inv = Number(r.qty) * Number(r.avg_cost)

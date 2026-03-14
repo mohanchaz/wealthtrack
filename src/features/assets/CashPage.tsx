@@ -136,7 +136,8 @@ export default function CashPage() {
 
   const cols = [
     {
-      key: 'category', header: 'Category / Account',
+      key: 'category',
+      mobilePrimary: true, header: 'Category / Account',
       render: (r: CashAsset) => (
         <div>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${CAT_COLORS[r.category] ?? 'bg-textmut/10 text-textmut'}`}>
@@ -160,7 +161,8 @@ export default function CashPage() {
       editPrefix:  '₹',
       align: 'right' as const,
       render: (r: CashAsset) => INR(r.invested) },
-    { key: 'current_value', header: 'Balance',
+    { key: 'current_value',
+      mobileValue: true, header: 'Balance',
       editable:   true,
       editValue:  (r: CashAsset) => Number(r.current_value ?? r.invested).toFixed(2),
       editStep:   '0.01',
@@ -169,7 +171,8 @@ export default function CashPage() {
         const val = Number(r.current_value ?? r.invested), inv = Number(r.invested)
         return <span className={`font-bold ${val >= inv ? 'text-green' : 'text-red'}`}>{INR(val)}</span>
       }},
-    { key: 'gain', header: 'Gain / Loss', align: 'right' as const,
+    { key: 'gain',
+      mobileSubValue: true, header: 'Gain / Loss', align: 'right' as const,
       render: (r: CashAsset) => {
         const g = Number(r.current_value ?? r.invested) - Number(r.invested)
         if (g === 0) return <span className="text-textmut text-xs">—</span>

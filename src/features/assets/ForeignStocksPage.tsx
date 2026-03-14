@@ -486,7 +486,8 @@ export default function ForeignStocksPage() {
 
   const cols = [
     {
-      key: 'symbol', header: 'Symbol',
+      key: 'symbol',
+      mobilePrimary: true, header: 'Symbol',
       render: (r: ForeignHolding) => {
         const name = getInstrumentName(r)
         return (
@@ -591,7 +592,8 @@ export default function ForeignStocksPage() {
       },
     },
     {
-      key: 'value', header: 'Cur. Value', align: 'right' as const,
+      key: 'value',
+      mobileValue: true, header: 'Cur. Value', align: 'right' as const,
       render: (r: ForeignHolding) => {
         const ltpGbp  = getLtpInGbp(r)
         const avgGbp  = getAvgInGbp(r)
@@ -617,7 +619,8 @@ export default function ForeignStocksPage() {
       },
     },
     {
-      key: 'gain', header: 'Gain / Loss', align: 'right' as const,
+      key: 'gain',
+      mobileSubValue: true, header: 'Gain / Loss', align: 'right' as const,
       render: (r: ForeignHolding) => {
         const ltpGbp  = getLtpInGbp(r)
         const avgGbp  = getAvgInGbp(r)
