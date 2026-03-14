@@ -55,6 +55,35 @@ function ChartTooltip({ active, payload, label }: any) {
   )
 }
 
+// ── Gain chart tooltip ───────────────────────────────────────────
+function GainTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  const d: SnapshotWithDerived = payload[0]?.payload
+  return (
+    <div className="bg-white border border-[#E0DDD6] rounded-xl shadow-lg p-3 text-[12px]">
+      <div className="font-bold text-[#1A1A1A] mb-1.5">{monthLabel(label)}</div>
+      <div className="flex flex-col gap-1">
+        <div className="flex justify-between gap-4">
+          <span className="text-[#767676]">Gain (Book)</span>
+          <span className={`font-bold ${d.gain >= 0 ? 'text-[#1A7A3C]' : 'text-[#C0392B]'}`}>
+            {d.gain >= 0 ? '+' : ''}{fmt(d.gain)}
+            <span className="text-[10px] ml-1 opacity-70">({d.gain_pct >= 0 ? '+' : ''}{d.gain_pct.toFixed(1)}%)</span>
+          </span>
+        </div>
+        {d.actual_invested > 0 && (
+          <div className="flex justify-between gap-4">
+            <span className="text-[#767676]">Actual Gain</span>
+            <span className={`font-bold ${d.actual_gain >= 0 ? 'text-[#7C3AED]' : 'text-[#C0392B]'}`}>
+              {d.actual_gain >= 0 ? '+' : ''}{fmt(d.actual_gain)}
+              <span className="text-[10px] ml-1 opacity-70">({d.actual_gain_pct >= 0 ? '+' : ''}{d.actual_gain_pct.toFixed(1)}%)</span>
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Add Entry Modal ──────────────────────────────────────────────
 function AddEntryModal({ existingMonths, onSave, onClose, saving }: {
   existingMonths: string[]
@@ -222,7 +251,7 @@ export default function AnalyticsPage() {
 
       {!isLoading && snapshots.length > 0 && (
         <>
-          {/* ── Chart ─────────────────────────────────────────── */}
+          {/* ── Net Worth Chart ───────────────────────────────── */}
           <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm p-5 mb-5">
             <h2 className="text-[12px] font-bold text-[#1A1A1A] uppercase tracking-widest mb-4">Net Worth Growth</h2>
             <ResponsiveContainer width="100%" height={280}>
@@ -267,6 +296,53 @@ export default function AnalyticsPage() {
                 <div className="flex items-center gap-1.5">
                   <div className="w-5 border-t-2 border-dashed border-[#D97706]" />
                   <span className="text-[10px] text-[#767676]">Actual Invested</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Gain Chart ────────────────────────────────────── */}
+          <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm p-5 mb-5">
+            <h2 className="text-[12px] font-bold text-[#1A1A1A] uppercase tracking-widest mb-1">Gain Over Time</h2>
+            <p className="text-[11px] text-[#767676] mb-4">Book gain vs actual cash gain each month</p>
+            <ResponsiveContainer width="100%" height={260}>
+              <ComposedChart data={growthRows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gainGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#1A7A3C" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#1A7A3C" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="actualGainGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#7C3AED" stopOpacity={0.12} />
+                    <stop offset="95%"  stopColor="#7C3AED" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0EEE9" />
+                <XAxis dataKey="month" tickFormatter={monthLabel}
+                  tick={{ fontSize: 10, fill: '#767676' }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={v => fmt(v)}
+                  tick={{ fontSize: 10, fill: '#767676' }} axisLine={false} tickLine={false} width={62} />
+                <Tooltip content={<GainTooltip />} />
+                <ReferenceLine y={0} stroke="#E0DDD6" strokeWidth={1} />
+                <Area type="monotone" dataKey="gain" stroke="#1A7A3C" strokeWidth={2.5}
+                  fill="url(#gainGrad)" dot={{ r: 4, fill: '#1A7A3C', strokeWidth: 0 }}
+                  activeDot={{ r: 6 }} name="Gain" />
+                {hasActual && (
+                  <Area type="monotone" dataKey="actual_gain" stroke="#7C3AED" strokeWidth={2.5}
+                    fill="url(#actualGainGrad)" dot={{ r: 4, fill: '#7C3AED', strokeWidth: 0 }}
+                    activeDot={{ r: 6 }} name="Actual Gain" />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+            <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-[#F0EEE9]">
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-[3px] rounded bg-[#1A7A3C]" />
+                <span className="text-[10px] text-[#767676]">Gain (Book)</span>
+              </div>
+              {hasActual && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-[3px] rounded bg-[#7C3AED]" />
+                  <span className="text-[10px] text-[#767676]">Actual Gain (Cash)</span>
                 </div>
               )}
             </div>
