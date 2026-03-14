@@ -241,7 +241,7 @@ export function AssetTable<T>({
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full min-w-0 overflow-hidden">
 
       {/* ── Action bars ───────────────────────────────────────── */}
       {anyChecked && !isEditing && (
@@ -267,7 +267,7 @@ export function AssetTable<T>({
       {/* ══════════════════════════════════════════════════════
           MOBILE CARD LIST  (hidden on sm+)
           ══════════════════════════════════════════════════════ */}
-      <div className="block sm:hidden">
+      <div className="block sm:hidden w-full min-w-0">
         {/* Select-all strip */}
         {hasCheckbox && (
           <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-surface2/40">
@@ -374,7 +374,7 @@ export function AssetTable<T>({
       {/* ══════════════════════════════════════════════════════
           DESKTOP TABLE  (hidden on mobile, shown on sm+)
           ══════════════════════════════════════════════════════ */}
-      <div className="hidden sm:block overflow-x-auto">
+      <div className="hidden sm:block overflow-x-auto w-full min-w-0">
         <table className="w-full min-w-[540px] text-xs border-collapse">
           <thead>
             <tr className="border-b border-border bg-surface2/60">
