@@ -8,7 +8,7 @@ export function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex flex-col h-screen bg-bg overflow-hidden">
+    <div className="flex flex-col h-screen w-screen max-w-full bg-bg overflow-hidden">
       <Topbar onMenuClick={() => setSidebarOpen(o => !o)} />
 
       <div className="flex flex-1 overflow-hidden">

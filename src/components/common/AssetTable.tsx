@@ -306,16 +306,16 @@ export function AssetTable<T>({
                 )}
 
                 {/* Primary col — name / symbol */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-2">
                   {primaryCol && (
-                    <div className="text-[13px] font-bold text-textprim leading-tight truncate">
+                    <div className="text-[13px] font-bold text-textprim leading-snug line-clamp-2">
                       {primaryCol.render(row)}
                     </div>
                   )}
                 </div>
 
                 {/* Value + subvalue stacked top-right */}
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 w-[38%] max-w-[160px]">
                   {valueCol && (
                     isRowEditing && valueCol.editable && valueCol.editValue ? (
                       <EditCell col={valueCol as Column<unknown>} value={valueCol.editValue(row)}

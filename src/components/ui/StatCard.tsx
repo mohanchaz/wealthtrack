@@ -16,13 +16,13 @@ export function StatCard({ label, value, sub, icon, accentColor = '#1A1A1A', loa
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-border bg-surface p-4 flex flex-col gap-2 shadow-card card-hover animate-fade-up"
+      className="relative overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-surface p-2.5 sm:p-4 flex flex-col gap-1 sm:gap-2 shadow-card card-hover animate-fade-up"
       style={{ animationDelay: `${delay * 0.06}s` }}
     >
       <div className="flex items-start justify-between">
-        <span className="text-[10px] font-bold text-textmut uppercase tracking-widest">{label}</span>
+        <span className="text-[9px] sm:text-[10px] font-bold text-textmut uppercase tracking-widest leading-tight">{label}</span>
         {icon && (
-          <span className="text-xs w-7 h-7 rounded-lg flex items-center justify-center font-bold bg-surface2 text-textmut">
+          <span className="hidden sm:flex text-xs w-7 h-7 rounded-lg items-center justify-center font-bold bg-surface2 text-textmut">
             {icon}
           </span>
         )}
@@ -32,7 +32,7 @@ export function StatCard({ label, value, sub, icon, accentColor = '#1A1A1A', loa
         <div className="h-8 w-36 skeleton" />
       ) : (
         <span
-          className="text-lg sm:text-2xl font-mono font-bold tabular-nums tracking-tight break-all"
+          className="text-sm sm:text-2xl font-mono font-bold tabular-nums tracking-tight leading-tight overflow-hidden"
           style={{ color: valueColor }}
         >
           {value}
@@ -40,7 +40,7 @@ export function StatCard({ label, value, sub, icon, accentColor = '#1A1A1A', loa
       )}
 
       {sub && (
-        <span className="text-xs text-textmut truncate leading-relaxed">{sub}</span>
+        <span className="text-[10px] sm:text-xs text-textmut truncate leading-relaxed">{sub}</span>
       )}
 
       {/* Bottom accent line */}
