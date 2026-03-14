@@ -155,9 +155,7 @@ export function usePortfolioTotals(): PortfolioTotals {
   // ── Actual invested hooks ────────────────────────────────────
   const actZStocks  = useActualInvested('zerodha_actual_invested')
   const actZMf      = useActualInvested('mf_actual_invested')
-  const actZGold    = useActualInvested('gold_actual_invested')
   const actAiStocks = useActualInvested('aionion_actual_invested')
-  const actAiGold   = useActualInvested('aionion_gold_actual_invested')
   const actAmcMf    = useActualInvested('amc_mf_actual_invested')
   const actFd       = useActualInvested('fd_actual_invested')
   const actEf       = useActualInvested('ef_actual_invested')
@@ -295,9 +293,9 @@ export function usePortfolioTotals(): PortfolioTotals {
   // ── Actual amounts ────────────────────────────────────────────
   const actZStocksAmt  = sumAct(actZStocks)
   const actZMfAmt      = sumAct(actZMf)
-  const actZGoldAmt    = sumAct(actZGold)
+  const actZGoldAmt    = null   // no gold_actual_invested table
   const actAiStocksAmt = sumAct(actAiStocks)
-  const actAiGoldAmt   = sumAct(actAiGold)
+  const actAiGoldAmt   = null   // no aionion_gold_actual_invested table
   const actAmcMfAmt    = sumAct(actAmcMf)
   const actFdAmt       = sumAct(actFd)
   const actEfAmt       = sumAct(actEf)

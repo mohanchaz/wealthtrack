@@ -6,9 +6,7 @@ export type ActualTable =
   | 'amc_mf_actual_invested'
   | 'zerodha_actual_invested'
   | 'aionion_actual_invested'
-  | 'aionion_gold_actual_invested'
   | 'mf_actual_invested'
-  | 'gold_actual_invested'
   // foreign_actual_invested has custom schema (gbp_amount+inr_rate) — handled in ForeignStocksPage directly
   // crypto_actual_invested has custom schema (gbp_amount+inr_rate) — handled in CryptoPage directly
 
