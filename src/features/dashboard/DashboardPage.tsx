@@ -20,30 +20,92 @@ function greeting() {
   return 'Good evening'
 }
 
-// ── Sparkline (pure SVG) ───────────────────────────────────────
-function Sparkline({ positive }: { positive: boolean }) {
-  const pts = [18,22,19,28,25,31,29,36,34,40,38,44,43,48,52,50,56,54,60,58,65,63,70,72,76,74,80,78,84,88]
+// ── Sparkline (pure SVG — driven by real snapshot data) ────────
+interface SparklineProps {
+  snapshots: { month: string; net_worth: number }[]
+  positive:  boolean
+}
+
+function Sparkline({ snapshots, positive }: SparklineProps) {
   const w = 400, h = 100
-  const min = Math.min(...pts), max = Math.max(...pts)
+  const color    = positive ? '#5EEAD4' : '#FCA5A5'
+  const fillId   = `sf-${positive ? 'pos' : 'neg'}`
+
+  // Need at least 2 data points to draw a line
+  if (snapshots.length < 2) {
+    // Fallback: flat line at mid-height with a subtle pulse feel
+    const flatY = h * 0.6
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="w-full h-full">
+        <line x1="0" y1={flatY} x2={w} y2={flatY}
+          stroke={color} strokeWidth="2" strokeOpacity="0.4"
+          strokeDasharray="6 4" />
+        <text x={w / 2} y={flatY - 8} textAnchor="middle"
+          fontSize="11" fill={color} fillOpacity="0.5">
+          Save snapshots to see your growth
+        </text>
+      </svg>
+    )
+  }
+
+  const vals  = snapshots.map(s => s.net_worth)
+  const min   = Math.min(...vals)
+  const max   = Math.max(...vals)
   const range = max - min || 1
-  const coords = pts.map((v, i) => ({
-    x: (i / (pts.length - 1)) * w,
-    y: h - ((v - min) / range) * (h * 0.85) - h * 0.05,
+
+  const coords = vals.map((v, i) => ({
+    x: (i / (vals.length - 1)) * w,
+    y: h - ((v - min) / range) * (h * 0.78) - h * 0.1,
   }))
-  const line = coords.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+
+  const line = coords.map((p, i) =>
+    `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`
+  ).join(' ')
   const area = `${line} L${w},${h} L0,${h} Z`
-  const color = positive ? '#5EEAD4' : '#FCA5A5'
-  const fillId = `sf-${positive ? 'pos' : 'neg'}`
+
+  // Month label helper for tooltip
+  const monthLabel = (m: string) => {
+    const [y, mo] = m.split('-')
+    return new Date(+y, +mo - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
+  }
+
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="w-full h-full">
       <defs>
         <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+          <stop offset="0%"   stopColor={color} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.0"  />
         </linearGradient>
       </defs>
+
+      {/* Area fill */}
       <path d={area} fill={`url(#${fillId})`} />
-      <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+      {/* Line */}
+      <path d={line} fill="none" stroke={color}
+        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+      {/* Dot + invisible hover target at each snapshot point */}
+      {coords.map((p, i) => (
+        <g key={snapshots[i].month}>
+          {/* Visible dot only on last point */}
+          {i === coords.length - 1 && (
+            <circle cx={p.x} cy={p.y} r="3.5" fill={color} />
+          )}
+          {/* Wide invisible hit area for every point */}
+          <rect
+            x={p.x - (w / vals.length) / 2}
+            y={0}
+            width={w / vals.length}
+            height={h}
+            fill="transparent"
+          >
+            <title>
+              {monthLabel(snapshots[i].month)} · {fmt(snapshots[i].net_worth)}
+            </title>
+          </rect>
+        </g>
+      ))}
     </svg>
   )
 }
@@ -240,9 +302,24 @@ export default function DashboardPage() {
               }
             </div>
 
-            {/* sparkline */}
-            <div className="h-12 w-full opacity-60 mb-4">
-              <Sparkline positive={isUp} />
+            {/* sparkline — real snapshot data */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[9px] font-semibold tracking-[0.18em] uppercase text-white/30">
+                  Net Worth Trend
+                </span>
+                {snapshots.length > 0 && (
+                  <span className="text-[9px] text-white/30">
+                    {snapshots.length} month{snapshots.length !== 1 ? 's' : ''} of data
+                  </span>
+                )}
+              </div>
+              <div className="h-12 w-full opacity-70">
+                <Sparkline
+                  snapshots={snapshots}
+                  positive={isUp}
+                />
+              </div>
             </div>
 
             {/* bottom stats */}

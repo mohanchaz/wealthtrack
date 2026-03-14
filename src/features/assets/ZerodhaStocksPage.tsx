@@ -153,6 +153,28 @@ export default function ZerodhaStocksPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
+  // ── Bulk save — called by AssetTable with array of changes ──
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(
+        changes.map(change => {
+          const existing = rows.find(r => r.id === change.id)
+          if (!existing) return Promise.resolve()
+          const qty      = typeof change.qty      === 'number' ? change.qty      : existing.qty
+          const avg_cost = typeof change.avg_cost === 'number' ? change.avg_cost : existing.avg_cost
+          return upsertMutation.mutateAsync({
+            ...existing,
+            qty,
+            avg_cost,
+            prev_qty:  existing.qty,   // record pre-edit qty for diff badge
+            user_id:   userId,
+          } as Record<string, unknown>)
+        })
+      )
+      toast(`Updated ${changes.length} holding${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const handleDelete = async (id: string) => {
         try {
       await deleteMutation.mutateAsync(id)
@@ -180,6 +202,9 @@ export default function ZerodhaStocksPage() {
     },
     {
       key: 'qty', header: 'QTY', align: 'right' as const,
+      editable:  true,
+      editValue: (r: StockHolding) => Number(r.qty),
+      editStep:  '0.001',
       render: (r: StockHolding) => {
         const qty  = Number(r.qty)
         const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
@@ -197,7 +222,14 @@ export default function ZerodhaStocksPage() {
         )
       },
     },
-    { key: 'avg_cost', header: 'Avg Cost',   align: 'right' as const, render: (r: StockHolding) => INR(r.avg_cost) },
+    {
+      key: 'avg_cost', header: 'Avg Cost', align: 'right' as const,
+      render:      (r: StockHolding) => INR(r.avg_cost),
+      editable:    true,
+      editValue:   (r: StockHolding) => Number(r.avg_cost).toFixed(2),
+      editStep:    '0.01',
+      editPrefix:  '₹',
+    },
     {
       key: 'ltp', header: 'LTP', align: 'right' as const,
       render: (r: StockHolding) => {
@@ -253,6 +285,7 @@ export default function ZerodhaStocksPage() {
           
             onEditRow={r => setEditRow({ ...r, _liveName: getName(r) } as typeof r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+            onBulkSave={handleBulkSave}
           />
         }
         actualInvested={<ActualInvestedPanel table="zerodha_actual_invested" />}

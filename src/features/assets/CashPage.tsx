@@ -115,6 +115,19 @@ export default function CashPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const invested      = typeof change.invested      === 'number' ? change.invested      : existing.invested
+        const current_value = typeof change.current_value === 'number' ? change.current_value : (existing.current_value ?? existing.invested)
+        return upsertMutation.mutateAsync({ ...existing, invested, current_value, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} account${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const stats = [
     { label: 'Total Deposited', value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Current Balance', value: INR(totalValue),    icon: '◈', accentColor: '#0d9488', loading: isLoading },
@@ -139,9 +152,17 @@ export default function CashPage() {
         </div>
       ),
     },
-    { key: 'invested',      header: 'Deposited', align: 'right' as const,
+    { key: 'invested',      header: 'Deposited',
+      editable:   true,
+      editValue:  (r: CashAsset) => Number(r.invested).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '₹', align: 'right' as const,
       render: (r: CashAsset) => INR(r.invested) },
-    { key: 'current_value', header: 'Balance',   align: 'right' as const,
+    { key: 'current_value', header: 'Balance',
+      editable:   true,
+      editValue:  (r: CashAsset) => Number(r.current_value ?? r.invested).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '₹',   align: 'right' as const,
       render: (r: CashAsset) => {
         const val = Number(r.current_value ?? r.invested), inv = Number(r.invested)
         return <span className={`font-bold ${val >= inv ? 'text-green' : 'text-red'}`}>{INR(val)}</span>
@@ -166,6 +187,7 @@ export default function CashPage() {
           emptyText="No cash entries — click + Add Entry"
           onEditRow={r => setEditRow(r)}
           onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+          onBulkSave={handleBulkSave}
         />
       </div>
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}

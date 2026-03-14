@@ -144,6 +144,19 @@ export default function AionionGoldPage() {
     } catch (e) { toast((e as Error).message, 'error') }
   }
 
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const qty      = typeof change.qty      === 'number' ? change.qty      : existing.qty
+        const avg_cost = typeof change.avg_cost === 'number' ? change.avg_cost : existing.avg_cost
+        return upsertMutation.mutateAsync({ ...existing, qty, avg_cost, prev_qty: existing.qty, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} holding${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const cols = [
     {
       key: 'instrument', header: 'Instrument',
@@ -160,7 +173,10 @@ export default function AionionGoldPage() {
       },
     },
     {
-      key: 'qty', header: 'Qty', align: 'right' as const,
+      key: 'qty', header: 'Qty',
+      editable:   true,
+      editValue:  (r: AionionGoldHolding) => Number(r.qty),
+      editStep:   '0.001', align: 'right' as const,
       render: (r: AionionGoldHolding) => (
         <div className="text-right">
           {Number(r.qty) === 0
@@ -175,7 +191,11 @@ export default function AionionGoldPage() {
       ),
     },
     {
-      key: 'avg_cost', header: 'Avg Cost', align: 'right' as const,
+      key: 'avg_cost', header: 'Avg Cost',
+      editable:   true,
+      editValue:  (r: AionionGoldHolding) => Number(r.avg_cost).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '₹', align: 'right' as const,
       render: (r: AionionGoldHolding) => INR(r.avg_cost),
     },
     {
@@ -239,6 +259,7 @@ export default function AionionGoldPage() {
               for (const id of ids) await deleteMutation.mutateAsync(id)
               toast(`Deleted ${ids.length}`, 'success')
             }}
+            onBulkSave={handleBulkSave}
           />
         }
         actualInvested={undefined}

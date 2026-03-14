@@ -195,6 +195,19 @@ export default function FdPage() {
 
   const actualGainFd   = actual && actual > 0 ? calcGain(totalMaturity, actual) : null
 
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const invested      = typeof change.invested      === 'number' ? change.invested      : existing.invested
+        const interest_rate = typeof change.interest_rate === 'number' ? change.interest_rate : existing.interest_rate
+        return upsertMutation.mutateAsync({ ...existing, invested, interest_rate, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} FD${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const stats = [
     { label: 'Principal',      value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Maturity Value', value: INR(totalMaturity), icon: '◈', accentColor: '#0d9488', loading: isLoading },
@@ -222,7 +235,11 @@ export default function FdPage() {
       ),
     },
     {
-      key: 'invested', header: 'Principal', align: 'right' as const,
+      key: 'invested', header: 'Principal',
+      editable:   true,
+      editValue:  (r: FdAsset) => Number(r.invested).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '₹', align: 'right' as const,
       render: (r: FdAsset) => (
         <div className="text-right">
           <div>{INR(r.invested)}</div>
@@ -231,7 +248,10 @@ export default function FdPage() {
       ),
     },
     {
-      key: 'interest_rate', header: 'Rate', align: 'right' as const,
+      key: 'interest_rate', header: 'Rate',
+      editable:   true,
+      editValue:  (r: FdAsset) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : ''),
+      editStep:   '0.01', align: 'right' as const,
       render: (r: FdAsset) => r.interest_rate
         ? <span className="font-semibold text-teal">{r.interest_rate.toFixed(2)}%</span>
         : <span className="text-textmut">—</span>,
@@ -283,6 +303,7 @@ export default function FdPage() {
             emptyText="No FDs yet — click + Add FD"
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+            onBulkSave={handleBulkSave}
           />
         }
         actualInvested={<ActualInvestedPanel table="fd_actual_invested" />}

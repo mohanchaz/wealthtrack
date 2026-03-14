@@ -350,6 +350,19 @@ export default function BankSavingsPage() {
     rows.filter(r => { const d = daysUntil(r.maturity_date); return d !== null && d >= 0 && d <= 90 })
   , [rows])
 
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const amount_gbp    = typeof change.amount_gbp    === 'number' ? change.amount_gbp    : existing.amount_gbp
+        const interest_rate = typeof change.interest_rate === 'number' ? change.interest_rate : existing.interest_rate
+        return upsertMutation.mutateAsync({ ...existing, amount_gbp, interest_rate, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} account${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const cols = [
     {
       key: 'platform', header: 'Account',
@@ -369,7 +382,11 @@ export default function BankSavingsPage() {
       ),
     },
     {
-      key: 'amount_gbp', header: 'Amount (£)', align: 'right' as const,
+      key: 'amount_gbp', header: 'Amount (£)',
+      editable:   true,
+      editValue:  (r: BankSaving) => Number(r.amount_gbp).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '£', align: 'right' as const,
       render: (r: BankSaving) => (
         <span className="font-bold">£{Number(r.amount_gbp).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       ),
@@ -379,7 +396,10 @@ export default function BankSavingsPage() {
       render: (r: BankSaving) => <span className="font-bold text-teal">{INR(Number(r.amount_gbp) * gbpInr)}</span>,
     },
     {
-      key: 'interest_rate', header: 'Interest', align: 'right' as const,
+      key: 'interest_rate', header: 'Interest',
+      editable:   true,
+      editValue:  (r: BankSaving) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : ''),
+      editStep:   '0.01', align: 'right' as const,
       render: (r: BankSaving) => r.interest_rate
         ? <span className="font-semibold text-green">{Number(r.interest_rate).toFixed(2)}%</span>
         : <span className="text-textmut">—</span>,
@@ -441,6 +461,7 @@ export default function BankSavingsPage() {
             emptyText="No bank accounts — click Add Account"
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+            onBulkSave={handleBulkSave}
           />
         }
         actualInvested={<BankActualPanel userId={userId} gbpInr={gbpInr} />}

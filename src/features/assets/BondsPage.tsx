@@ -195,6 +195,20 @@ export default function BondsPage() {
 
   const { gain: faceGain, gainPct: faceGainPct, isPositive: faceGainPos } = calcGain(totalFaceValue, totalInvested)
 
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const invested      = typeof change.invested      === 'number' ? change.invested      : existing.invested
+        const face_value    = typeof change.face_value    === 'number' ? change.face_value    : existing.face_value
+        const interest_rate = typeof change.interest_rate === 'number' ? change.interest_rate : existing.interest_rate
+        return upsertMutation.mutateAsync({ ...existing, invested, face_value, interest_rate, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} bond${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const stats = [
     { label: 'Invested',        value: INR(totalInvested),  icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Face Value',      value: INR(totalFaceValue), icon: '◈', accentColor: '#0d9488', loading: isLoading },
@@ -228,7 +242,11 @@ export default function BondsPage() {
       },
     },
     {
-      key: 'invested', header: 'Invested', align: 'right' as const,
+      key: 'invested', header: 'Invested',
+      editable:   true,
+      editValue:  (r: BondAsset) => Number(r.invested).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '₹', align: 'right' as const,
       render: (r: BondAsset) => (
         <div className="text-right">
           <div>{INR(r.invested)}</div>
@@ -237,13 +255,20 @@ export default function BondsPage() {
       ),
     },
     {
-      key: 'face_value', header: 'Face Value', align: 'right' as const,
+      key: 'face_value', header: 'Face Value',
+      editable:   true,
+      editValue:  (r: BondAsset) => r.face_value ? Number(r.face_value).toFixed(2) : ''),
+      editStep:   '0.01',
+      editPrefix:  '₹', align: 'right' as const,
       render: (r: BondAsset) => r.face_value
         ? <span className="font-semibold">{INR(r.face_value)}</span>
         : <span className="text-textmut">—</span>,
     },
     {
-      key: 'interest_rate', header: 'Coupon', align: 'right' as const,
+      key: 'interest_rate', header: 'Coupon',
+      editable:   true,
+      editValue:  (r: BondAsset) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : ''),
+      editStep:   '0.01', align: 'right' as const,
       render: (r: BondAsset) => r.interest_rate
         ? (
           <div className="text-right">
@@ -284,6 +309,7 @@ export default function BondsPage() {
           emptyText="No bonds — click + Add Bond"
           onEditRow={r => setEditRow(r)}
           onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+          onBulkSave={handleBulkSave}
         />
       </div>
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}

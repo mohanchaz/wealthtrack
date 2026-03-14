@@ -389,6 +389,19 @@ export default function CryptoPage() {
     [...rows].sort((a, b) => getCoinName(a).localeCompare(getCoinName(b))),
   [rows, priceMap])
 
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const qty           = typeof change.qty           === 'number' ? change.qty           : existing.qty
+        const avg_price_gbp = typeof change.avg_price_gbp === 'number' ? change.avg_price_gbp : existing.avg_price_gbp
+        return upsertMutation.mutateAsync({ ...existing, qty, avg_price_gbp, prev_qty: existing.qty, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} holding${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const cols = [
     {
       key: 'coin', header: 'Coin',
@@ -410,7 +423,10 @@ export default function CryptoPage() {
       },
     },
     {
-      key: 'qty', header: 'Qty', align: 'right' as const,
+      key: 'qty', header: 'Qty',
+      editable:   true,
+      editValue:  (r: CryptoHolding) => Number(r.qty),
+      editStep:   '0.000001', align: 'right' as const,
       render: (r: CryptoHolding) => {
         const qty  = Number(r.qty)
         const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
@@ -429,7 +445,11 @@ export default function CryptoPage() {
       },
     },
     {
-      key: 'avg_price_gbp', header: 'Avg Price', align: 'right' as const,
+      key: 'avg_price_gbp', header: 'Avg Price',
+      editable:   true,
+      editValue:  (r: CryptoHolding) => Number(r.avg_price_gbp).toFixed(4),
+      editStep:   '0.0001',
+      editPrefix:  '£', align: 'right' as const,
       render: (r: CryptoHolding) => (
         <div className="text-right">
           <div>{fmtGbp(r.avg_price_gbp)}</div>
@@ -537,6 +557,7 @@ export default function CryptoPage() {
               for (const id of ids) await deleteMutation.mutateAsync(id)
               toast(`Deleted ${ids.length}`, 'success')
             }}
+            onBulkSave={handleBulkSave}
           />
         }
         actualInvested={

@@ -206,6 +206,19 @@ export default function EfPage() {
 
   const actualGainEf = actual && actual > 0 ? calcGain(totalMaturity, actual) : null
 
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const invested      = typeof change.invested      === 'number' ? change.invested      : existing.invested
+        const interest_rate = typeof change.interest_rate === 'number' ? change.interest_rate : existing.interest_rate
+        return upsertMutation.mutateAsync({ ...existing, invested, interest_rate, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} entry${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const stats = [
     { label: 'Total Amount',    value: INR(totalInvested), icon: '₹',  accentColor: '#0891b2', loading: isLoading },
     { label: 'With Interest',   value: INR(totalMaturity), icon: '◈',  accentColor: '#0d9488', loading: isLoading },
@@ -233,7 +246,11 @@ export default function EfPage() {
       ),
     },
     {
-      key: 'invested', header: 'Amount', align: 'right' as const,
+      key: 'invested', header: 'Amount',
+      editable:   true,
+      editValue:  (r: EfAsset) => Number(r.invested).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '₹', align: 'right' as const,
       render: (r: EfAsset) => (
         <div className="text-right">
           <div>{INR(r.invested)}</div>
@@ -242,7 +259,10 @@ export default function EfPage() {
       ),
     },
     {
-      key: 'interest_rate', header: 'Rate', align: 'right' as const,
+      key: 'interest_rate', header: 'Rate',
+      editable:   true,
+      editValue:  (r: EfAsset) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : ''),
+      editStep:   '0.01', align: 'right' as const,
       render: (r: EfAsset) => r.interest_rate
         ? <span className="font-semibold text-teal">{r.interest_rate.toFixed(2)}%</span>
         : <span className="text-textmut">—</span>,
@@ -316,6 +336,7 @@ export default function EfPage() {
             emptyText="No emergency fund entries — click + Add Entry"
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+            onBulkSave={handleBulkSave}
           />
         }
         actualInvested={<ActualInvestedPanel table="ef_actual_invested" />}

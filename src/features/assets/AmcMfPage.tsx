@@ -185,6 +185,19 @@ export default function AmcMfPage() {
   }
 
 
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const qty      = typeof change.qty      === 'number' ? change.qty      : existing.qty
+        const avg_cost = typeof change.avg_cost === 'number' ? change.avg_cost : existing.avg_cost
+        return upsertMutation.mutateAsync({ ...existing, qty, avg_cost, prev_qty: existing.qty, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} fund${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const stats = [
     { label: 'Invested',        value: INR(totalInvested), icon: '₹', accentColor: '#0891b2', loading: isLoading },
     { label: 'Current Value',   value: INR(totalValue),    icon: '◈', accentColor: '#0d9488', loading: isLoading, sub: liveLabel },
@@ -216,7 +229,10 @@ export default function AmcMfPage() {
       },
     },
     {
-      key: 'qty', header: 'Units', align: 'right' as const,
+      key: 'qty', header: 'Units',
+      editable:   true,
+      editValue:  (r: AmcMfHolding) => Number(r.qty),
+      editStep:   '0.001', align: 'right' as const,
       render: (r: AmcMfHolding) => {
         const qty  = Number(r.qty)
         const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
@@ -235,7 +251,11 @@ export default function AmcMfPage() {
       },
     },
     {
-      key: 'avg_cost', header: 'Avg NAV', align: 'right' as const,
+      key: 'avg_cost', header: 'Avg NAV',
+      editable:   true,
+      editValue:  (r: AmcMfHolding) => Number(r.avg_cost).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '₹', align: 'right' as const,
       render: (r: AmcMfHolding) => INR(r.avg_cost),
     },
     {
@@ -303,6 +323,7 @@ export default function AmcMfPage() {
             emptyText="No AMC MF holdings — click + Add Fund"
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+            onBulkSave={handleBulkSave}
           />
         }
         actualInvested={<ActualInvestedPanel table="amc_mf_actual_invested" />}

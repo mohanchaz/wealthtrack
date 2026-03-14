@@ -88,11 +88,27 @@ export default function AionionStocksPage() {
     }
     catch (e) { toast((e as Error).message, 'error') }
   }
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const qty      = typeof change.qty      === 'number' ? change.qty      : existing.qty
+        const avg_cost = typeof change.avg_cost === 'number' ? change.avg_cost : existing.avg_cost
+        return upsertMutation.mutateAsync({ ...existing, qty, avg_cost, prev_qty: existing.qty, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} holding${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const cols = [
     { key: 'instrument', header: 'Instrument', render: (r: StockHolding) => (
       <div><div className="font-bold">{r.instrument}</div>{getName(r) && <div className="text-[10px] text-textmut">{getName(r)}</div>}</div>
     )},
-    { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: StockHolding) => {
+    { key: 'qty', header: 'Qty',
+      editable:   true,
+      editValue:  (r: StockHolding) => Number(r.qty),
+      editStep:   '0.001', align: 'right' as const, render: (r: StockHolding) => {
       const qty = Number(r.qty); const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
       return (
         <div className="text-right">
@@ -103,7 +119,11 @@ export default function AionionStocksPage() {
         </div>
       )
     }},
-    { key: 'avg_cost', header: 'Avg Cost',   align: 'right' as const, render: (r: StockHolding) => INR(r.avg_cost) },
+    { key: 'avg_cost', header: 'Avg Cost',
+      editable:   true,
+      editValue:  (r: StockHolding) => Number(r.avg_cost).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '₹',   align: 'right' as const, render: (r: StockHolding) => INR(r.avg_cost) },
     { key: 'ltp',      header: 'LTP',        align: 'right' as const, render: (r: StockHolding) => {
       const ltp = getLTP(r); return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span>
     }},
@@ -137,6 +157,7 @@ export default function AionionStocksPage() {
             emptyText="No holdings yet — click + Add Holding to get started"
             onEditRow={r => setEditRow(r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+            onBulkSave={handleBulkSave}
           />
         }
         actualInvested={<ActualInvestedPanel table="aionion_actual_invested" />}

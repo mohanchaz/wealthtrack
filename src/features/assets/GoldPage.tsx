@@ -96,6 +96,19 @@ export default function GoldPage() {
     }
     catch (e) { toast((e as Error).message, 'error') }
   }
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const qty      = typeof change.qty      === 'number' ? change.qty      : existing.qty
+        const avg_cost = typeof change.avg_cost === 'number' ? change.avg_cost : existing.avg_cost
+        return upsertMutation.mutateAsync({ ...existing, qty, avg_cost, prev_qty: existing.qty, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} holding${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const handleDelete = async (id: string) => {
         try { await deleteMutation.mutateAsync(id); toast('Deleted', 'success') } catch (e) { toast((e as Error).message, 'error') }
   }
@@ -106,7 +119,10 @@ export default function GoldPage() {
         {r.yahoo_symbol && <div className="text-[10px] text-textmut font-mono">{r.yahoo_symbol}</div>}
       </div>
     )},
-    { key: 'qty', header: 'Qty', align: 'right' as const, render: (r: GoldHolding) => {
+    { key: 'qty', header: 'Qty',
+      editable:   true,
+      editValue:  (r: GoldHolding) => Number(r.qty),
+      editStep:   '0.001', align: 'right' as const, render: (r: GoldHolding) => {
       const qty  = Number(r.qty)
       const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
       return (
@@ -122,7 +138,11 @@ export default function GoldPage() {
         </div>
       )
     }},
-    { key: 'avg_cost', header: 'Avg Cost',  align: 'right' as const, render: (r: GoldHolding) => INR(r.avg_cost) },
+    { key: 'avg_cost', header: 'Avg Cost',
+      editable:   true,
+      editValue:  (r: GoldHolding) => Number(r.avg_cost).toFixed(2),
+      editStep:   '0.01',
+      editPrefix:  '₹',  align: 'right' as const, render: (r: GoldHolding) => INR(r.avg_cost) },
     { key: 'ltp',      header: 'Live Price', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span> }},
     { key: 'invested', header: 'Invested',  align: 'right' as const, render: (r: GoldHolding) => INR(r.qty * r.avg_cost) },
     { key: 'value',    header: 'Cur. Value', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); const val = ltp != null ? r.qty * ltp : r.qty * r.avg_cost; return <span className={`font-bold ${val >= r.qty * r.avg_cost ? "text-green" : "text-red"}`}>{INR(val)}</span> }},
@@ -144,6 +164,7 @@ export default function GoldPage() {
         mainTable={<AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading} emptyText="No gold holdings — import from Zerodha Overview or click + Add Holding" 
             onEditRow={r => setEditRow({ ...r, _liveName: getName(r) } as typeof r)}
             onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+            onBulkSave={handleBulkSave}
           />}
       />
       {editRow !== null && <EditModal row={editRow} liveName={editRow.id ? (editRow as GoldHolding & { _liveName?: string })._liveName ?? getName(editRow as GoldHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />}

@@ -468,6 +468,19 @@ export default function ForeignStocksPage() {
     [...rows].sort((a, b) => getInstrumentName(a).localeCompare(getInstrumentName(b))),
   [rows, priceMap])
 
+  const handleBulkSave = async (changes: { id: string; [key: string]: unknown }[]) => {
+    try {
+      await Promise.all(changes.map(change => {
+        const existing = rows.find(r => r.id === change.id)
+        if (!existing) return Promise.resolve()
+        const qty       = typeof change.qty       === 'number' ? change.qty       : existing.qty
+        const avg_price = typeof change.avg_price === 'number' ? change.avg_price : existing.avg_price
+        return upsertMutation.mutateAsync({ ...existing, qty, avg_price, prev_qty: existing.qty, user_id: userId } as Record<string, unknown>)
+      }))
+      toast(`Updated ${changes.length} holding${changes.length !== 1 ? 's' : ''} ✅`, 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
+
   const cols = [
     {
       key: 'symbol', header: 'Symbol',
@@ -492,7 +505,10 @@ export default function ForeignStocksPage() {
       },
     },
     {
-      key: 'qty', header: 'Qty', align: 'right' as const,
+      key: 'qty', header: 'Qty',
+      editable:   true,
+      editValue:  (r: ForeignHolding) => Number(r.qty),
+      editStep:   '0.001', align: 'right' as const,
       render: (r: ForeignHolding) => {
         const qty  = Number(r.qty)
         const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
@@ -511,7 +527,10 @@ export default function ForeignStocksPage() {
       },
     },
     {
-      key: 'avg_price', header: 'Avg Price', align: 'right' as const,
+      key: 'avg_price', header: 'Avg Price',
+      editable:   true,
+      editValue:  (r: ForeignHolding) => Number(r.avg_price).toFixed(4),
+      editStep:   '0.0001', align: 'right' as const,
       render: (r: ForeignHolding) => {
         const avgGbp = getAvgInGbp(r)
         return (
@@ -656,6 +675,7 @@ export default function ForeignStocksPage() {
               for (const id of ids) await deleteMutation.mutateAsync(id)
               toast(`Deleted ${ids.length}`, 'success')
             }}
+            onBulkSave={handleBulkSave}
           />
         }
         actualInvested={<ForeignActualPanel userId={userId} gbpInr={gbpInr} />}
