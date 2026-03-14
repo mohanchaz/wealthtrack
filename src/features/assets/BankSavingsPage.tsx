@@ -374,7 +374,8 @@ export default function BankSavingsPage() {
       ),
     },
     {
-      key: 'account_type', header: 'Type',
+      key: 'account_type',
+      hideOnMobile: true, header: 'Type',
       render: (r: BankSaving) => (
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TYPE_COLORS[r.account_type] ?? 'bg-textmut/10 text-textmut'}`}>
           {r.account_type}
@@ -393,7 +394,8 @@ export default function BankSavingsPage() {
       ),
     },
     {
-      key: 'amount_inr', header: 'Amount (₹)', align: 'right' as const,
+      key: 'amount_inr',
+      hideOnMobile: true, header: 'Amount (₹)', align: 'right' as const,
       render: (r: BankSaving) => <span className="font-bold text-teal">{INR(Number(r.amount_gbp) * gbpInr)}</span>,
     },
     {
@@ -407,7 +409,8 @@ export default function BankSavingsPage() {
         : <span className="text-textmut">—</span>,
     },
     {
-      key: 'maturity_date', header: 'Maturity', align: 'right' as const,
+      key: 'maturity_date',
+      hideOnMobile: true, header: 'Maturity', align: 'right' as const,
       render: (r: BankSaving) => <MaturityBadge dateStr={r.maturity_date} />,
     },
   ]

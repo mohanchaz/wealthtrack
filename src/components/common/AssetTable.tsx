@@ -15,6 +15,11 @@ export interface Column<T> {
   editType?:   'number' | 'text'
   editStep?:   string
   editPrefix?: string
+
+  // ── Mobile responsiveness ─────────────────────────────────
+  // Set true on secondary columns to hide them on mobile.
+  // Desktop layout is completely unchanged.
+  hideOnMobile?: boolean
 }
 
 export type BulkChange = { id: string } & Record<string, unknown>
@@ -240,7 +245,7 @@ export function AssetTable<T>({
         </div>
       )}
 
-      <table className="w-full min-w-[540px] text-xs border-collapse">
+      <table className="w-full sm:min-w-[540px] text-xs border-collapse">
         <thead>
           <tr className="border-b border-border bg-surface2/60">
             {(onDeleteRows || hasBulkEdit) && (
@@ -264,6 +269,7 @@ export function AssetTable<T>({
                   col.align === 'right'  ? 'text-right'  : '',
                   col.align === 'center' ? 'text-center' : 'text-left',
                   col.width ?? '',
+                  col.hideOnMobile ? 'hidden sm:table-cell' : '',
                 ].join(' ')}
               >
                 {col.header}
@@ -315,6 +321,7 @@ export function AssetTable<T>({
                       col.align === 'right'  ? 'text-right font-mono tabular-nums' : '',
                       col.align === 'center' ? 'text-center' : '',
                       col.className ?? '',
+                      col.hideOnMobile ? 'hidden sm:table-cell' : '',
                     ].join(' ')}
                   >
                     {isRowEditing && col.editable && col.editValue ? (

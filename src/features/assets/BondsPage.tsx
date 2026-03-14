@@ -256,7 +256,8 @@ export default function BondsPage() {
       ),
     },
     {
-      key: 'face_value', header: 'Face Value',
+      key: 'face_value',
+      hideOnMobile: true, header: 'Face Value',
       editable:   true,
       editValue:  (r: BondAsset) => r.face_value ? Number(r.face_value).toFixed(2) : '',
       editStep:   '0.01',
@@ -282,7 +283,8 @@ export default function BondsPage() {
         : <span className="text-textmut">—</span>,
     },
     {
-      key: 'maturity_date', header: 'Matures', align: 'right' as const,
+      key: 'maturity_date',
+      hideOnMobile: true, header: 'Matures', align: 'right' as const,
       render: (r: BondAsset) => <MaturityBadge dateStr={r.maturity_date} />,
     },
   ]

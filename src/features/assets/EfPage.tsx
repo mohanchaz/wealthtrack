@@ -270,11 +270,13 @@ export default function EfPage() {
         : <span className="text-textmut">—</span>,
     },
     {
-      key: 'maturity_date', header: 'Matures', align: 'right' as const,
+      key: 'maturity_date',
+      hideOnMobile: true, header: 'Matures', align: 'right' as const,
       render: (r: EfAsset) => <MaturityBadge dateStr={r.maturity_date} />,
     },
     {
-      key: 'maturity_amount', header: 'Maturity Amt', align: 'right' as const,
+      key: 'maturity_amount',
+      hideOnMobile: true, header: 'Maturity Amt', align: 'right' as const,
       render: (r: EfAsset) => (
         <div className="text-right">
           <div className="font-bold">{r.maturity_amount ? INR(r.maturity_amount) : '—'}</div>
@@ -285,7 +287,8 @@ export default function EfPage() {
       ),
     },
     {
-      key: 'notes', header: 'Notes',
+      key: 'notes',
+      hideOnMobile: true, header: 'Notes',
       render: (r: EfAsset) => <span className="text-textmut text-xs">{r.notes || '—'}</span>,
     },
   ]

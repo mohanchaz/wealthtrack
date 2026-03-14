@@ -426,7 +426,8 @@ export default function CryptoPage() {
       },
     },
     {
-      key: 'qty', header: 'Qty',
+      key: 'qty',
+      hideOnMobile: true, header: 'Qty',
       editable:   true,
       editValue:  (r: CryptoHolding) => Number(r.qty),
       editStep:   '0.000001',
@@ -449,7 +450,8 @@ export default function CryptoPage() {
       },
     },
     {
-      key: 'avg_price_gbp', header: 'Avg Price',
+      key: 'avg_price_gbp',
+      hideOnMobile: true, header: 'Avg Price',
       editable:   true,
       editValue:  (r: CryptoHolding) => Number(r.avg_price_gbp).toFixed(4),
       editStep:   '0.0001',
@@ -462,7 +464,8 @@ export default function CryptoPage() {
       ),
     },
     {
-      key: 'ltp', header: 'Live Price', align: 'right' as const,
+      key: 'ltp',
+      hideOnMobile: true, header: 'Live Price', align: 'right' as const,
       render: (r: CryptoHolding) => {
         const ltp = getLtpGbp(r)
         if (ltp == null) return <span className="text-textmut">—</span>
@@ -478,7 +481,8 @@ export default function CryptoPage() {
       },
     },
     {
-      key: 'invested', header: 'Invested', align: 'right' as const,
+      key: 'invested',
+      hideOnMobile: true, header: 'Invested', align: 'right' as const,
       render: (r: CryptoHolding) => (
         <div className="text-right">{fmtGbp(r.qty * r.avg_price_gbp)}</div>
       ),

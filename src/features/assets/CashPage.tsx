@@ -152,7 +152,8 @@ export default function CashPage() {
         </div>
       ),
     },
-    { key: 'invested',      header: 'Deposited',
+    { key: 'invested',
+      hideOnMobile: true,      header: 'Deposited',
       editable:   true,
       editValue:  (r: CashAsset) => Number(r.invested).toFixed(2),
       editStep:   '0.01',
@@ -174,7 +175,8 @@ export default function CashPage() {
         if (g === 0) return <span className="text-textmut text-xs">—</span>
         return <span className={`text-xs font-semibold ${g > 0 ? 'text-green' : 'text-red'}`}>{g > 0 ? '+' : ''}{INR(g)}</span>
       }},
-    { key: 'notes', header: 'Notes',
+    { key: 'notes',
+      hideOnMobile: true, header: 'Notes',
       render: (r: CashAsset) => <span className="text-textmut text-xs">{r.notes || '—'}</span> },
   ]
 

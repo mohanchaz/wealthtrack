@@ -201,7 +201,8 @@ export default function ZerodhaStocksPage() {
       ),
     },
     {
-      key: 'qty', header: 'QTY', align: 'right' as const,
+      key: 'qty',
+      hideOnMobile: true, header: 'QTY', align: 'right' as const,
       editable:  true,
       editValue: (r: StockHolding) => Number(r.qty),
       editStep:  '0.001',
@@ -223,7 +224,8 @@ export default function ZerodhaStocksPage() {
       },
     },
     {
-      key: 'avg_cost', header: 'Avg Cost', align: 'right' as const,
+      key: 'avg_cost',
+      hideOnMobile: true, header: 'Avg Cost', align: 'right' as const,
       render:      (r: StockHolding) => INR(r.avg_cost),
       editable:    true,
       editValue:   (r: StockHolding) => Number(r.avg_cost).toFixed(2),
@@ -231,13 +233,15 @@ export default function ZerodhaStocksPage() {
       editPrefix:  '₹',
     },
     {
-      key: 'ltp', header: 'LTP', align: 'right' as const,
+      key: 'ltp',
+      hideOnMobile: true, header: 'LTP', align: 'right' as const,
       render: (r: StockHolding) => {
         const ltp = getLTP(r)
         return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span>
       },
     },
-    { key: 'invested', header: 'Invested',   align: 'right' as const, render: (r: StockHolding) => INR(r.qty * r.avg_cost) },
+    { key: 'invested',
+      hideOnMobile: true, header: 'Invested',   align: 'right' as const, render: (r: StockHolding) => INR(r.qty * r.avg_cost) },
     {
       key: 'value', header: 'Cur. Value', align: 'right' as const,
       render: (r: StockHolding) => {

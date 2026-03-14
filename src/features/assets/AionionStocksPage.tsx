@@ -105,7 +105,8 @@ export default function AionionStocksPage() {
     { key: 'instrument', header: 'Instrument', render: (r: StockHolding) => (
       <div><div className="font-bold">{r.instrument}</div>{getName(r) && <div className="text-[10px] text-textmut">{getName(r)}</div>}</div>
     )},
-    { key: 'qty', header: 'Qty',
+    { key: 'qty',
+      hideOnMobile: true, header: 'Qty',
       editable:   true,
       editValue:  (r: StockHolding) => Number(r.qty),
       editStep:   '0.001',
@@ -120,15 +121,18 @@ export default function AionionStocksPage() {
         </div>
       )
     }},
-    { key: 'avg_cost', header: 'Avg Cost',
+    { key: 'avg_cost',
+      hideOnMobile: true, header: 'Avg Cost',
       editable:   true,
       editValue:  (r: StockHolding) => Number(r.avg_cost).toFixed(2),
       editStep:   '0.01',
       editPrefix:  '₹',   align: 'right' as const, render: (r: StockHolding) => INR(r.avg_cost) },
-    { key: 'ltp',      header: 'LTP',        align: 'right' as const, render: (r: StockHolding) => {
+    { key: 'ltp',
+      hideOnMobile: true,      header: 'LTP',        align: 'right' as const, render: (r: StockHolding) => {
       const ltp = getLTP(r); return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span>
     }},
-    { key: 'invested', header: 'Invested',   align: 'right' as const, render: (r: StockHolding) => INR(r.qty * r.avg_cost) },
+    { key: 'invested',
+      hideOnMobile: true, header: 'Invested',   align: 'right' as const, render: (r: StockHolding) => INR(r.qty * r.avg_cost) },
     { key: 'value',    header: 'Cur. Value', align: 'right' as const, render: (r: StockHolding) => {
       const ltp = getLTP(r); const val = ltp != null ? r.qty * ltp : r.qty * r.avg_cost
       return <span className={`font-bold ${val >= r.qty * r.avg_cost ? 'text-green' : 'text-red'}`}>{INR(val)}</span>

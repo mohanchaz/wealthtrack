@@ -217,7 +217,8 @@ export default function MutualFundsPage() {
       ),
     },
     {
-      key: 'qty', header: 'UNITS',
+      key: 'qty',
+      hideOnMobile: true, header: 'UNITS',
       editable:   true,
       editValue:  (r: MfHolding) => Number(r.qty),
       editStep:   '0.001',
@@ -239,13 +240,15 @@ export default function MutualFundsPage() {
         )
       },
     },
-    { key: 'avg_cost', header: 'Avg NAV',
+    { key: 'avg_cost',
+      hideOnMobile: true, header: 'Avg NAV',
       editable:   true,
       editValue:  (r: MfHolding) => Number(r.avg_cost).toFixed(2),
       editStep:   '0.01',
       editPrefix:  '₹',   align: 'right' as const, render: (r: MfHolding) => INR(r.avg_cost) },
     {
-      key: 'ltp', header: 'Live NAV', align: 'right' as const,
+      key: 'ltp',
+      hideOnMobile: true, header: 'Live NAV', align: 'right' as const,
       render: (r: MfHolding) => {
         const nav = getLiveNAV(r)
         return nav != null
@@ -253,7 +256,8 @@ export default function MutualFundsPage() {
           : <span className="text-textfade">—</span>
       },
     },
-    { key: 'invested', header: 'Invested',  align: 'right' as const, render: (r: MfHolding) => INR(r.qty * r.avg_cost) },
+    { key: 'invested',
+      hideOnMobile: true, header: 'Invested',  align: 'right' as const, render: (r: MfHolding) => INR(r.qty * r.avg_cost) },
     {
       key: 'value', header: 'Cur. Value', align: 'right' as const,
       render: (r: MfHolding) => {

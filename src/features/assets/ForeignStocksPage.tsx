@@ -508,7 +508,8 @@ export default function ForeignStocksPage() {
       },
     },
     {
-      key: 'qty', header: 'Qty',
+      key: 'qty',
+      hideOnMobile: true, header: 'Qty',
       editable:   true,
       editValue:  (r: ForeignHolding) => Number(r.qty),
       editStep:   '0.001',
@@ -531,7 +532,8 @@ export default function ForeignStocksPage() {
       },
     },
     {
-      key: 'avg_price', header: 'Avg Price',
+      key: 'avg_price',
+      hideOnMobile: true, header: 'Avg Price',
       editable:   true,
       editValue:  (r: ForeignHolding) => Number(r.avg_price).toFixed(4),
       editStep:   '0.0001',
@@ -549,7 +551,8 @@ export default function ForeignStocksPage() {
       },
     },
     {
-      key: 'ltp', header: 'Live Price', align: 'right' as const,
+      key: 'ltp',
+      hideOnMobile: true, header: 'Live Price', align: 'right' as const,
       render: (r: ForeignHolding) => {
         const ltpGbp  = getLtpInGbp(r)
         if (ltpGbp == null) return <span className="text-textmut">—</span>
@@ -572,7 +575,8 @@ export default function ForeignStocksPage() {
       },
     },
     {
-      key: 'invested', header: 'Invested', align: 'right' as const,
+      key: 'invested',
+      hideOnMobile: true, header: 'Invested', align: 'right' as const,
       render: (r: ForeignHolding) => {
         const localVal = r.qty * r.avg_price
         const gbpVal   = r.qty * getAvgInGbp(r)

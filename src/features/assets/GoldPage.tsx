@@ -119,7 +119,8 @@ export default function GoldPage() {
         {r.yahoo_symbol && <div className="text-[10px] text-textmut font-mono">{r.yahoo_symbol}</div>}
       </div>
     )},
-    { key: 'qty', header: 'Qty',
+    { key: 'qty',
+      hideOnMobile: true, header: 'Qty',
       editable:   true,
       editValue:  (r: GoldHolding) => Number(r.qty),
       editStep:   '0.001',
@@ -139,13 +140,16 @@ export default function GoldPage() {
         </div>
       )
     }},
-    { key: 'avg_cost', header: 'Avg Cost',
+    { key: 'avg_cost',
+      hideOnMobile: true, header: 'Avg Cost',
       editable:   true,
       editValue:  (r: GoldHolding) => Number(r.avg_cost).toFixed(2),
       editStep:   '0.01',
       editPrefix:  '₹',  align: 'right' as const, render: (r: GoldHolding) => INR(r.avg_cost) },
-    { key: 'ltp',      header: 'Live Price', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span> }},
-    { key: 'invested', header: 'Invested',  align: 'right' as const, render: (r: GoldHolding) => INR(r.qty * r.avg_cost) },
+    { key: 'ltp',
+      hideOnMobile: true,      header: 'Live Price', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span> }},
+    { key: 'invested',
+      hideOnMobile: true, header: 'Invested',  align: 'right' as const, render: (r: GoldHolding) => INR(r.qty * r.avg_cost) },
     { key: 'value',    header: 'Cur. Value', align: 'right' as const, render: (r: GoldHolding) => { const ltp = getLTP(r); const val = ltp != null ? r.qty * ltp : r.qty * r.avg_cost; return <span className={`font-bold ${val >= r.qty * r.avg_cost ? "text-green" : "text-red"}`}>{INR(val)}</span> }},
     { key: 'gain',     header: 'Gain / Loss', align: 'right' as const, render: (r: GoldHolding) => {
       const ltp = getLTP(r); const inv = r.qty * r.avg_cost; const val = ltp != null ? r.qty * ltp : inv

@@ -229,7 +229,8 @@ export default function AmcMfPage() {
       },
     },
     {
-      key: 'qty', header: 'Units',
+      key: 'qty',
+      hideOnMobile: true, header: 'Units',
       editable:   true,
       editValue:  (r: AmcMfHolding) => Number(r.qty),
       editStep:   '0.001',
@@ -252,7 +253,8 @@ export default function AmcMfPage() {
       },
     },
     {
-      key: 'avg_cost', header: 'Avg NAV',
+      key: 'avg_cost',
+      hideOnMobile: true, header: 'Avg NAV',
       editable:   true,
       editValue:  (r: AmcMfHolding) => Number(r.avg_cost).toFixed(2),
       editStep:   '0.01',
@@ -261,7 +263,8 @@ export default function AmcMfPage() {
       render: (r: AmcMfHolding) => INR(r.avg_cost),
     },
     {
-      key: 'ltp', header: 'Live NAV', align: 'right' as const,
+      key: 'ltp',
+      hideOnMobile: true, header: 'Live NAV', align: 'right' as const,
       render: (r: AmcMfHolding) => {
         const ltp = getLTP(r)
         if (ltp == null) return <span className="text-textmut">—</span>
@@ -279,7 +282,8 @@ export default function AmcMfPage() {
       },
     },
     {
-      key: 'invested', header: 'Invested', align: 'right' as const,
+      key: 'invested',
+      hideOnMobile: true, header: 'Invested', align: 'right' as const,
       render: (r: AmcMfHolding) => INR(Number(r.qty) * Number(r.avg_cost)),
     },
     {

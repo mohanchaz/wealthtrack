@@ -259,11 +259,13 @@ export default function FdPage() {
         : <span className="text-textmut">—</span>,
     },
     {
-      key: 'maturity_date', header: 'Matures', align: 'right' as const,
+      key: 'maturity_date',
+      hideOnMobile: true, header: 'Matures', align: 'right' as const,
       render: (r: FdAsset) => <MaturityBadge dateStr={r.maturity_date} />,
     },
     {
-      key: 'maturity_amount', header: 'Maturity Amt', align: 'right' as const,
+      key: 'maturity_amount',
+      hideOnMobile: true, header: 'Maturity Amt', align: 'right' as const,
       render: (r: FdAsset) => (
         <div className="text-right">
           <div className="font-bold">{r.maturity_amount ? INR(r.maturity_amount) : '—'}</div>
@@ -274,7 +276,8 @@ export default function FdPage() {
       ),
     },
     {
-      key: 'notes', header: 'Notes',
+      key: 'notes',
+      hideOnMobile: true, header: 'Notes',
       render: (r: FdAsset) => <span className="text-textmut text-xs">{r.notes || '—'}</span>,
     },
   ]

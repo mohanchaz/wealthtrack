@@ -173,7 +173,8 @@ export default function AionionGoldPage() {
       },
     },
     {
-      key: 'qty', header: 'Qty',
+      key: 'qty',
+      hideOnMobile: true, header: 'Qty',
       editable:   true,
       editValue:  (r: AionionGoldHolding) => Number(r.qty),
       editStep:   '0.001',
@@ -192,7 +193,8 @@ export default function AionionGoldPage() {
       ),
     },
     {
-      key: 'avg_cost', header: 'Avg Cost',
+      key: 'avg_cost',
+      hideOnMobile: true, header: 'Avg Cost',
       editable:   true,
       editValue:  (r: AionionGoldHolding) => Number(r.avg_cost).toFixed(2),
       editStep:   '0.01',
@@ -201,14 +203,16 @@ export default function AionionGoldPage() {
       render: (r: AionionGoldHolding) => INR(r.avg_cost),
     },
     {
-      key: 'ltp', header: 'Live Price', align: 'right' as const,
+      key: 'ltp',
+      hideOnMobile: true, header: 'Live Price', align: 'right' as const,
       render: (r: AionionGoldHolding) => {
         const ltp = getLTP(r)
         return <span className="font-bold">{ltp != null ? INR(ltp) : '—'}</span>
       },
     },
     {
-      key: 'invested', header: 'Invested', align: 'right' as const,
+      key: 'invested',
+      hideOnMobile: true, header: 'Invested', align: 'right' as const,
       render: (r: AionionGoldHolding) => INR(r.qty * r.avg_cost),
     },
     {
