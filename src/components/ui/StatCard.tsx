@@ -32,7 +32,7 @@ export function StatCard({ label, value, sub, icon, accentColor = '#1A1A1A', loa
         <div className="h-8 w-36 skeleton" />
       ) : (
         <span
-          className="text-2xl font-mono font-bold tabular-nums tracking-tight"
+          className="text-lg sm:text-2xl font-mono font-bold tabular-nums tracking-tight break-all"
           style={{ color: valueColor }}
         >
           {value}
