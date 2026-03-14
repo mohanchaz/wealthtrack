@@ -386,7 +386,8 @@ export default function BankSavingsPage() {
       editable:   true,
       editValue:  (r: BankSaving) => Number(r.amount_gbp).toFixed(2),
       editStep:   '0.01',
-      editPrefix:  '£', align: 'right' as const,
+      editPrefix:  '£',
+      align: 'right' as const,
       render: (r: BankSaving) => (
         <span className="font-bold">£{Number(r.amount_gbp).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       ),
@@ -398,8 +399,9 @@ export default function BankSavingsPage() {
     {
       key: 'interest_rate', header: 'Interest',
       editable:   true,
-      editValue:  (r: BankSaving) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : ''),
-      editStep:   '0.01', align: 'right' as const,
+      editValue:  (r: BankSaving) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : '',
+      editStep:   '0.01',
+      align: 'right' as const,
       render: (r: BankSaving) => r.interest_rate
         ? <span className="font-semibold text-green">{Number(r.interest_rate).toFixed(2)}%</span>
         : <span className="text-textmut">—</span>,

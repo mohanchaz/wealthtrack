@@ -122,7 +122,8 @@ export default function GoldPage() {
     { key: 'qty', header: 'Qty',
       editable:   true,
       editValue:  (r: GoldHolding) => Number(r.qty),
-      editStep:   '0.001', align: 'right' as const, render: (r: GoldHolding) => {
+      editStep:   '0.001',
+      align: 'right' as const, render: (r: GoldHolding) => {
       const qty  = Number(r.qty)
       const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
       return (

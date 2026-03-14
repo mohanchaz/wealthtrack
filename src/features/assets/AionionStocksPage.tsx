@@ -108,7 +108,8 @@ export default function AionionStocksPage() {
     { key: 'qty', header: 'Qty',
       editable:   true,
       editValue:  (r: StockHolding) => Number(r.qty),
-      editStep:   '0.001', align: 'right' as const, render: (r: StockHolding) => {
+      editStep:   '0.001',
+      align: 'right' as const, render: (r: StockHolding) => {
       const qty = Number(r.qty); const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
       return (
         <div className="text-right">

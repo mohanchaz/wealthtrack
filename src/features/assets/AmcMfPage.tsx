@@ -232,7 +232,8 @@ export default function AmcMfPage() {
       key: 'qty', header: 'Units',
       editable:   true,
       editValue:  (r: AmcMfHolding) => Number(r.qty),
-      editStep:   '0.001', align: 'right' as const,
+      editStep:   '0.001',
+      align: 'right' as const,
       render: (r: AmcMfHolding) => {
         const qty  = Number(r.qty)
         const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
@@ -255,7 +256,8 @@ export default function AmcMfPage() {
       editable:   true,
       editValue:  (r: AmcMfHolding) => Number(r.avg_cost).toFixed(2),
       editStep:   '0.01',
-      editPrefix:  '₹', align: 'right' as const,
+      editPrefix:  '₹',
+      align: 'right' as const,
       render: (r: AmcMfHolding) => INR(r.avg_cost),
     },
     {

@@ -176,7 +176,8 @@ export default function AionionGoldPage() {
       key: 'qty', header: 'Qty',
       editable:   true,
       editValue:  (r: AionionGoldHolding) => Number(r.qty),
-      editStep:   '0.001', align: 'right' as const,
+      editStep:   '0.001',
+      align: 'right' as const,
       render: (r: AionionGoldHolding) => (
         <div className="text-right">
           {Number(r.qty) === 0
@@ -195,7 +196,8 @@ export default function AionionGoldPage() {
       editable:   true,
       editValue:  (r: AionionGoldHolding) => Number(r.avg_cost).toFixed(2),
       editStep:   '0.01',
-      editPrefix:  '₹', align: 'right' as const,
+      editPrefix:  '₹',
+      align: 'right' as const,
       render: (r: AionionGoldHolding) => INR(r.avg_cost),
     },
     {

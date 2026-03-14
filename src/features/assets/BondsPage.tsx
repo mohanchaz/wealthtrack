@@ -246,7 +246,8 @@ export default function BondsPage() {
       editable:   true,
       editValue:  (r: BondAsset) => Number(r.invested).toFixed(2),
       editStep:   '0.01',
-      editPrefix:  '₹', align: 'right' as const,
+      editPrefix:  '₹',
+      align: 'right' as const,
       render: (r: BondAsset) => (
         <div className="text-right">
           <div>{INR(r.invested)}</div>
@@ -257,9 +258,10 @@ export default function BondsPage() {
     {
       key: 'face_value', header: 'Face Value',
       editable:   true,
-      editValue:  (r: BondAsset) => r.face_value ? Number(r.face_value).toFixed(2) : ''),
+      editValue:  (r: BondAsset) => r.face_value ? Number(r.face_value).toFixed(2) : '',
       editStep:   '0.01',
-      editPrefix:  '₹', align: 'right' as const,
+      editPrefix:  '₹',
+      align: 'right' as const,
       render: (r: BondAsset) => r.face_value
         ? <span className="font-semibold">{INR(r.face_value)}</span>
         : <span className="text-textmut">—</span>,
@@ -267,8 +269,9 @@ export default function BondsPage() {
     {
       key: 'interest_rate', header: 'Coupon',
       editable:   true,
-      editValue:  (r: BondAsset) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : ''),
-      editStep:   '0.01', align: 'right' as const,
+      editValue:  (r: BondAsset) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : '',
+      editStep:   '0.01',
+      align: 'right' as const,
       render: (r: BondAsset) => r.interest_rate
         ? (
           <div className="text-right">

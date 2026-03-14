@@ -426,7 +426,8 @@ export default function CryptoPage() {
       key: 'qty', header: 'Qty',
       editable:   true,
       editValue:  (r: CryptoHolding) => Number(r.qty),
-      editStep:   '0.000001', align: 'right' as const,
+      editStep:   '0.000001',
+      align: 'right' as const,
       render: (r: CryptoHolding) => {
         const qty  = Number(r.qty)
         const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
@@ -449,7 +450,8 @@ export default function CryptoPage() {
       editable:   true,
       editValue:  (r: CryptoHolding) => Number(r.avg_price_gbp).toFixed(4),
       editStep:   '0.0001',
-      editPrefix:  '£', align: 'right' as const,
+      editPrefix:  '£',
+      align: 'right' as const,
       render: (r: CryptoHolding) => (
         <div className="text-right">
           <div>{fmtGbp(r.avg_price_gbp)}</div>

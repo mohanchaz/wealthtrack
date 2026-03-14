@@ -508,7 +508,8 @@ export default function ForeignStocksPage() {
       key: 'qty', header: 'Qty',
       editable:   true,
       editValue:  (r: ForeignHolding) => Number(r.qty),
-      editStep:   '0.001', align: 'right' as const,
+      editStep:   '0.001',
+      align: 'right' as const,
       render: (r: ForeignHolding) => {
         const qty  = Number(r.qty)
         const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
@@ -530,7 +531,8 @@ export default function ForeignStocksPage() {
       key: 'avg_price', header: 'Avg Price',
       editable:   true,
       editValue:  (r: ForeignHolding) => Number(r.avg_price).toFixed(4),
-      editStep:   '0.0001', align: 'right' as const,
+      editStep:   '0.0001',
+      align: 'right' as const,
       render: (r: ForeignHolding) => {
         const avgGbp = getAvgInGbp(r)
         return (

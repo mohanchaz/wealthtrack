@@ -250,7 +250,8 @@ export default function EfPage() {
       editable:   true,
       editValue:  (r: EfAsset) => Number(r.invested).toFixed(2),
       editStep:   '0.01',
-      editPrefix:  '₹', align: 'right' as const,
+      editPrefix:  '₹',
+      align: 'right' as const,
       render: (r: EfAsset) => (
         <div className="text-right">
           <div>{INR(r.invested)}</div>
@@ -261,8 +262,9 @@ export default function EfPage() {
     {
       key: 'interest_rate', header: 'Rate',
       editable:   true,
-      editValue:  (r: EfAsset) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : ''),
-      editStep:   '0.01', align: 'right' as const,
+      editValue:  (r: EfAsset) => r.interest_rate ? Number(r.interest_rate).toFixed(2) : '',
+      editStep:   '0.01',
+      align: 'right' as const,
       render: (r: EfAsset) => r.interest_rate
         ? <span className="font-semibold text-teal">{r.interest_rate.toFixed(2)}%</span>
         : <span className="text-textmut">—</span>,

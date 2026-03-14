@@ -220,7 +220,8 @@ export default function MutualFundsPage() {
       key: 'qty', header: 'UNITS',
       editable:   true,
       editValue:  (r: MfHolding) => Number(r.qty),
-      editStep:   '0.001', align: 'right' as const,
+      editStep:   '0.001',
+      align: 'right' as const,
       render: (r: MfHolding) => {
         const qty  = Number(r.qty)
         const diff = r.prev_qty != null ? qty - Number(r.prev_qty) : null
