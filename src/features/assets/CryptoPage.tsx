@@ -196,6 +196,9 @@ function CryptoActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number 
               <div key={e.id}
                 className={`flex items-center px-4 py-2.5 border-b border-border/40 last:border-0 hover:bg-surface2 transition-colors gap-2 ${selected.has(e.id) ? 'bg-red/5' : i % 2 === 1 ? 'bg-surface2/20' : ''}`}>
                 <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleOne(e.id)} className="w-3 h-3 rounded accent-ink cursor-pointer shrink-0" />
+                <span className="w-20 text-[10px] text-textmut font-mono shrink-0">
+                  {e.entry_date ? formatDate(e.entry_date) : '—'}
+                </span>
                 <span className="flex-1 font-mono font-bold text-xs text-textprim">{fmtGbp(Number(e.gbp_amount))}</span>
                 <span className="w-14 text-right text-[10px] text-textmut font-mono">₹{Number(e.inr_rate ?? gbpInr).toFixed(1)}</span>
                 <span className="w-18 text-right text-[11px] font-semibold">{INR(Number(e.gbp_amount) * Number(e.inr_rate ?? gbpInr))}</span>
