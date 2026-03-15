@@ -449,7 +449,7 @@ export default function DashboardPage() {
                     style={{ cursor: 'pointer' }}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[12px] font-semibold text-[#1A1A1A] truncate">{goalTitle(goal.target_amount)}</span>
+                        <span className="text-[12px] font-semibold text-[#1A1A1A] truncate">{goalTitle(goal)}</span>
                         <span className="text-[11px] font-black font-mono ml-2 shrink-0" style={{ color }}>
                           {pct.toFixed(0)}%
                         </span>
