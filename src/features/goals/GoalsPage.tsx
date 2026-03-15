@@ -450,23 +450,30 @@ function NetWorthGoalCard({ goal, currentNetWorth, snapshots, onEdit, onDelete }
 }
 
 function SummaryBar({ goals, currentNetWorth }: { goals: Goal[]; currentNetWorth: number }) {
-  const nwGoals  = goals.filter(g => g.goal_type === 'networth')
-  const invGoals = goals.filter(g => g.goal_type === 'investment')
-  const achieved = nwGoals.filter(g => currentNetWorth >= g.target_amount).length
-  const nearest  = nwGoals.filter(g => currentNetWorth < g.target_amount).sort((a, b) => a.target_amount - b.target_amount)[0]
+  const nwGoals   = goals.filter(g => g.goal_type === 'networth')
+  const invGoals  = goals.filter(g => g.goal_type === 'investment')
+  const achieved  = nwGoals.filter(g => currentNetWorth >= g.target_amount).length
+  const inProgress = nwGoals.filter(g => currentNetWorth < g.target_amount).length
+  const nearest   = nwGoals.filter(g => currentNetWorth < g.target_amount).sort((a, b) => a.target_amount - b.target_amount)[0]
+  // Best NW progress %
+  const bestPct   = nwGoals.length > 0
+    ? Math.max(...nwGoals.map(g => Math.min((currentNetWorth / g.target_amount) * 100, 100)))
+    : 0
+
+  const cards = [
+    { label: 'NW Goals',      value: nwGoals.length.toString(),                                icon: '🎯' },
+    { label: 'Invest. Goals', value: invGoals.length.toString(),                               icon: '💰' },
+    { label: 'Best Progress', value: nwGoals.length > 0 ? `${bestPct.toFixed(0)}%` : '—',     icon: '📊' },
+    { label: 'Next Target',   value: nearest ? fmt(nearest.target_amount) : achieved > 0 ? '✓ All done!' : '—', icon: '📍' },
+  ] as { label: string; value: string; icon: string }[]
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {([
-        { label: 'Net Worth Goals', value: nwGoals.length.toString(),  icon: '📈' },
-        { label: 'Invest. Goals',   value: invGoals.length.toString(), icon: '💰' },
-        { label: 'NW Achieved',     value: achieved.toString(),        icon: '🏆' },
-        { label: 'Next NW Target',  value: nearest ? fmt(nearest.target_amount) : '—', icon: '📍' },
-      ] as { label: string; value: string; icon: string }[]).map(({ label, value, icon }) => (
+      {cards.map(({ label, value, icon }) => (
         <div key={label} className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm p-4">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#767676]">{label}</span>
-            <span className="text-sm">{icon}</span>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
           </div>
           <div className="text-[20px] font-extrabold font-mono text-[#1A1A1A] leading-none">{value}</div>
         </div>
