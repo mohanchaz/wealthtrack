@@ -1,14 +1,22 @@
 /**
- * shared.ts — shared logic for both edge functions
- * - CSV builder
- * - Email HTML builder
- * - Snapshot calculator
- * - Email sender
+ * send-csv-export
+ *
+ * Two callers:
+ *   1. pg_cron (1st of every month) — body: {} — loops all users
+ *   2. Settings page button — body: { userId, userEmail, userName, recipientEmail }
+ *
+ * Both send the same email:
+ *   - Latest snapshot summary (net worth, invested, actual invested) "as of Month YYYY"
+ *   - Full CSV backup attached
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// ── Table list for CSV backup ────────────────────────────────────────────────
+const corsHeaders = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 const TABLE_DEFS = [
   { table: 'zerodha_stocks',               label: 'Zerodha Stocks' },
   { table: 'aionion_stocks',               label: 'Aionion Stocks' },
@@ -33,18 +41,17 @@ const TABLE_DEFS = [
   { table: 'bank_savings_actual_invested', label: 'Bank Savings Actual Invested' },
   { table: 'crypto_actual_invested',       label: 'Crypto Actual Invested' },
   { table: 'foreign_actual_invested',      label: 'Foreign Actual Invested' },
+  { table: 'goals',                        label: 'Goals' },
   { table: 'ideal_allocations',            label: 'Ideal Allocations' },
   { table: 'networth_snapshots',           label: 'Networth Snapshots' },
 ]
 
-// ── Formatter ────────────────────────────────────────────────────────────────
 function fmtINR(n: number): string {
   if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)}Cr`
   if (n >= 1e5) return `₹${(n / 1e5).toFixed(2)}L`
   return `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
 }
 
-// ── CSV builder ──────────────────────────────────────────────────────────────
 function buildCSV(tables: Record<string, Record<string, unknown>[]>): string {
   const sheets: string[] = []
   for (const def of TABLE_DEFS) {
@@ -66,167 +73,80 @@ function buildCSV(tables: Record<string, Record<string, unknown>[]>): string {
   return sheets.join('\n\n')
 }
 
-// ── Snapshot data type ───────────────────────────────────────────────────────
-interface SnapshotData {
-  month:          string
-  netWorth:       number
-  invested:       number
-  actualInvested: number
-  status:         'saved' | 'skipped' | 'none'
-}
-
-// ── Compute snapshot values for a user ──────────────────────────────────────
-async function computeSnapshot(
-  supabase: ReturnType<typeof createClient>,
-  userId:   string,
-  month:    string,
-): Promise<SnapshotData> {
-  const GBP_INR = 107.0
-
-  // Check if snapshot already exists
-  const { data: existing } = await supabase
-    .from('networth_snapshots')
-    .select('net_worth,invested,actual_invested')
-    .eq('user_id', userId)
-    .eq('month', month)
-    .maybeSingle()
-
-  if (existing) {
-    return {
-      month,
-      netWorth:       existing.net_worth,
-      invested:       existing.invested,
-      actualInvested: existing.actual_invested,
-      status:         'skipped',
-    }
-  }
-
-  // Fetch all asset tables
-  const [
-    { data: zStocks  = [] }, { data: aiStocks = [] },
-    { data: zMfs     = [] }, { data: amcMf    = [] },
-    { data: zGold    = [] }, { data: aiGold   = [] },
-    { data: cash     = [] }, { data: fds      = [] },
-    { data: ef       = [] }, { data: bonds    = [] },
-    { data: foreign  = [] }, { data: crypto   = [] },
-    { data: bankSav  = [] },
-  ] = await Promise.all([
-    supabase.from('zerodha_stocks').select('qty,avg_cost').eq('user_id', userId),
-    supabase.from('aionion_stocks').select('qty,avg_cost').eq('user_id', userId),
-    supabase.from('mf_holdings').select('qty,avg_cost').eq('user_id', userId),
-    supabase.from('amc_mf_holdings').select('qty,avg_cost').eq('user_id', userId),
-    supabase.from('gold_holdings').select('qty,avg_cost').eq('user_id', userId),
-    supabase.from('aionion_gold').select('qty,avg_cost').eq('user_id', userId),
-    supabase.from('cash_assets').select('invested,current_value').eq('user_id', userId),
-    supabase.from('bank_fd_assets').select('invested').eq('user_id', userId),
-    supabase.from('emergency_funds').select('invested').eq('user_id', userId),
-    supabase.from('bonds').select('invested,face_value').eq('user_id', userId),
-    supabase.from('foreign_stock_holdings').select('qty,avg_price,currency').eq('user_id', userId),
-    supabase.from('crypto_holdings').select('qty,avg_price_gbp').eq('user_id', userId),
-    supabase.from('bank_savings').select('amount_gbp').eq('user_id', userId),
-  ])
-
-  const sumQA = (rows: any[]) =>
-    rows.reduce((s: number, r: any) => s + Number(r.qty) * Number(r.avg_cost), 0)
-
-  const cashInv    = (cash    as any[]).reduce((s, r) => s + Number(r.current_value ?? r.invested), 0)
-  const fdInv      = (fds     as any[]).reduce((s, r) => s + Number(r.invested), 0)
-  const efInv      = (ef      as any[]).reduce((s, r) => s + Number(r.invested), 0)
-  const bondsInv   = (bonds   as any[]).reduce((s, r) => s + Number(r.face_value ?? r.invested), 0)
-  const foreignInv = (foreign as any[]).reduce((s, r) => {
-    const cur  = r.currency ?? 'GBP'
-    const rate = cur === 'GBX' ? GBP_INR / 100 : cur === 'USD' ? GBP_INR / 1.27 : GBP_INR
-    return s + Number(r.qty) * Number(r.avg_price) * rate
-  }, 0)
-  const cryptoInv = (crypto  as any[]).reduce((s, r) => s + Number(r.qty) * Number(r.avg_price_gbp) * GBP_INR, 0)
-  const bankInv   = (bankSav as any[]).reduce((s, r) => s + Number(r.amount_gbp) * GBP_INR, 0)
-
-  const totalInvested =
-    sumQA(zStocks as any)  + sumQA(aiStocks as any) +
-    sumQA(zMfs    as any)  + sumQA(amcMf   as any)  +
-    sumQA(zGold   as any)  + sumQA(aiGold  as any)  +
-    cashInv + fdInv + efInv + bondsInv +
-    foreignInv + cryptoInv + bankInv
-
-  if (totalInvested === 0) {
-    return { month, netWorth: 0, invested: 0, actualInvested: 0, status: 'none' }
-  }
-
-  // Fetch actual invested tables
-  const [
-    { data: actZS = [] }, { data: actZM = [] }, { data: actAI = [] },
-    { data: actAM = [] }, { data: actFD = [] }, { data: actEF = [] },
-    { data: actB  = [] }, { data: actCr = [] }, { data: actFo = [] },
-    { data: actBk = [] },
-  ] = await Promise.all([
-    supabase.from('zerodha_actual_invested').select('amount').eq('user_id', userId),
-    supabase.from('mf_actual_invested').select('amount').eq('user_id', userId),
-    supabase.from('aionion_actual_invested').select('amount').eq('user_id', userId),
-    supabase.from('amc_mf_actual_invested').select('amount').eq('user_id', userId),
-    supabase.from('fd_actual_invested').select('amount').eq('user_id', userId),
-    supabase.from('ef_actual_invested').select('amount').eq('user_id', userId),
-    supabase.from('bonds_actual_invested').select('amount').eq('user_id', userId),
-    supabase.from('crypto_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId),
-    supabase.from('foreign_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId),
-    supabase.from('bank_savings_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId),
-  ])
-
-  const sumAmt = (rows: any[]) => rows.reduce((s: number, r: any) => s + Number(r.amount), 0)
-  const sumGbp = (rows: any[]) => rows.reduce((s: number, r: any) =>
-    s + Number(r.gbp_amount) * Number(r.inr_rate ?? GBP_INR), 0)
-
-  const actualInvested =
-    sumAmt(actZS as any) + sumAmt(actZM as any) + sumAmt(actAI as any) +
-    sumAmt(actAM as any) + sumAmt(actFD as any) + sumAmt(actEF as any) +
-    sumAmt(actB  as any) + sumGbp(actCr as any) + sumGbp(actFo as any) +
-    sumGbp(actBk as any) + cashInv + bondsInv
-
-  return {
-    month,
-    netWorth:       Math.round(totalInvested),
-    invested:       Math.round(totalInvested),
-    actualInvested: Math.round(actualInvested),
-    status:         'saved',
-  }
-}
-
-// ── Save snapshot to DB ──────────────────────────────────────────────────────
-async function saveSnapshot(
-  supabase:  ReturnType<typeof createClient>,
-  userId:    string,
-  snap:      SnapshotData,
+async function processUser(
+  supabase:       ReturnType<typeof createClient>,
+  userId:         string,
+  userEmail:      string,
+  userName:       string,
+  recipientEmail: string,
+  exportDate:     string,
+  fileName:       string,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('networth_snapshots')
-    .insert({
-      user_id:         userId,
-      month:           snap.month,
-      net_worth:       snap.netWorth,
-      invested:        snap.invested,
-      actual_invested: snap.actualInvested,
-    })
-  if (error) throw new Error(error.message)
-}
-
-// ── Build + send email ───────────────────────────────────────────────────────
-async function sendEmail(params: {
-  userName:       string
-  recipientEmail: string
-  exportDate:     string
-  fileName:       string
-  csvBase64:      string
-  totalRows:      number
-  tableStats:     { label: string; rows: number }[]
-  snap:           SnapshotData | null   // null = no snapshot section
-}): Promise<void> {
   const resendApiKey = Deno.env.get('RESEND_API_KEY')!
   const resendFrom   = Deno.env.get('RESEND_FROM')!
 
-  const { userName, recipientEmail, exportDate, fileName, csvBase64, totalRows, tableStats, snap } = params
+  // ── Fetch latest snapshot ────────────────────────────────────
+  const { data: latestSnap } = await supabase
+    .from('networth_snapshots')
+    .select('month, net_worth, invested, actual_invested')
+    .eq('user_id', userId)
+    .order('month', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
-  const monthName = snap
-    ? new Date(snap.month + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
-    : ''
+  const asOfLabel = latestSnap
+    ? new Date(latestSnap.month + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }).toUpperCase()
+    : null
+
+  // ── Fetch all tables + build CSV ─────────────────────────────
+  const tables: Record<string, Record<string, unknown>[]> = {}
+  const tableStats: { label: string; rows: number }[] = []
+
+  for (const def of TABLE_DEFS) {
+    const { data } = await supabase.from(def.table).select('*').eq('user_id', userId)
+    const rows = (data ?? []) as Record<string, unknown>[]
+    tables[def.table] = rows
+    tableStats.push({ label: def.label, rows: rows.length })
+  }
+
+  const totalRows = tableStats.reduce((s, t) => s + t.rows, 0)
+  const csv       = buildCSV(tables)
+  const csvBase64 = btoa(unescape(encodeURIComponent(csv)))
+
+  // ── Build snapshot summary section ───────────────────────────
+  const snapshotSection = latestSnap ? `
+  <tr>
+    <td style="background:#ffffff;padding:0 32px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E0DDD6;border-radius:12px;overflow:hidden;">
+        <tr>
+          <td colspan="3" style="padding:12px 20px;background:#F5F4F0;border-bottom:1px solid #E0DDD6;">
+            <table width="100%"><tr>
+              <td style="font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#999;">PORTFOLIO SUMMARY</td>
+              <td align="right">
+                <span style="background:#e0f2fe;color:#0369a1;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">
+                  AS OF ${asOfLabel}
+                </span>
+              </td>
+            </tr></table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 20px;border-right:1px solid #E0DDD6;text-align:center;">
+            <div style="font-size:11px;color:#999;letter-spacing:1px;margin-bottom:4px;">NET WORTH</div>
+            <div style="font-size:20px;font-weight:900;color:#0F766E;">${fmtINR(latestSnap.net_worth)}</div>
+          </td>
+          <td style="padding:16px 20px;border-right:1px solid #E0DDD6;text-align:center;">
+            <div style="font-size:11px;color:#999;letter-spacing:1px;margin-bottom:4px;">INVESTED</div>
+            <div style="font-size:20px;font-weight:900;color:#1A1A1A;">${fmtINR(latestSnap.invested)}</div>
+          </td>
+          <td style="padding:16px 20px;text-align:center;">
+            <div style="font-size:11px;color:#999;letter-spacing:1px;margin-bottom:4px;">ACTUAL INV.</div>
+            <div style="font-size:20px;font-weight:900;color:#D97706;">${latestSnap.actual_invested > 0 ? fmtINR(latestSnap.actual_invested) : '—'}</div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>` : ''
 
   const statRows = tableStats
     .filter(t => t.rows > 0)
@@ -235,60 +155,6 @@ async function sendEmail(params: {
         <td style="padding:8px 16px;font-size:12px;color:#444;border-bottom:1px solid #f0ede8;">${t.label}</td>
         <td style="padding:8px 16px;font-size:12px;color:#0F766E;font-weight:700;text-align:right;border-bottom:1px solid #f0ede8;">${t.rows} rows</td>
       </tr>`).join('')
-
-  // Snapshot section — only shown in monthly cron email
-  const snapshotSection = snap ? `
-  <tr>
-    <td style="background:#ffffff;padding:0 32px 24px;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E0DDD6;border-radius:12px;overflow:hidden;">
-        <tr>
-          <td colspan="3" style="padding:12px 20px;background:#F5F4F0;border-bottom:1px solid #E0DDD6;">
-            <table width="100%"><tr>
-              <td style="font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#999;">
-                SNAPSHOT · ${monthName}
-              </td>
-              <td align="right">
-                ${snap.status === 'saved'
-                  ? `<span style="background:#dcfce7;color:#166534;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">✓ AUTO-SAVED</span>`
-                  : `<span style="background:#fef9c3;color:#854d0e;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">MANUAL SNAPSHOT EXISTS</span>`
-                }
-              </td>
-            </tr></table>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:16px 20px;border-right:1px solid #E0DDD6;text-align:center;">
-            <div style="font-size:11px;color:#999;letter-spacing:1px;margin-bottom:4px;">BOOK VALUE</div>
-            <div style="font-size:20px;font-weight:900;color:#0F766E;">${fmtINR(snap.netWorth)}</div>
-          </td>
-          <td style="padding:16px 20px;border-right:1px solid #E0DDD6;text-align:center;">
-            <div style="font-size:11px;color:#999;letter-spacing:1px;margin-bottom:4px;">INVESTED</div>
-            <div style="font-size:20px;font-weight:900;color:#1A1A1A;">${fmtINR(snap.invested)}</div>
-          </td>
-          <td style="padding:16px 20px;text-align:center;">
-            <div style="font-size:11px;color:#999;letter-spacing:1px;margin-bottom:4px;">ACTUAL INV.</div>
-            <div style="font-size:20px;font-weight:900;color:#D97706;">${snap.actualInvested > 0 ? fmtINR(snap.actualInvested) : '—'}</div>
-          </td>
-        </tr>
-        ${snap.status === 'saved' ? `
-        <tr>
-          <td colspan="3" style="padding:10px 20px;background:#fffbeb;border-top:1px solid #E0DDD6;">
-            <p style="margin:0;font-size:11px;color:#92400e;">
-              📸 Book-value snapshot. Open INFolio and hit <strong>Snapshot</strong> on the dashboard to update with live prices.
-            </p>
-          </td>
-        </tr>` : ''}
-      </table>
-    </td>
-  </tr>` : ''
-
-  const subject = snap
-    ? `INFolio · Monthly Report — ${monthName}`
-    : `INFolio · Portfolio Backup — ${exportDate}`
-
-  const greeting = snap
-    ? `Your monthly INFolio report is ready. A snapshot has been recorded for ${monthName} and your full portfolio backup is attached.`
-    : `Your full portfolio backup is attached as a CSV file. You can restore it anytime from Settings → Import.`
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -311,9 +177,7 @@ async function sendEmail(params: {
           </tr></table>
         </td>
         <td align="right" style="vertical-align:middle;">
-          <span style="background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:11px;color:rgba(255,255,255,0.8);letter-spacing:1px;">
-            ${snap ? 'MONTHLY REPORT' : 'BACKUP'}
-          </span>
+          <span style="background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:11px;color:rgba(255,255,255,0.8);letter-spacing:1px;">MONTHLY REPORT</span>
         </td>
       </tr></table>
     </td>
@@ -323,7 +187,9 @@ async function sendEmail(params: {
     <td style="background:#ffffff;padding:28px 32px 20px;">
       <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#999;">INFOLIO · ${exportDate}</p>
       <h1 style="margin:0;font-size:22px;font-weight:900;color:#1A1A1A;">Hi, ${userName} 👋</h1>
-      <p style="margin:8px 0 0;font-size:13px;color:#767676;line-height:1.6;">${greeting}</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#767676;line-height:1.6;">
+        Your monthly INFolio report is ready. ${asOfLabel ? `Latest portfolio summary as of ${asOfLabel} is below.` : ''} Your full backup is attached.
+      </p>
     </td>
   </tr>
 
@@ -400,9 +266,9 @@ async function sendEmail(params: {
     body: JSON.stringify({
       from:        `INFolio <${resendFrom}>`,
       to:          [recipientEmail],
-      subject,
+      subject:     `INFolio · Monthly Report — ${exportDate}`,
       html,
-      attachments: [{ filename: fileName, content: csvBase64 }],
+      attachments: csvBase64 ? [{ filename: fileName, content: csvBase64 }] : [],
     }),
   })
 
@@ -410,83 +276,62 @@ async function sendEmail(params: {
   if (!resendRes.ok) throw new Error(resendData.message ?? 'Resend API error')
 }
 
-// ── Fetch all tables + build CSV for a user ──────────────────────────────────
-async function fetchAndBuildCSV(
-  supabase: ReturnType<typeof createClient>,
-  userId:   string,
-): Promise<{ csv: string; tableStats: { label: string; rows: number }[]; totalRows: number }> {
-  const tables: Record<string, Record<string, unknown>[]> = {}
-  const tableStats: { label: string; rows: number }[] = []
-
-  for (const def of TABLE_DEFS) {
-    const { data } = await supabase.from(def.table).select('*').eq('user_id', userId)
-    const rows = (data ?? []) as Record<string, unknown>[]
-    tables[def.table] = rows
-    tableStats.push({ label: def.label, rows: rows.length })
-  }
-
-  const totalRows = tableStats.reduce((s, t) => s + t.rows, 0)
-  const csv       = buildCSV(tables)
-  return { csv, tableStats, totalRows }
-}
-
-/**
- * send-csv-export
- *
- * Triggered manually from the Settings page.
- * Sends the portfolio backup email with CSV attached.
- * Does NOT save any snapshot.
- */
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
+// ── Handler ───────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { userId, userEmail, userName, recipientEmail } = await req.json()
-
-    if (!userId || !recipientEmail) {
-      return new Response(JSON.stringify({ error: 'userId and recipientEmail are required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
     const supabaseUrl    = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase       = createClient(supabaseUrl, serviceRoleKey)
 
-    const exportDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-    const fileName   = `infolio-backup-${new Date().toISOString().slice(0, 10)}.csv`
+    const body = await req.json().catch(() => ({}))
+    const now  = new Date()
+    const exportDate = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    const fileName   = `infolio-backup-${now.toISOString().slice(0, 10)}.csv`
 
-    const { csv, tableStats, totalRows } = await fetchAndBuildCSV(supabase, userId)
-    const csvBase64 = btoa(unescape(encodeURIComponent(csv)))
+    // ── Called from Settings page (single user) ───────────────
+    if (body.userId) {
+      const { userId, userEmail, userName, recipientEmail } = body
+      if (!userId || !recipientEmail) {
+        return new Response(JSON.stringify({ error: 'userId and recipientEmail are required' }), {
+          status: 400, headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      await processUser(supabase, userId, userEmail, userName ?? userEmail, recipientEmail, exportDate, fileName)
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
 
-    await sendEmail({
-      userName:       userName || userEmail || 'there',
-      recipientEmail,
-      exportDate,
-      fileName,
-      csvBase64,
-      totalRows,
-      tableStats,
-      snap: null,  // no snapshot section in manual email
-    })
+    // ── Called from pg_cron (all users) ──────────────────────
+    const { data: users, error: usersErr } = await supabase.auth.admin.listUsers()
+    if (usersErr) throw new Error(`Failed to list users: ${usersErr.message}`)
 
-    return new Response(JSON.stringify({ success: true, rows: totalRows }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    const results = []
+    for (const user of users.users) {
+      if (!user.email) continue
+      try {
+        await processUser(supabase, user.id, user.email,
+          user.user_metadata?.full_name ?? user.email.split('@')[0] ?? 'there',
+          user.email, exportDate, fileName)
+        results.push({ userId: user.id, status: 'sent' })
+        console.log(`[send-csv-export] ✅ Sent to ${user.email}`)
+      } catch (err: any) {
+        results.push({ userId: user.id, status: 'error', error: err.message })
+        console.error(`[send-csv-export] ❌ ${user.email}:`, err.message)
+      }
+    }
+
+    const sent = results.filter(r => r.status === 'sent').length
+    return new Response(JSON.stringify({ sent, results }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
 
   } catch (err: any) {
-    console.error('send-csv-export error:', err)
+    console.error('[send-csv-export] Fatal:', err)
     return new Response(JSON.stringify({ error: err.message ?? 'Unknown error' }), {
       status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })

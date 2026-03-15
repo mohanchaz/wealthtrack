@@ -20,9 +20,11 @@ const TABLE_DEFS = [
   { table: 'aionion_actual_invested',      label: 'Aionion Actual Invested' },
   { table: 'fd_actual_invested',           label: 'FD Actual Invested' },
   { table: 'ef_actual_invested',           label: 'EF Actual Invested' },
+  { table: 'bonds_actual_invested',        label: 'Bonds Actual Invested' },
   { table: 'bank_savings_actual_invested', label: 'Bank Savings Actual Invested' },
   { table: 'crypto_actual_invested',       label: 'Crypto Actual Invested' },
   { table: 'foreign_actual_invested',      label: 'Foreign Actual Invested' },
+  { table: 'goals',                        label: 'Goals' },
   { table: 'ideal_allocations',            label: 'Ideal Allocations' },
   { table: 'networth_snapshots',           label: 'Networth Snapshots' },
 ] as const
