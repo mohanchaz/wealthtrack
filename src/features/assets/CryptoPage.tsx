@@ -54,7 +54,7 @@ function parseCryptoCsv(text: string): Omit<CryptoHolding, 'id' | 'user_id'>[] |
 }
 
 // ── Actual Invested Panel ─────────────────────────────────────
-interface CryptoActualEntry { id: string; user_id: string; entry_date: string; gbp_amount: number; inr_rate: number | null }
+interface CryptoActualEntry { id: string; user_id: string; entry_date: string; gbp_amount: number; inr_rate: number | null; created_at?: string }
 
 function CryptoActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number }) {
   const qcPanel = useQueryClient()
