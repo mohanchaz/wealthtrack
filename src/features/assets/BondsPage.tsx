@@ -5,6 +5,7 @@ import { useToastStore }      from '../../store/toastStore'
 import { PageShell }          from '../../components/common/PageShell'
 import { StatGrid }           from '../../components/common/StatGrid'
 import { AssetTable }         from '../../components/common/AssetTable'
+import { ActualInvestedPanel } from '../../components/common/ActualInvestedPanel'
 import { Modal }              from '../../components/ui/Modal'
 import { Button }             from '../../components/ui/Button'
 import { Input }              from '../../components/ui/Input'
@@ -311,6 +312,12 @@ export default function BondsPage() {
       )}
 
       <StatGrid items={stats} cols={4} />
+
+      {/* Actual Invested */}
+      <div className="card overflow-hidden mt-4">
+        <ActualInvestedPanel table="bonds_actual_invested" />
+      </div>
+
       <div className="card overflow-hidden mt-4">
         <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
           emptyText="No bonds — click + Add Bond"

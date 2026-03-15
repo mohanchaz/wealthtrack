@@ -117,6 +117,7 @@ export interface PortfolioTotals {
   actAmcMfAmt:    number | null
   actFdAmt:       number | null
   actEfAmt:       number | null
+  actBondsAmt:    number | null
   actForeignAmt:  number | null
   actCryptoAmt:   number | null
   actBankAmt:     number | null
@@ -159,6 +160,7 @@ export function usePortfolioTotals(): PortfolioTotals {
   const actAmcMf    = useActualInvested('amc_mf_actual_invested')
   const actFd       = useActualInvested('fd_actual_invested')
   const actEf       = useActualInvested('ef_actual_invested')
+  const actBonds    = useActualInvested('bonds_actual_invested')
 
   const sumAct = (hook: ReturnType<typeof useActualInvested>) => {
     if (!hook.data) return null
@@ -299,11 +301,12 @@ export function usePortfolioTotals(): PortfolioTotals {
   const actAmcMfAmt    = sumAct(actAmcMf)
   const actFdAmt       = sumAct(actFd)
   const actEfAmt       = sumAct(actEf)
+  const actBondsAmt    = sumAct(actBonds)
   const actForeignAmt  = actForeignInr > 0 ? actForeignInr : null
   const actCryptoAmt   = actCryptoInr  > 0 ? actCryptoInr  : null
   const actBankAmt     = actBankInr    > 0 ? actBankInr    : null
   const cashActual     = cashInv
-  const bondsActual    = bondsInv
+  const bondsActual    = actBondsAmt ?? bondsInv
 
   // ── Grand totals ──────────────────────────────────────────────
   const totalInv =
@@ -319,14 +322,14 @@ export function usePortfolioTotals(): PortfolioTotals {
   // ── Actual Invested Logic ────────────────────────────────────
   // HAS OWN TABLE  → use table sum (0 if no entries; never fall back to book)
   //   Zerodha Stocks, Zerodha MF, Aionion Stocks, AMC MF,
-  //   Fixed Deposits, Emergency Fund,
+  //   Fixed Deposits, Emergency Fund, Bonds,
   //   Foreign Stocks, Crypto, Bank Savings (GBP × rate)
   //
   // EXCLUDED (gold is price-based, not cash-in tracking)
   //   Zerodha Gold → 0, Aionion Gold → 0
   //
   // NO TABLE → use book invested as proxy
-  //   Cash → cashInv, Bonds → bondsInv
+  //   Cash → cashInv
   const totalActual =
     (actZStocksAmt  ?? 0) +   // zerodha_actual_invested
     (actZMfAmt      ?? 0) +   // mf_actual_invested
@@ -334,11 +337,11 @@ export function usePortfolioTotals(): PortfolioTotals {
     (actAmcMfAmt    ?? 0) +   // amc_mf_actual_invested
     (actFdAmt       ?? 0) +   // fd_actual_invested
     (actEfAmt       ?? 0) +   // ef_actual_invested
+    (actBondsAmt    ?? 0) +   // bonds_actual_invested
     (actForeignAmt  ?? 0) +   // foreign_actual_invested
     (actCryptoAmt   ?? 0) +   // crypto_actual_invested
     (actBankAmt     ?? 0) +   // bank_savings_actual_invested
-    cashInv         +          // no table — use book invested
-    bondsInv                   // no table — use book invested
+    cashInv                    // no table — use book invested
     // Zerodha Gold + Aionion Gold intentionally excluded
 
   const { gain: totalGain,  gainPct: totalGainPct,  isPositive: totalPos  } = calcGain(totalVal, totalInv)
@@ -425,7 +428,7 @@ export function usePortfolioTotals(): PortfolioTotals {
     actualGain, actualGainPct, actualPos,
     actZStocksAmt, actZMfAmt, actZGoldAmt,
     actAiStocksAmt, actAiGoldAmt, actAmcMfAmt,
-    actFdAmt, actEfAmt,
+    actFdAmt, actEfAmt, actBondsAmt,
     actForeignAmt, actCryptoAmt, actBankAmt,
     cashActual, bondsActual,
     categories, allocationBuckets,
