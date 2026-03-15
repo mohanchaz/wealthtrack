@@ -4,6 +4,8 @@ import { usePortfolioTotals } from '../../hooks/usePortfolioTotals'
 import { useAuthStore } from '../../store/authStore'
 import { useSnapshots } from '../../hooks/useSnapshots'
 import { useToastStore } from '../../store/toastStore'
+import { useGoals } from '../../hooks/useGoals'
+import { goalTitle } from '../../services/goalService'
 import { INR } from '../../lib/utils'
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -198,6 +200,7 @@ export default function DashboardPage() {
   const p = usePortfolioTotals()
 
   const { saveMutation, data: snapshots = [] } = useSnapshots()
+  const { data: goals = [] }                   = useGoals()
   const showToast = useToastStore(s => s.show)
   const [snapping, setSnapping]       = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -425,10 +428,54 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        {/* ── Goals widget ───────────────────────────────────────── */}
+        {goals.length > 0 && (
+          <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0EEE9]">
+              <h2 className="text-[12px] font-bold uppercase tracking-widest text-[#767676]">Goals</h2>
+              <button onClick={() => navigate('/goals')}
+                className="text-[11px] text-[#0F766E] font-semibold hover:underline">
+                View all →
+              </button>
+            </div>
+            <div className="divide-y divide-[#F5F4F0]">
+              {goals.slice(0, 3).map(goal => {
+                const pct  = p.totalVal > 0 ? Math.min((p.totalVal / goal.target_amount) * 100, 100) : 0
+                const done = pct >= 100 || goal.status === 'achieved'
+                const color = done ? '#16A34A' : pct >= 75 ? '#0F766E' : pct >= 40 ? '#2563EB' : '#F59E0B'
+                return (
+                  <div key={goal.id} className="px-5 py-3 flex items-center gap-3"
+                    onClick={() => navigate('/goals')} role="button"
+                    style={{ cursor: 'pointer' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[12px] font-semibold text-[#1A1A1A] truncate">{goalTitle(goal.target_amount)}</span>
+                        <span className="text-[11px] font-black font-mono ml-2 shrink-0" style={{ color }}>
+                          {pct.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-[#F0EEE9] rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${pct}%`, backgroundColor: color }} />
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-[9px] text-[#ABABAB] font-mono">{fmt(p.totalVal)}</span>
+                        <span className="text-[9px] text-[#ABABAB] font-mono">{fmt(goal.target_amount)}</span>
+                      </div>
+                    </div>
+                    {done && <span className="text-base shrink-0">🏆</span>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── Quick nav ──────────────────────────────────────────── */}
         <div>
           <h2 className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-3">Quick Access</h2>
           <div className="flex flex-wrap gap-2">
+            <NavPill icon="🎯"  label="Goals"          path="/goals" />
             <NavPill icon="📈" label="Zerodha"        path="/assets/zerodha" />
             <NavPill icon="📊" label="Aionion"        path="/assets/aionion" />
             <NavPill icon="💰" label="Mutual Funds"   path="/assets/mutual-funds" />

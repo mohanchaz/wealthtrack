@@ -195,11 +195,11 @@ function RebalanceSection({
         </ResponsiveContainer>
         <div className="flex items-center gap-4 mt-2">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-amber-500 opacity-85 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: '#D97706' }} />
             <span className="text-[10px] text-[#767676]">Overweight — trim</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#0F766E] opacity-85 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: '#0F766E' }} />
             <span className="text-[10px] text-[#767676]">Underweight — add</span>
           </div>
         </div>
