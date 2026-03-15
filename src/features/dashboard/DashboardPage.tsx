@@ -441,7 +441,7 @@ export default function DashboardPage() {
             <div className="divide-y divide-[#F5F4F0]">
               {goals.slice(0, 3).map(goal => {
                 const pct  = p.totalVal > 0 ? Math.min((p.totalVal / goal.target_amount) * 100, 100) : 0
-                const done = pct >= 100 || goal.status === 'achieved'
+                const done = pct >= 100
                 const color = done ? '#16A34A' : pct >= 75 ? '#0F766E' : pct >= 40 ? '#2563EB' : '#F59E0B'
                 return (
                   <div key={goal.id} className="px-5 py-3 flex items-center gap-3"
