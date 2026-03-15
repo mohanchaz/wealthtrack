@@ -220,16 +220,6 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
           <div className="py-6 text-center text-xs text-textfade">No entries yet</div>
         ) : (
           <>
-            <div className="px-4 py-2 border-b border-border bg-surface2/40">
-              <div className="flex items-center text-[10px] font-bold text-textmut uppercase tracking-widest gap-2">
-                <input type="checkbox" checked={allCheck} onChange={toggleAll}
-                  className="w-3 h-3 rounded accent-ink cursor-pointer" />
-                <span className="flex-1">£ Amount</span>
-                <span className="w-20 text-right">Rate</span>
-                <span className="w-20 text-right">₹ Value</span>
-              </div>
-            </div>
-
             {selected.size > 0 && (
               <div className="flex items-center gap-2 px-4 py-1.5 bg-red/5 border-b border-red/20">
                 <span className="text-[10px] font-semibold text-red flex-1">{selected.size} selected</span>
@@ -241,25 +231,34 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
               </div>
             )}
 
+            {/* Table header */}
+            <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto_auto] gap-x-2 items-center px-4 py-1.5 bg-surface2/50 border-b border-border/40">
+              <span className="w-3" />
+              <span className="text-[9px] font-bold text-textfade uppercase tracking-widest">Date</span>
+              <span className="text-[9px] font-bold text-textfade uppercase tracking-widest text-right">£ Amount</span>
+              <span className="text-[9px] font-bold text-textfade uppercase tracking-widest text-right">Rate</span>
+              <span className="text-[9px] font-bold text-textfade uppercase tracking-widest text-right">₹ Value</span>
+              <span className="w-5" />
+            </div>
             {entries.map((e, i) => (
               <div key={e.id}
-                className={`flex items-center px-4 py-2.5 border-b border-border/40 last:border-0 hover:bg-surface2 transition-colors gap-2 ${selected.has(e.id) ? 'bg-red/5' : i % 2 === 1 ? 'bg-surface2/20' : ''}`}
+                className={`grid grid-cols-[auto_1fr_1fr_1fr_auto_auto] gap-x-2 items-center px-4 py-2 border-b border-border/40 last:border-0 transition-colors ${selected.has(e.id) ? 'bg-red/5' : i % 2 === 1 ? 'bg-surface2/20' : 'hover:bg-surface2'}`}
               >
                 <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleOne(e.id)}
                   className="w-3 h-3 rounded accent-ink cursor-pointer shrink-0" />
-                <span className="w-20 text-[10px] text-textmut font-mono shrink-0">
+                <span className="text-[11px] text-textmut font-mono">
                   {e.entry_date ? formatDate(e.entry_date) : '—'}
                 </span>
-                <span className="flex-1 font-mono font-bold text-xs text-textprim">
+                <span className="font-mono font-bold text-[12px] text-textprim text-right">
                   £{Number(e.gbp_amount).toFixed(2)}
                 </span>
-                <span className="w-16 text-right text-[10px] text-textmut font-mono">
+                <span className="text-[11px] text-textmut font-mono text-right">
                   ₹{Number(e.inr_rate).toFixed(1)}
                 </span>
-                <span className="w-18 text-right text-[11px] font-semibold text-textprim">
+                <span className="text-[11px] font-semibold text-textprim text-right">
                   {INR(Number(e.gbp_amount) * Number(e.inr_rate))}
                 </span>
-                <button onClick={() => openEdit(e)} className="ml-1 text-[10px] text-textmut hover:text-ink px-1 py-0.5 rounded hover:bg-surface2 transition-colors" title="Edit">✏</button>
+                <button onClick={() => openEdit(e)} className="text-[10px] text-textmut hover:text-ink px-1 py-0.5 rounded hover:bg-surface2 transition-colors" title="Edit">✏</button>
               </div>
             ))}
           </>
@@ -362,7 +361,7 @@ export default function ForeignStocksPage() {
 
   // Actual invested entries — same cache key as ForeignActualPanel so invalidation auto-refetches
   const { data: actualEntries = [] } = useQuery({
-    queryKey: ['foreign_actual_invested', userId],
+    queryKey: ['foreign_actual_invested_totals', userId],
     queryFn: async () => {
       const { data } = await supabase.from('foreign_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
       return (data ?? []) as { gbp_amount: number; inr_rate: number }[]
