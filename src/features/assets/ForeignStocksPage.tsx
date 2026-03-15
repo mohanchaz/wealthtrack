@@ -247,7 +247,7 @@ function ForeignActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number
                 <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleOne(e.id)}
                   className="w-3 h-3 rounded accent-ink cursor-pointer shrink-0" />
                 <span className="text-[11px] text-textmut font-mono">
-                  {e.entry_date ? formatDate(e.entry_date) : '—'}
+                  {formatDate(e.entry_date || e.created_at)}
                 </span>
                 <span className="font-mono font-bold text-[12px] text-textprim text-right">
                   £{Number(e.gbp_amount).toFixed(2)}

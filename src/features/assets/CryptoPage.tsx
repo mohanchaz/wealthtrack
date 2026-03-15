@@ -198,7 +198,7 @@ function CryptoActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number 
                 className={`grid grid-cols-[auto_1fr_1fr_1fr_auto_auto] gap-x-2 items-center px-4 py-2 border-b border-border/40 last:border-0 transition-colors ${selected.has(e.id) ? 'bg-red/5' : i % 2 === 1 ? 'bg-surface2/20' : 'hover:bg-surface2'}`}>
                 <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleOne(e.id)} className="w-3 h-3 rounded accent-ink cursor-pointer shrink-0" />
                 <span className="text-[11px] text-textmut font-mono">
-                  {e.entry_date ? formatDate(e.entry_date) : '—'}
+                  {formatDate(e.entry_date || e.created_at)}
                 </span>
                 <span className="font-mono font-bold text-[12px] text-textprim text-right">{fmtGbp(Number(e.gbp_amount))}</span>
                 <span className="text-[11px] text-textmut font-mono text-right">₹{Number(e.inr_rate ?? gbpInr).toFixed(1)}</span>

@@ -205,7 +205,7 @@ function BankActualPanel({ userId, gbpInr }: { userId: string; gbpInr: number })
                     £{Number(e.gbp_amount).toFixed(2)}<span className="text-textmut mx-1">·</span>{INR(Number(e.gbp_amount) * Number(e.inr_rate))}
                   </div>
                   <div className="text-[10px] text-textmut mt-0.5">
-                    {formatDate(e.entry_date)} <span className="ml-1">@ ₹{Number(e.inr_rate).toFixed(2)}/£</span>
+                    {formatDate(e.entry_date || e.created_at)} <span className="ml-1">@ ₹{Number(e.inr_rate).toFixed(2)}/£</span>
                   </div>
                 </div>
                 <button onClick={() => openEdit(e)} className="text-textmut hover:text-textprim text-xs ml-1">✏</button>
@@ -326,7 +326,7 @@ export default function BankSavingsPage() {
 
   // Actual invested total — same cache key as panel so invalidation updates both
   const { data: _actRows = [] } = useQuery<{ gbp_amount: number; inr_rate: number }[]>({
-    queryKey: ['bank_savings_actual_invested', userId],
+    queryKey: ['bank_savings_actual_invested_totals', userId],
     queryFn: async () => {
       const { data } = await supabase.from('bank_savings_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
       return (data ?? []) as { gbp_amount: number; inr_rate: number }[]
