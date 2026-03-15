@@ -90,19 +90,192 @@ function MomTooltip({ active, payload, label }: any) {
   )
 }
 
-// ── Add Entry Modal ──────────────────────────────────────────────
-function AddEntryModal({ existingMonths, onSave, onClose, saving }: {
+type ActualRange = '3M' | '6M' | '1Y' | 'All' | 'Custom'
+const ACTUAL_RANGE_MONTHS: Record<Exclude<ActualRange, 'Custom'>, number> = {
+  '3M': 3, '6M': 6, '1Y': 12, 'All': 999,
+}
+
+function ActualInvestedChart({ snapshots }: { snapshots: SnapshotWithDerived[] }) {
+  const [range,     setRange]     = useState<ActualRange>('1Y')
+  const [fromMonth, setFromMonth] = useState('')
+  const [toMonth,   setToMonth]   = useState('')
+
+  const actSnaps = snapshots.filter(s => s.actual_invested > 0)
+
+  const filtered = (() => {
+    if (range === 'Custom') {
+      const from = fromMonth || actSnaps[0]?.month
+      const to   = toMonth   || actSnaps[actSnaps.length - 1]?.month
+      if (!from || !to) return actSnaps
+      return actSnaps.filter(s => s.month >= from && s.month <= to)
+    }
+    const n = ACTUAL_RANGE_MONTHS[range]
+    if (n >= 999) return actSnaps
+    const cutoff = new Date()
+    cutoff.setMonth(cutoff.getMonth() - n)
+    return actSnaps.filter(s => new Date(s.month + '-01') >= cutoff)
+  })()
+
+  const chartData = filtered.map((s, i) => {
+    const addition = i === 0 ? 0 : s.actual_invested - filtered[i - 1].actual_invested
+    return { month: s.month, label: monthLabel(s.month), actual: s.actual_invested, addition }
+  })
+
+  const first      = filtered[0]?.actual_invested ?? 0
+  const last       = filtered[filtered.length - 1]?.actual_invested ?? 0
+  const added      = last - first
+  const changePct  = first > 0 ? ((last - first) / first) * 100 : 0
+  const isUp       = added >= 0
+
+  if (actSnaps.length === 0) return null
+
+  const inputCls = 'border border-[#E0DDD6] rounded-lg px-2.5 py-1.5 text-[11px] outline-none focus:border-[#D97706] transition-colors font-mono'
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm p-5">
+
+      {/* Header + range selector */}
+      <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
+        <div>
+          <h2 className="text-[12px] font-bold uppercase tracking-widest text-[#767676]">Actual Invested</h2>
+          <p className="text-[11px] text-[#ABABAB] mt-0.5">Real cash deployed over time</p>
+        </div>
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex items-center border border-[#E0DDD6] rounded-xl overflow-hidden text-[11px] font-semibold">
+            {(['3M', '6M', '1Y', 'All', 'Custom'] as ActualRange[]).map(r => (
+              <button key={r} onClick={() => setRange(r)}
+                className={`px-3 py-1.5 transition-colors ${range === r ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#767676] hover:bg-[#F5F4F0]'}`}>
+                {r}
+              </button>
+            ))}
+          </div>
+          {range === 'Custom' && (
+            <div className="flex items-center gap-1.5">
+              <input type="month" value={fromMonth} onChange={e => setFromMonth(e.target.value)}
+                max={toMonth || new Date().toISOString().slice(0, 7)} className={inputCls} />
+              <span className="text-[10px] text-[#ABABAB]">to</span>
+              <input type="month" value={toMonth} onChange={e => setToMonth(e.target.value)}
+                min={fromMonth} max={new Date().toISOString().slice(0, 7)} className={inputCls} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Summary chips */}
+      {filtered.length >= 2 && (
+        <div className="flex gap-5 flex-wrap mb-4 px-1">
+          {[
+            { label: 'Start',   value: fmt(first), color: '#1A1A1A' },
+            { label: 'End',     value: fmt(last),  color: '#D97706' },
+            { label: 'Added',   value: `${isUp ? '+' : ''}${fmt(added)}`,         color: isUp ? '#0F766E' : '#C0392B' },
+            { label: 'Change',  value: `${isUp ? '+' : ''}${changePct.toFixed(1)}%`, color: isUp ? '#0F766E' : '#C0392B' },
+            { label: 'Months',  value: String(filtered.length), color: '#1A1A1A' },
+          ].map(({ label, value, color }) => (
+            <div key={label}>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-[#ABABAB]">{label}</p>
+              <p className="text-[14px] font-black font-mono" style={{ color }}>{value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {filtered.length < 2 ? (
+        <p className="text-[12px] text-[#ABABAB] py-6 text-center">Not enough data points for this range.</p>
+      ) : (
+        <>
+          {/* Cumulative area chart */}
+          <p className="text-[9px] font-bold uppercase tracking-widest text-[#ABABAB] mb-1.5">Cumulative deployed</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="actGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#D97706" stopOpacity={0.18} />
+                  <stop offset="95%" stopColor="#D97706" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F0EEE9" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#ABABAB' }} axisLine={false} tickLine={false}
+                interval={Math.max(0, Math.floor(chartData.length / 5) - 1)} />
+              <YAxis tickFormatter={v => fmt(v)} tick={{ fontSize: 9, fill: '#ABABAB' }}
+                axisLine={false} tickLine={false} width={60} />
+              <Tooltip content={({ active, payload }) => {
+                if (!active || !payload?.length) return null
+                const d = payload[0].payload
+                return (
+                  <div className="bg-white border border-[#E0DDD6] rounded-xl shadow-lg px-3 py-2 text-[11px]">
+                    <div className="font-bold text-[#1A1A1A] mb-1">{d.label}</div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-[#767676]">Cumulative</span>
+                      <span className="font-mono font-bold text-[#D97706]">{fmt(d.actual)}</span>
+                    </div>
+                    {d.addition !== 0 && (
+                      <div className="flex justify-between gap-4">
+                        <span className="text-[#767676]">Added</span>
+                        <span className={`font-mono font-bold ${d.addition >= 0 ? 'text-[#0F766E]' : 'text-[#C0392B]'}`}>
+                          {d.addition >= 0 ? '+' : ''}{fmt(d.addition)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              }} />
+              <Area type="monotone" dataKey="actual" stroke="#D97706" strokeWidth={2.5}
+                fill="url(#actGrad)" dot={{ r: 3, fill: '#D97706', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+
+          {/* Monthly additions bar chart */}
+          <p className="text-[9px] font-bold uppercase tracking-widest text-[#ABABAB] mt-4 mb-1.5">Monthly additions</p>
+          <ResponsiveContainer width="100%" height={100}>
+            <ComposedChart data={chartData.slice(1)} margin={{ top: 2, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F0EEE9" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#ABABAB' }} axisLine={false} tickLine={false}
+                interval={Math.max(0, Math.floor(chartData.length / 5) - 1)} />
+              <YAxis tickFormatter={v => fmt(v)} tick={{ fontSize: 9, fill: '#ABABAB' }}
+                axisLine={false} tickLine={false} width={60} />
+              <ReferenceLine y={0} stroke="#E0DDD6" strokeWidth={1} />
+              <Tooltip content={({ active, payload }) => {
+                if (!active || !payload?.length) return null
+                const d = payload[0].payload
+                return (
+                  <div className="bg-white border border-[#E0DDD6] rounded-xl shadow-lg px-3 py-2 text-[11px]">
+                    <div className="font-bold text-[#1A1A1A] mb-1">{d.label}</div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-[#767676]">Added</span>
+                      <span className={`font-mono font-bold ${d.addition >= 0 ? 'text-[#0F766E]' : 'text-[#C0392B]'}`}>
+                        {d.addition >= 0 ? '+' : ''}{fmt(d.addition)}
+                      </span>
+                    </div>
+                  </div>
+                )
+              }} />
+              <Bar dataKey="addition" radius={[3, 3, 0, 0]} maxBarSize={32}>
+                {chartData.slice(1).map((r, i) => (
+                  <Cell key={i} fill={r.addition >= 0 ? '#0F766E' : '#C0392B'} fillOpacity={0.85} />
+                ))}
+              </Bar>
+            </ComposedChart>
+          </ResponsiveContainer>
+        </>
+      )}
+    </div>
+  )
+}
+
+function AddEntryModal({ existingMonths, onSave, onClose, saving, initial }: {
   existingMonths: string[]
   onSave: (data: { month: string; net_worth: number; invested: number; actual_invested: number }) => void
   onClose: () => void
   saving: boolean
+  initial?: SnapshotWithDerived
 }) {
-  const [month,          setMonth]          = useState('')
-  const [netWorth,       setNetWorth]       = useState('')
-  const [invested,       setInvested]       = useState('')
-  const [actualInvested, setActualInvested] = useState('')
+  const isEdit = !!initial
+  const [month,          setMonth]          = useState(initial?.month ?? '')
+  const [netWorth,       setNetWorth]       = useState(initial?.net_worth?.toString() ?? '')
+  const [invested,       setInvested]       = useState(initial?.invested?.toString() ?? '')
+  const [actualInvested, setActualInvested] = useState(initial?.actual_invested ? String(initial.actual_invested) : '')
   const [error,          setError]          = useState('')
-  const isDuplicate = existingMonths.includes(month)
+  const isDuplicate = !isEdit && existingMonths.includes(month)
 
   function handleSubmit() {
     setError('')
@@ -117,15 +290,19 @@ function AddEntryModal({ existingMonths, onSave, onClose, saving }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-fade-up">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[15px] font-black text-[#1A1A1A]">Add Snapshot Entry</h2>
+          <h2 className="text-[15px] font-black text-[#1A1A1A]">
+            {isEdit ? `Edit ${monthLabel(initial.month)}` : 'Add Snapshot Entry'}
+          </h2>
           <button onClick={onClose} className="text-[#ABABAB] hover:text-[#1A1A1A] transition-colors text-lg leading-none">✕</button>
         </div>
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-1.5 block">Month</label>
-            <input type="month" value={month} onChange={e => { setMonth(e.target.value); setError('') }}
+            <input type="month" value={month}
+              onChange={e => { setMonth(e.target.value); setError('') }}
               max={new Date().toISOString().slice(0, 7)}
-              className="w-full border border-[#E0DDD6] rounded-xl px-3 py-2.5 text-[13px] outline-none focus:border-[#0F766E] transition-colors" />
+              disabled={isEdit}
+              className="w-full border border-[#E0DDD6] rounded-xl px-3 py-2.5 text-[13px] outline-none focus:border-[#0F766E] transition-colors disabled:bg-[#F5F4F0] disabled:text-[#767676]" />
             {isDuplicate && month && <p className="text-[10px] text-amber-600 mt-1">⚠ Already exists for this month.</p>}
           </div>
           <div>
@@ -142,13 +319,20 @@ function AddEntryModal({ existingMonths, onSave, onClose, saving }: {
             <label className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-1.5 block">
               Actual Invested (₹) <span className="normal-case font-normal text-[#ABABAB]">optional</span>
             </label>
-            <input type="number" value={actualInvested} onChange={e => setActualInvested(e.target.value)} placeholder="Leave blank if unknown"
+            <input type="number" value={actualInvested} onChange={e => setActualInvested(e.target.value)}
+              placeholder="Real cash you've put in"
               className="w-full border border-[#E0DDD6] rounded-xl px-3 py-2.5 text-[13px] outline-none focus:border-[#0F766E] transition-colors font-mono" />
+            {isEdit && (
+              <p className="text-[10px] text-[#ABABAB] mt-1">Update this anytime to track your real cash deployed.</p>
+            )}
           </div>
           {error && <p className="text-[11px] text-[#C0392B] font-semibold">{error}</p>}
           <button onClick={handleSubmit} disabled={saving || isDuplicate}
             className="w-full bg-[#0F766E] text-white font-bold text-[13px] py-3 rounded-xl hover:bg-[#0D4F4A] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-            {saving ? <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />Saving…</> : 'Save Entry'}
+            {saving
+              ? <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />Saving…</>
+              : isEdit ? 'Update snapshot' : 'Save Entry'
+            }
           </button>
         </div>
       </div>
@@ -161,8 +345,9 @@ const RANGE_MONTHS: Record<Range, number> = { '6M': 6, '1Y': 12, 'All': 999 }
 
 // ── Main page ────────────────────────────────────────────────────
 export default function AnalyticsPage() {
-  const { data: snapshots = [], isLoading, saveMutation } = useSnapshots()
+  const { data: snapshots = [], isLoading, saveMutation, deleteMutation } = useSnapshots()
   const [showModal, setShowModal] = useState(false)
+  const [editRow,   setEditRow]   = useState<SnapshotWithDerived | null>(null)
   const [range, setRange]         = useState<Range>('1Y')
 
   const existingMonths = snapshots.map(s => s.month)
@@ -193,6 +378,7 @@ export default function AnalyticsPage() {
   async function handleManualSave(data: { month: string; net_worth: number; invested: number; actual_invested: number }) {
     await saveMutation.mutateAsync(data)
     setShowModal(false)
+    setEditRow(null)
   }
 
   return (
@@ -319,7 +505,8 @@ export default function AnalyticsPage() {
             </div>
           )}
 
-          {/* ── Snapshot History Table ───────────────────────── */}
+          <ActualInvestedChart snapshots={snapshots} />
+
           <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0EEE9]">
               <h2 className="text-[12px] font-bold text-[#1A1A1A] uppercase tracking-widest">Snapshot History</h2>
@@ -332,7 +519,7 @@ export default function AnalyticsPage() {
                     <th className="text-left px-4 py-2.5">Month</th>
                     <th className="text-right px-3 py-2.5">Net Worth</th>
                     <th className="text-right px-3 py-2.5 hidden sm:table-cell">Invested</th>
-                    {hasActual && <th className="text-right px-3 py-2.5 hidden sm:table-cell">Actual Inv</th>}
+                    <th className="text-right px-3 py-2.5 hidden sm:table-cell">Actual Inv</th>
                     <th className="text-right px-3 py-2.5">Book Gain</th>
                     <th className="text-right px-3 py-2.5 hidden sm:table-cell">Gain %</th>
                     {hasActual && <>
@@ -340,19 +527,24 @@ export default function AnalyticsPage() {
                       <th className="text-right px-3 py-2.5 hidden md:table-cell">Act %</th>
                     </>}
                     <th className="text-right px-3 py-2.5 hidden lg:table-cell">MoM</th>
+                    <th className="w-16 px-3 py-2.5" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F5F4F0]">
                   {[...growthRows].reverse().map(row => (
-                    <tr key={row.id} className="hover:bg-[#FAFAF8] transition-colors">
+                    <tr key={row.id} className="hover:bg-[#FAFAF8] transition-colors group">
                       <td className="px-4 py-3 font-bold text-[#1A1A1A]">{monthLabel(row.month)}</td>
                       <td className="px-3 py-3 text-right font-bold text-[#0F766E] font-mono">{fmt(row.net_worth)}</td>
                       <td className="px-3 py-3 text-right text-[#1A1A1A] font-mono hidden sm:table-cell">{fmt(row.invested)}</td>
-                      {hasActual && (
-                        <td className="px-3 py-3 text-right text-[#767676] font-mono hidden sm:table-cell">
-                          {row.actual_invested > 0 ? fmt(row.actual_invested) : '—'}
-                        </td>
-                      )}
+                      <td className="px-3 py-3 text-right font-mono hidden sm:table-cell">
+                        {row.actual_invested > 0
+                          ? <span className="text-[#D97706]">{fmt(row.actual_invested)}</span>
+                          : <button onClick={() => setEditRow(row)}
+                              className="text-[#ABABAB] hover:text-[#D97706] transition-colors text-[10px] underline underline-offset-2">
+                              + add
+                            </button>
+                        }
+                      </td>
                       <td className={`px-3 py-3 text-right font-bold font-mono ${row.gain >= 0 ? 'text-[#1A7A3C]' : 'text-[#C0392B]'}`}>
                         {row.gain >= 0 ? '+' : ''}{fmt(Math.abs(row.gain))}
                       </td>
@@ -372,6 +564,17 @@ export default function AnalyticsPage() {
                           ? <span className={`font-bold ${row.mom >= 0 ? 'text-[#1A7A3C]' : 'text-[#C0392B]'}`}>{signPct(row.mom)}</span>
                           : <span className="text-[#ABABAB]">—</span>}
                       </td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => setEditRow(row)}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-[#ABABAB] hover:text-[#1A1A1A] hover:bg-[#F0EEE9] transition-colors"
+                            title="Edit">✏️</button>
+                          <button
+                            onClick={async () => { if (confirm(`Delete snapshot for ${monthLabel(row.month)}?`)) await deleteMutation.mutateAsync(row.id) }}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-[#ABABAB] hover:text-[#C0392B] hover:bg-red-50 transition-colors"
+                            title="Delete">🗑</button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -387,6 +590,16 @@ export default function AnalyticsPage() {
           existingMonths={existingMonths}
           onSave={handleManualSave}
           onClose={() => setShowModal(false)}
+          saving={saveMutation.isPending}
+        />
+      )}
+
+      {editRow && (
+        <AddEntryModal
+          existingMonths={existingMonths.filter(m => m !== editRow.month)}
+          initial={editRow}
+          onSave={handleManualSave}
+          onClose={() => setEditRow(null)}
           saving={saveMutation.isPending}
         />
       )}
