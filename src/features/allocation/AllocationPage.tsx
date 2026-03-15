@@ -28,9 +28,13 @@ interface RebalanceRow {
 
 // ── Single action row ──────────────────────────────────────────
 function ActionRow({ row, totalVal }: { row: RebalanceRow; totalVal: number }) {
-  const isBuy  = row.action === 'buy'
-  const amtAbs = Math.abs(row.actionAmt)
-  const pctMove = totalVal > 0 ? (amtAbs / totalVal) * 100 : 0
+  const isBuy      = row.action === 'buy'
+  const amtAbs     = Math.abs(row.actionAmt)
+  const pctMove    = totalVal > 0 ? (amtAbs / totalVal) * 100 : 0
+  const [hovered, setHovered] = useState(false)
+
+  const diffSign   = isBuy ? '+' : '-'
+  const diffColor  = isBuy ? '#0F766E' : '#D97706'
 
   return (
     <div className="flex items-center gap-3 py-0.5">
@@ -38,19 +42,70 @@ function ActionRow({ row, totalVal }: { row: RebalanceRow; totalVal: number }) {
         <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
         <span className="text-[12px] font-semibold text-[#1A1A1A] truncate">{row.item}</span>
       </div>
-      <div className="flex-1 relative h-4">
+
+      {/* Bar with hover tooltip */}
+      <div
+        className="flex-1 relative h-4 cursor-pointer"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {/* Track */}
         <div className="absolute inset-0 flex items-center">
           <div className="w-full h-1.5 rounded-full bg-[#F0EEE9]" />
         </div>
+        {/* Actual fill */}
         <div className="absolute inset-0 flex items-center">
           <div className="w-full h-1.5 rounded-full overflow-hidden">
             <div className="h-full transition-all duration-700 rounded-full"
               style={{ width: `${Math.min(row.actualPct, 100)}%`, backgroundColor: row.color, opacity: 0.35 }} />
           </div>
         </div>
+        {/* Target marker */}
         <div className="absolute top-0.5 bottom-0.5 w-0.5 rounded bg-[#1A1A1A] opacity-40"
           style={{ left: `calc(${row.targetPct}% - 1px)` }} />
+
+        {/* Tooltip */}
+        {hovered && (
+          <div
+            className="absolute z-20 bottom-full mb-2 left-1/2 -translate-x-1/2
+                       bg-[#1A1A1A] text-white rounded-xl shadow-lg px-3 py-2.5
+                       whitespace-nowrap pointer-events-none"
+            style={{ fontSize: '11px' }}
+          >
+            {/* Row: Current */}
+            <div className="flex items-center justify-between gap-5 mb-1.5">
+              <span className="text-white/50 uppercase tracking-wider" style={{ fontSize: '9px', fontWeight: 600 }}>Current</span>
+              <span className="font-mono font-bold text-white">
+                {fmt(row.actualVal)}
+                <span className="text-white/50 ml-1">({row.actualPct.toFixed(1)}%)</span>
+              </span>
+            </div>
+            {/* Row: Target */}
+            <div className="flex items-center justify-between gap-5 mb-1.5">
+              <span className="text-white/50 uppercase tracking-wider" style={{ fontSize: '9px', fontWeight: 600 }}>Target</span>
+              <span className="font-mono font-bold text-white">
+                {fmt(row.targetVal)}
+                <span className="text-white/50 ml-1">({row.targetPct.toFixed(1)}%)</span>
+              </span>
+            </div>
+            {/* Divider */}
+            <div className="border-t border-white/10 mt-1.5 pt-1.5">
+              <div className="flex items-center justify-between gap-5">
+                <span className="text-white/50 uppercase tracking-wider" style={{ fontSize: '9px', fontWeight: 600 }}>
+                  {isBuy ? 'To Buy' : 'To Sell'}
+                </span>
+                <span className="font-mono font-black" style={{ color: diffColor }}>
+                  {diffSign}{fmt(amtAbs)}
+                </span>
+              </div>
+            </div>
+            {/* Arrow tip */}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0"
+              style={{ borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #1A1A1A' }} />
+          </div>
+        )}
       </div>
+
       <div className="text-right w-24 shrink-0">
         <span className="text-[10px] font-mono text-[#767676]">{row.actualPct.toFixed(1)}%</span>
         <span className="text-[9px] text-[#C8C4BE] mx-0.5">→</span>
