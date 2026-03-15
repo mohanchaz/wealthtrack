@@ -33,38 +33,35 @@ function ActionRow({ row, totalVal }: { row: RebalanceRow; totalVal: number }) {
   const pctMove    = totalVal > 0 ? (amtAbs / totalVal) * 100 : 0
   const [hovered, setHovered] = useState(false)
 
-  const diffSign   = isBuy ? '+' : '-'
-  const diffColor  = isBuy ? '#0F766E' : '#D97706'
+  const diffSign  = isBuy ? '+' : '-'
+  const diffColor = isBuy ? '#0F766E' : '#D97706'
 
   return (
-    <div className="flex items-center gap-3 py-0.5">
-      <div className="flex items-center gap-1.5 w-36 shrink-0">
+    <div className="flex items-center gap-2 py-0.5">
+      {/* Name — flexible on mobile */}
+      <div className="flex items-center gap-1.5 min-w-0 flex-1 sm:w-36 sm:flex-none sm:shrink-0">
         <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
         <span className="text-[12px] font-semibold text-[#1A1A1A] truncate">{row.item}</span>
       </div>
 
-      {/* Bar with hover tooltip */}
+      {/* Bar — hidden on mobile, shown on sm+ */}
       <div
-        className="flex-1 relative h-4 cursor-pointer"
+        className="hidden sm:block flex-1 relative h-4 cursor-pointer"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        {/* Track */}
         <div className="absolute inset-0 flex items-center">
           <div className="w-full h-1.5 rounded-full bg-[#F0EEE9]" />
         </div>
-        {/* Actual fill */}
         <div className="absolute inset-0 flex items-center">
           <div className="w-full h-1.5 rounded-full overflow-hidden">
             <div className="h-full transition-all duration-700 rounded-full"
               style={{ width: `${Math.min(row.actualPct, 100)}%`, backgroundColor: row.color, opacity: 0.35 }} />
           </div>
         </div>
-        {/* Target marker */}
         <div className="absolute top-0.5 bottom-0.5 w-0.5 rounded bg-[#1A1A1A] opacity-40"
           style={{ left: `calc(${row.targetPct}% - 1px)` }} />
 
-        {/* Tooltip */}
         {hovered && (
           <div
             className="absolute z-20 bottom-full mb-2 left-1/2 -translate-x-1/2
@@ -72,23 +69,18 @@ function ActionRow({ row, totalVal }: { row: RebalanceRow; totalVal: number }) {
                        whitespace-nowrap pointer-events-none"
             style={{ fontSize: '11px' }}
           >
-            {/* Row: Current */}
             <div className="flex items-center justify-between gap-5 mb-1.5">
               <span className="text-white/50 uppercase tracking-wider" style={{ fontSize: '9px', fontWeight: 600 }}>Current</span>
               <span className="font-mono font-bold text-white">
-                {fmt(row.actualVal)}
-                <span className="text-white/50 ml-1">({row.actualPct.toFixed(1)}%)</span>
+                {fmt(row.actualVal)}<span className="text-white/50 ml-1">({row.actualPct.toFixed(1)}%)</span>
               </span>
             </div>
-            {/* Row: Target */}
             <div className="flex items-center justify-between gap-5 mb-1.5">
               <span className="text-white/50 uppercase tracking-wider" style={{ fontSize: '9px', fontWeight: 600 }}>Target</span>
               <span className="font-mono font-bold text-white">
-                {fmt(row.targetVal)}
-                <span className="text-white/50 ml-1">({row.targetPct.toFixed(1)}%)</span>
+                {fmt(row.targetVal)}<span className="text-white/50 ml-1">({row.targetPct.toFixed(1)}%)</span>
               </span>
             </div>
-            {/* Divider */}
             <div className="border-t border-white/10 mt-1.5 pt-1.5">
               <div className="flex items-center justify-between gap-5">
                 <span className="text-white/50 uppercase tracking-wider" style={{ fontSize: '9px', fontWeight: 600 }}>
@@ -99,27 +91,31 @@ function ActionRow({ row, totalVal }: { row: RebalanceRow; totalVal: number }) {
                 </span>
               </div>
             </div>
-            {/* Arrow tip */}
             <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0"
               style={{ borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #1A1A1A' }} />
           </div>
         )}
       </div>
 
-      <div className="text-right w-24 shrink-0">
+      {/* Pct display — hidden on mobile */}
+      <div className="hidden sm:block text-right w-24 shrink-0">
         <span className="text-[10px] font-mono text-[#767676]">{row.actualPct.toFixed(1)}%</span>
         <span className="text-[9px] text-[#C8C4BE] mx-0.5">→</span>
         <span className="text-[10px] font-mono font-bold text-[#1A1A1A]">{row.targetPct.toFixed(1)}%</span>
       </div>
-      <div className="w-28 shrink-0 text-right">
-        <span className={`inline-flex items-center gap-1 text-[11px] font-black font-mono px-2.5 py-1 rounded-lg ${
+
+      {/* Action chip — always visible, compact on mobile */}
+      <div className="shrink-0">
+        <span className={`inline-flex items-center gap-1 text-[11px] font-black font-mono px-2 py-1 rounded-lg ${
           isBuy ? 'bg-green-100 text-[#0F766E]' : 'bg-amber-100 text-amber-700'
         }`}>
           <span>{isBuy ? '↑' : '↓'}</span>
           <span>{isBuy ? '+' : '-'}{fmt(amtAbs)}</span>
         </span>
       </div>
-      <span className="text-[10px] text-[#ABABAB] w-12 text-right shrink-0 font-mono">
+
+      {/* Portfolio % — hidden on mobile */}
+      <span className="hidden sm:inline text-[10px] text-[#ABABAB] w-12 text-right shrink-0 font-mono">
         {pctMove.toFixed(1)}%
       </span>
     </div>
@@ -215,19 +211,19 @@ function RebalanceSection({
         </div>
 
         {/* Summary chips */}
-        <div className="flex gap-3 flex-wrap px-5 py-3 border-b border-[#F0EEE9]">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 px-5 py-3 border-b border-[#F0EEE9]">
           <div className="flex flex-col gap-0.5">
             <span className="text-[9px] font-bold uppercase tracking-widest text-[#767676]">To Sell</span>
             <span className="text-[16px] font-black font-mono text-amber-600">{fmt(totalSell)}</span>
           </div>
-          <div className="w-px bg-[#F0EEE9] self-stretch" />
+          <div className="hidden sm:block w-px bg-[#F0EEE9] self-stretch" />
           <div className="flex flex-col gap-0.5">
             <span className="text-[9px] font-bold uppercase tracking-widest text-[#767676]">To Buy</span>
             <span className="text-[16px] font-black font-mono text-[#0F766E]">{fmt(totalBuy)}</span>
           </div>
-          <div className="w-px bg-[#F0EEE9] self-stretch" />
+          <div className="hidden sm:block w-px bg-[#F0EEE9] self-stretch" />
           <div className="flex flex-col gap-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-[#767676]">Net Cash Move</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-[#767676]">Net Move</span>
             <span className={`text-[16px] font-black font-mono ${
               Math.abs(totalBuy - totalSell) < 1000 ? 'text-[#1A1A1A]'
               : totalBuy > totalSell ? 'text-[#0F766E]' : 'text-amber-600'
@@ -237,7 +233,7 @@ function RebalanceSection({
           </div>
           {holds.length > 0 && (
             <>
-              <div className="w-px bg-[#F0EEE9] self-stretch" />
+              <div className="hidden sm:block w-px bg-[#F0EEE9] self-stretch" />
               <div className="flex flex-col gap-0.5">
                 <span className="text-[9px] font-bold uppercase tracking-widest text-[#767676]">No Action</span>
                 <span className="text-[16px] font-black font-mono text-[#ABABAB]">{holds.length} assets</span>

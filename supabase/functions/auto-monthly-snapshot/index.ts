@@ -431,11 +431,12 @@ async function fetchAndBuildCSV(
 }
 
 /**
- * send-csv-export
+ * auto-monthly-snapshot
  *
- * Triggered manually from the Settings page.
- * Sends the portfolio backup email with CSV attached.
- * Does NOT save any snapshot.
+ * Triggered by pg_cron on the 1st of every month at 02:00 UTC.
+ * For every user:
+ *   1. Saves a book-value snapshot for the current month (skips if already exists)
+ *   2. Sends the monthly report email with snapshot summary + CSV backup attached
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -452,43 +453,82 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { userId, userEmail, userName, recipientEmail } = await req.json()
-
-    if (!userId || !recipientEmail) {
-      return new Response(JSON.stringify({ error: 'userId and recipientEmail are required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
     const supabaseUrl    = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase       = createClient(supabaseUrl, serviceRoleKey)
 
-    const exportDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-    const fileName   = `infolio-backup-${new Date().toISOString().slice(0, 10)}.csv`
+    // Target: current month (cron runs on the 1st)
+    const now   = new Date()
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-    const { csv, tableStats, totalRows } = await fetchAndBuildCSV(supabase, userId)
-    const csvBase64 = btoa(unescape(encodeURIComponent(csv)))
+    console.log(`[auto-snapshot] Running for month: ${month}`)
 
-    await sendEmail({
-      userName:       userName || userEmail || 'there',
-      recipientEmail,
-      exportDate,
-      fileName,
-      csvBase64,
-      totalRows,
-      tableStats,
-      snap: null,  // no snapshot section in manual email
-    })
+    const { data: users, error: usersErr } = await supabase.auth.admin.listUsers()
+    if (usersErr) throw new Error(`Failed to list users: ${usersErr.message}`)
 
-    return new Response(JSON.stringify({ success: true, rows: totalRows }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    const results = []
+
+    for (const user of users.users) {
+      const userId    = user.id
+      const userEmail = user.email ?? ''
+      const userName  = user.user_metadata?.full_name ?? userEmail.split('@')[0] ?? 'there'
+
+      try {
+        // 1. Compute + save snapshot
+        const snap = await computeSnapshot(supabase, userId, month)
+
+        if (snap.status === 'saved') {
+          await saveSnapshot(supabase, userId, snap)
+          console.log(`[auto-snapshot] ✅ Snapshot saved for ${userId}`)
+        } else if (snap.status === 'none') {
+          results.push({ userId, snapshot: 'skipped (no assets)', email: 'skipped' })
+          continue
+        }
+
+        // 2. Build CSV + send email
+        if (!userEmail) {
+          results.push({ userId, snapshot: snap.status, email: 'skipped (no email)' })
+          continue
+        }
+
+        const exportDate = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+        const fileName   = `infolio-backup-${now.toISOString().slice(0, 10)}.csv`
+        const { csv, tableStats, totalRows } = await fetchAndBuildCSV(supabase, userId)
+        const csvBase64  = btoa(unescape(encodeURIComponent(csv)))
+
+        await sendEmail({
+          userName,
+          recipientEmail: userEmail,
+          exportDate,
+          fileName,
+          csvBase64,
+          totalRows,
+          tableStats,
+          snap,  // snapshot section shown in email
+        })
+
+        results.push({ userId, snapshot: snap.status, email: 'sent' })
+        console.log(`[auto-snapshot] ✅ Email sent to ${userEmail}`)
+
+      } catch (err: any) {
+        results.push({ userId, snapshot: 'error', email: 'error', error: err.message })
+        console.error(`[auto-snapshot] ❌ ${userId}:`, err.message)
+      }
+    }
+
+    const saved   = results.filter(r => r.snapshot === 'saved').length
+    const skipped = results.filter(r => r.snapshot === 'skipped').length
+    const emailed = results.filter(r => r.email === 'sent').length
+
+    return new Response(JSON.stringify({ month, saved, skipped, emailed, results }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
 
   } catch (err: any) {
-    console.error('send-csv-export error:', err)
-    return new Response(JSON.stringify({ error: err.message ?? 'Unknown error' }), {
-      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    console.error('[auto-snapshot] Fatal:', err)
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
 })
