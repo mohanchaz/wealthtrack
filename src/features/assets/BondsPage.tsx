@@ -5,6 +5,7 @@ import { useToastStore }      from '../../store/toastStore'
 import { PageShell }          from '../../components/common/PageShell'
 import { StatGrid }           from '../../components/common/StatGrid'
 import { AssetTable }         from '../../components/common/AssetTable'
+import { AssetPageLayout }    from '../../components/common/AssetPageLayout'
 import { ActualInvestedPanel } from '../../components/common/ActualInvestedPanel'
 import { Modal }              from '../../components/ui/Modal'
 import { Button }             from '../../components/ui/Button'
@@ -311,21 +312,18 @@ export default function BondsPage() {
         </div>
       )}
 
-      <StatGrid items={stats} cols={4} />
-
-      {/* Actual Invested */}
-      <div className="card overflow-hidden mt-4">
-        <ActualInvestedPanel table="bonds_actual_invested" />
-      </div>
-
-      <div className="card overflow-hidden mt-4">
-        <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
-          emptyText="No bonds — click + Add Bond"
-          onEditRow={r => setEditRow(r)}
-          onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
-          onBulkSave={handleBulkSave}
-        />
-      </div>
+      <AssetPageLayout
+        stats={<StatGrid items={stats} cols={4} />}
+        mainTable={
+          <AssetTable columns={cols} data={rows} rowKey={r => r.id} loading={isLoading}
+            emptyText="No bonds — click + Add Bond"
+            onEditRow={r => setEditRow(r)}
+            onDeleteRows={async ids => { for (const id of ids) await deleteMutation.mutateAsync(id); toast(`Deleted ${ids.length}`, 'success') }}
+            onBulkSave={handleBulkSave}
+          />
+        }
+        actualInvested={<ActualInvestedPanel table="bonds_actual_invested" />}
+      />
       {editRow !== null && <EditModal row={editRow} onClose={() => setEditRow(null)} onSave={handleSave} />}
     </PageShell>
   )
