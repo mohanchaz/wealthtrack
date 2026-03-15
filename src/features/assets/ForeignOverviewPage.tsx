@@ -174,7 +174,7 @@ export default function ForeignOverviewPage() {
 
   // Actual invested — reactive via React Query (same keys invalidated by detail pages)
   const { data: foreignActRows = [] } = useQuery<ActRow[]>({
-    queryKey: ['foreign_actual_invested', userId],
+    queryKey: ['foreign_actual_invested_totals', userId],
     queryFn: async () => {
       const { data } = await supabase.from('foreign_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
       return (data ?? []) as ActRow[]
@@ -182,7 +182,7 @@ export default function ForeignOverviewPage() {
     enabled: !!userId,
   })
   const { data: cryptoActRows = [] } = useQuery<ActRow[]>({
-    queryKey: ['crypto_actual_invested', userId],
+    queryKey: ['crypto_actual_invested_totals', userId],
     queryFn: async () => {
       const { data } = await supabase.from('crypto_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
       return (data ?? []) as ActRow[]
@@ -190,7 +190,7 @@ export default function ForeignOverviewPage() {
     enabled: !!userId,
   })
   const { data: bankActRows = [] } = useQuery<ActRow[]>({
-    queryKey: ['bank_savings_actual_invested', userId],
+    queryKey: ['bank_savings_actual_invested_totals', userId],
     queryFn: async () => {
       const { data } = await supabase.from('bank_savings_actual_invested').select('gbp_amount,inr_rate').eq('user_id', userId)
       return (data ?? []) as ActRow[]
