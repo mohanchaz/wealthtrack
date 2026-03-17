@@ -322,9 +322,6 @@ export default function LoginPage() {
   const [slide, setSlide]         = useState(0)
   const [animating, setAnimating] = useState(false)
 
-  // Show access denied screen if the user signed in but is not on the allowlist
-  if (accessDenied) return <AccessDeniedScreen />
-
   const goTo = useCallback((n: number) => {
     if (animating) return
     setAnimating(true)
@@ -335,6 +332,9 @@ export default function LoginPage() {
     const t = setInterval(() => goTo((slide + 1) % SLIDES.length), 5500)
     return () => clearInterval(t)
   }, [slide, goTo])
+
+  // All hooks must be called before any conditional return (React rules of hooks)
+  if (accessDenied) return <AccessDeniedScreen />
 
   const handleSubmit = async () => {
     if (!email || !password) { setError('Please enter your email and password.'); return }
