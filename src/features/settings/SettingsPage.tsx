@@ -365,13 +365,15 @@ export default function SettingsPage() {
       </Section>
 
       {/* Data */}
-      {!isReadOnly && <Section title="Data">
-        <Row icon="📤" label="Export data" sub="Download a full backup of all your portfolio data" onClick={() => { setExportDone(false); setExportErr(''); setExportOpen(true) }} />
-        <Row icon="📥" label="Import & restore" sub="Restore from a previously exported JSON or CSV backup" onClick={() => { setPendingFile(null); setImportErr(''); setImportOpen(true) }} />
-      </Section>
+      {!isReadOnly && (
+        <Section title="Data">
+          <Row icon="📤" label="Export data" sub="Download a full backup of all your portfolio data" onClick={() => { setExportDone(false); setExportErr(''); setExportOpen(true) }} />
+          <Row icon="📥" label="Import & restore" sub="Restore from a previously exported JSON or CSV backup" onClick={() => { setPendingFile(null); setImportErr(''); setImportOpen(true) }} />
+        </Section>
+      )}
 
       {/* Email export */}
-      <Section title="Email Backup">
+      {!isReadOnly && <Section title="Email Backup">
         <div className="flex items-center gap-3.5 px-4 py-3.5">
           <span className="w-8 h-8 rounded-xl bg-surface2 flex items-center justify-center text-base shrink-0">✉️</span>
           <div className="flex-1 min-w-0">
@@ -393,7 +395,7 @@ export default function SettingsPage() {
             }
           </button>
         </div>
-      </Section>
+      </Section>}
 
       {/* About */}
       <Section title="About">
@@ -402,18 +404,21 @@ export default function SettingsPage() {
         <Row icon="🔒" label="Privacy" sub="Auth-only cookies · No tracking · No ads" />
       </Section>
 
-      {/* Danger */}
+      {/* Shared Access */}
       {!isReadOnly && (
         <Section title="Shared Access">
           <SharedAccessSection />
         </Section>
       )}
 
-      {!isReadOnly && <Section title="Danger Zone">
-        <Row icon="🗑️" label="Delete all data" sub="Permanently removes all portfolio data. Your account is kept." danger onClick={() => setConfirm(true)}>
-          <span className="text-[11px] font-bold text-[#C0392B] bg-red-50 border border-red-100 px-2 py-0.5 rounded-lg shrink-0">Irreversible</span>
-        </Row>
-      </Section>
+      {/* Danger */}
+      {!isReadOnly && (
+        <Section title="Danger Zone">
+          <Row icon="🗑️" label="Delete all data" sub="Permanently removes all portfolio data. Your account is kept." danger onClick={() => setConfirm(true)}>
+            <span className="text-[11px] font-bold text-[#C0392B] bg-red-50 border border-red-100 px-2 py-0.5 rounded-lg shrink-0">Irreversible</span>
+          </Row>
+        </Section>
+      )}
 
       {/* ── EXPORT MODAL ─────────────────────────────────────────────────── */}
       {exportOpen && (
