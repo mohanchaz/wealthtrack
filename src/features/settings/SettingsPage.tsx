@@ -222,7 +222,8 @@ function SharedAccessSection() {
 }
 
 export default function SettingsPage() {
-  const { user, signOut } = useAuthStore()
+  const { user, signOut, activeProfileId } = useAuthStore()
+  const isReadOnly = !!activeProfileId
   const queryClient       = useQueryClient()
   const fileInputRef      = useRef<HTMLInputElement>(null)
 
@@ -364,7 +365,7 @@ export default function SettingsPage() {
       </Section>
 
       {/* Data */}
-      <Section title="Data">
+      {!isReadOnly && <Section title="Data">
         <Row icon="📤" label="Export data" sub="Download a full backup of all your portfolio data" onClick={() => { setExportDone(false); setExportErr(''); setExportOpen(true) }} />
         <Row icon="📥" label="Import & restore" sub="Restore from a previously exported JSON or CSV backup" onClick={() => { setPendingFile(null); setImportErr(''); setImportOpen(true) }} />
       </Section>
@@ -402,11 +403,13 @@ export default function SettingsPage() {
       </Section>
 
       {/* Danger */}
-      <Section title="Shared Access">
-        <SharedAccessSection />
-      </Section>
+      {!isReadOnly && (
+        <Section title="Shared Access">
+          <SharedAccessSection />
+        </Section>
+      )}
 
-      <Section title="Danger Zone">
+      {!isReadOnly && <Section title="Danger Zone">
         <Row icon="🗑️" label="Delete all data" sub="Permanently removes all portfolio data. Your account is kept." danger onClick={() => setConfirm(true)}>
           <span className="text-[11px] font-bold text-[#C0392B] bg-red-50 border border-red-100 px-2 py-0.5 rounded-lg shrink-0">Irreversible</span>
         </Row>
