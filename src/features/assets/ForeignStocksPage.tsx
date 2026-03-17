@@ -345,7 +345,7 @@ function EditModal({ row, name, onClose, onSave }: {
 
 // ── Page ──────────────────────────────────────────────────────
 export default function ForeignStocksPage() {
-  const userId    = useAuthStore(s => s.user?.id)!
+  const userId    = (useAuthStore(s => s.activeProfileId ?? s.user?.id))!
   const toast     = useToastStore(s => s.show)
   const qc        = useQueryClient()
 

@@ -219,3 +219,27 @@ create policy "Shared viewer read goals"
       and viewer_email = auth.jwt() ->> 'email'
   ));
 
+
+create policy "Shared viewer read bank_savings_actual_invested"
+  on public.bank_savings_actual_invested for select
+  using ( exists (
+    select 1 from public.profile_access
+    where owner_id = bank_savings_actual_invested.user_id
+      and viewer_email = auth.jwt() ->> 'email'
+  ));
+
+create policy "Shared viewer read crypto_actual_invested"
+  on public.crypto_actual_invested for select
+  using ( exists (
+    select 1 from public.profile_access
+    where owner_id = crypto_actual_invested.user_id
+      and viewer_email = auth.jwt() ->> 'email'
+  ));
+
+create policy "Shared viewer read foreign_actual_invested"
+  on public.foreign_actual_invested for select
+  using ( exists (
+    select 1 from public.profile_access
+    where owner_id = foreign_actual_invested.user_id
+      and viewer_email = auth.jwt() ->> 'email'
+  ));

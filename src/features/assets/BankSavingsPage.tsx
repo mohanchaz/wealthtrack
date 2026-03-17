@@ -323,7 +323,7 @@ function EditModal({ row, onClose, onSave }: {
 
 // ── Main Page ─────────────────────────────────────────────────
 export default function BankSavingsPage() {
-  const userId = useAuthStore(s => s.user?.id)!
+  const userId = (useAuthStore(s => s.activeProfileId ?? s.user?.id))!
   const toast  = useToastStore(s => s.show)
   const { data: rows = [], isLoading } = useAssets<BankSaving>('bank_savings')
   const { upsertMutation, deleteMutation } = useAssets<BankSaving>('bank_savings')
