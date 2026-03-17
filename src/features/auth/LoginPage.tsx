@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { INFolioLogo } from '../../components/INFolioLogo'
 import {
@@ -7,49 +7,70 @@ import {
 } from 'recharts'
 
 // ── Chart data ─────────────────────────────────────────────────
-const netWorthHistory = [
-  { m: 'Aug', v: 14.2 }, { m: 'Sep', v: 15.1 }, { m: 'Oct', v: 14.8 },
-  { m: 'Nov', v: 16.4 }, { m: 'Dec', v: 17.2 }, { m: 'Jan', v: 18.9 },
-  { m: 'Feb', v: 19.4 }, { m: 'Mar', v: 21.1 },
-]
+const nwData   = [14.2, 15.1, 14.8, 16.4, 17.2, 18.9, 19.4, 21.1]
+const gainData = [1.2, 2.8, -0.9, 3.1, 2.4, 4.2, 1.8, 3.6]
+const months   = ['Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
-const monthlyGain = [
-  { m: 'Aug', g: 1.2 }, { m: 'Sep', g: 2.8 }, { m: 'Oct', g: -0.9 },
-  { m: 'Nov', g: 3.1 }, { m: 'Dec', g: 2.4 }, { m: 'Jan', g: 4.2 },
-  { m: 'Feb', g: 1.8 }, { m: 'Mar', g: 3.6 },
-]
+// Shared card style — all cards identical width & height
+const CARD: React.CSSProperties = {
+  width: '100%',
+  height: 300,
+  borderRadius: 16,
+  padding: '16px 18px',
+  background: 'rgba(255,255,255,0.7)',
+  border: '1px solid rgba(255,255,255,0.6)',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+}
+const LBL: React.CSSProperties  = { fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.45)' }
+const INNER: React.CSSProperties = { background: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.65)', borderRadius: 10, padding: '7px 11px' }
+const SCELL: React.CSSProperties = { background: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.55)', borderRadius: 9, padding: '6px 8px', textAlign: 'center' }
+const SEP: React.CSSProperties   = { borderTop: '1px solid rgba(0,0,0,0.1)', marginTop: 10, paddingTop: 10, flexShrink: 0 }
+const RI: React.CSSProperties    = { background: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.55)', borderRadius: 9, padding: '7px 11px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }
 
-// ── Card 1 — Area chart: net worth growth ──────────────────────
+function Badge({ children }: { children: React.ReactNode }) {
+  return <span style={{ background: '#0F766E', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999 }}>{children}</span>
+}
+
+// ── Card 1 — Net worth + area chart ────────────────────────────
 function Card1() {
   return (
-    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
-      <div className="flex items-center justify-between mb-3">
+    <div style={CARD}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>NET WORTH GROWTH</div>
-          <div className="text-2xl font-black font-mono text-white">₹21.11L</div>
+          <div style={{ ...LBL, marginBottom: 3 }}>TOTAL NET WORTH</div>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#0a2e2b', lineHeight: 1 }}>₹21.1L</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5 }}>
+            <Badge>▲ +48.6%</Badge>
+            <span style={{ fontSize: 10, color: 'rgba(0,0,0,0.5)' }}>since Aug 2024</span>
+          </div>
         </div>
-        <div className="text-right">
-          <div className="px-2.5 py-1 rounded-full text-[11px] font-bold mb-1" style={{ background: '#0F766E44', color: '#99F6E4' }}>▲ +48.6%</div>
-          <div className="text-[9px]" style={{ color: 'rgba(255,255,255,0.35)' }}>8 months</div>
+        <div style={{ ...INNER, textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ ...LBL, marginBottom: 2 }}>TODAY</div>
+          <div style={{ fontSize: 13, fontWeight: 900, color: '#0F766E' }}>+₹3,240</div>
+          <div style={{ fontSize: 9, color: 'rgba(0,0,0,0.45)' }}>+0.15%</div>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={100}>
-        <AreaChart data={netWorthHistory} margin={{ top: 5, right: 0, bottom: 0, left: 0 }}>
-          <defs>
-            <linearGradient id="aGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#0F766E" stopOpacity={0.5}/>
-              <stop offset="95%" stopColor="#0F766E" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <Area type="monotone" dataKey="v" stroke="#99F6E4" strokeWidth={2} fill="url(#aGrad)" dot={false} />
-          <XAxis dataKey="m" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 9 }} axisLine={false} tickLine={false} />
-        </AreaChart>
-      </ResponsiveContainer>
-      <div className="flex justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {[{ l: 'Started', v: '₹14.2L' }, { l: 'Now', v: '₹21.1L' }, { l: 'Gain', v: '+₹6.9L' }].map(s => (
-          <div key={s.l} className="text-center">
-            <div className="text-[9px] font-bold uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>{s.l}</div>
-            <div className="text-[13px] font-black font-mono text-white">{s.v}</div>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={months.map((m, i) => ({ m, v: nwData[i] }))} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+            <defs>
+              <linearGradient id="c1g" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#0F766E" stopOpacity={0.18} />
+                <stop offset="95%" stopColor="#0F766E" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="m" tick={{ fill: 'rgba(0,0,0,0.4)', fontSize: 8 }} axisLine={false} tickLine={false} />
+            <Area type="monotone" dataKey="v" stroke="#0F766E" strokeWidth={2.5} fill="url(#c1g)" dot={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <div style={{ ...SEP, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 5 }}>
+        {([['Invested','₹19.3L','#0a2e2b'],['Gain','+₹1.8L','#0F766E'],['XIRR','18.4%','#0F766E'],['Assets','9 types','#0a2e2b']] as [string,string,string][]).map(([l,v,c]) => (
+          <div key={l} style={SCELL}>
+            <div style={{ ...LBL, marginBottom: 2 }}>{l}</div>
+            <div style={{ fontSize: 11, fontWeight: 900, color: c }}>{v}</div>
           </div>
         ))}
       </div>
@@ -57,39 +78,38 @@ function Card1() {
   )
 }
 
-// ── Card 2 — Asset breakdown list (no chart) ───────────────────
+// ── Card 2 — Asset classes, no broker names ─────────────────────
 function Card2() {
   const assets = [
-    { label: 'Zerodha Stocks',   val: '₹8.4L',  pct: 40, color: '#0F766E', icon: '📈', gain: '+12.4%' },
-    { label: 'Mutual Funds',     val: '₹5.2L',  pct: 25, color: '#1D4ED8', icon: '◈',  gain: '+8.1%'  },
-    { label: 'Fixed Deposits',   val: '₹3.8L',  pct: 18, color: '#059669', icon: '🏦', gain: '+7.2%'  },
-    { label: 'Gold',             val: '₹1.9L',  pct: 9,  color: '#D97706', icon: '🏅', gain: '+5.3%'  },
-    { label: 'Crypto',           val: '₹1.8L',  pct: 8,  color: '#7C3AED', icon: '₿',  gain: '+22.1%' },
+    { name: 'Equity Stocks',  tag: 'NSE · BSE listed',    val: '₹11.5L', pct: '+10.8%', color: '#0F766E', w: 40 },
+    { name: 'Mutual Funds',   tag: 'Direct & regular',     val: '₹5.2L',  pct: '+8.1%',  color: '#2563EB', w: 25 },
+    { name: 'Fixed Income',   tag: 'FDs · Bonds · Debt',   val: '₹3.7L',  pct: '+7.2%',  color: '#059669', w: 18 },
+    { name: 'Gold',           tag: 'Physical · ETF · SGB', val: '₹1.8L',  pct: '+5.3%',  color: '#D97706', w: 9  },
+    { name: 'Crypto',         tag: 'BTC · ETH · USDT',     val: '₹1.2L',  pct: '+22.1%', color: '#7C3AED', w: 6  },
   ]
   return (
-    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
-      <div className="text-[9px] font-bold uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>YOUR PORTFOLIO BREAKDOWN</div>
-      {/* Allocation strip */}
-      <div className="flex h-2 rounded-full overflow-hidden mb-4 gap-px">
-        {assets.map(a => <div key={a.label} style={{ width: `${a.pct}%`, background: a.color }} />)}
+    <div style={CARD}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexShrink: 0 }}>
+        <div style={LBL}>ASSET CLASSES</div>
+        <Badge>₹23.4L total</Badge>
       </div>
-      <div className="space-y-2.5">
+      <div style={{ display: 'flex', height: 5, borderRadius: 999, overflow: 'hidden', marginBottom: 10, gap: 1, flexShrink: 0 }}>
+        {assets.map(a => <div key={a.name} style={{ width: `${a.w}%`, background: a.color }} />)}
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5, justifyContent: 'space-between' }}>
         {assets.map(a => (
-          <div key={a.label} className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0"
-              style={{ background: `${a.color}22`, border: `1px solid ${a.color}40` }}>
-              {a.icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[11px] font-semibold text-white truncate">{a.label}</span>
-                <span className="text-[11px] font-black font-mono text-white ml-2">{a.val}</span>
-              </div>
-              <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                <div className="h-full rounded-full" style={{ width: `${a.pct * 2}%`, background: a.color }} />
+          <div key={a.name} style={RI}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#0a2e2b' }}>{a.name}</div>
+                <div style={{ fontSize: 9, color: 'rgba(0,0,0,0.45)' }}>{a.tag}</div>
               </div>
             </div>
-            <span className="text-[10px] font-bold shrink-0" style={{ color: '#99F6E4' }}>{a.gain}</span>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: '#0a2e2b' }}>{a.val}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: '#0F766E' }}>{a.pct}</div>
+            </div>
           </div>
         ))}
       </div>
@@ -97,31 +117,33 @@ function Card2() {
   )
 }
 
-// ── Card 3 — Bar chart: monthly P&L ───────────────────────────
+// ── Card 3 — Monthly P&L bar chart ─────────────────────────────
 function Card3() {
   return (
-    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
-      <div className="flex items-center justify-between mb-1">
+    <div style={CARD}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexShrink: 0 }}>
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>MONTHLY GAINS · P&L</div>
-          <div className="text-sm font-bold text-white">Consistent upward trend</div>
+          <div style={{ ...LBL, marginBottom: 2 }}>MONTHLY GAINS · P&L</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#0a2e2b' }}>Consistent upward trend</div>
         </div>
-        <div className="px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: '#1D4ED844', color: '#BFDBFE' }}>7/8 positive</div>
+        <Badge>7/8 positive</Badge>
       </div>
-      <ResponsiveContainer width="100%" height={120}>
-        <BarChart data={monthlyGain} margin={{ top: 10, right: 0, bottom: 0, left: 0 }} barSize={16}>
-          <Bar dataKey="g" radius={[4, 4, 0, 0]}>
-            {monthlyGain.map((e, i) => <Cell key={i} fill={e.g >= 0 ? '#1D4ED8' : '#E11D48'} fillOpacity={0.85} />)}
-          </Bar>
-          <XAxis dataKey="m" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 9 }} axisLine={false} tickLine={false} />
-          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" />
-        </BarChart>
-      </ResponsiveContainer>
-      <div className="flex justify-between mt-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {[{ l: 'Best month', v: '+₹4.2L' }, { l: 'Total gain', v: '+₹18.2L' }, { l: 'Win rate', v: '87.5%' }].map(s => (
-          <div key={s.l} className="text-center">
-            <div className="text-[9px] font-bold uppercase" style={{ color: 'rgba(255,255,255,0.35)' }}>{s.l}</div>
-            <div className="text-[12px] font-black font-mono text-white">{s.v}</div>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={months.map((m, i) => ({ m, g: gainData[i] }))} margin={{ top: 4, right: 0, bottom: 0, left: 0 }} barSize={18}>
+            <Bar dataKey="g" radius={[4, 4, 0, 0]}>
+              {gainData.map((g, i) => <Cell key={i} fill={g >= 0 ? 'rgba(15,118,110,0.85)' : 'rgba(225,29,72,0.85)'} />)}
+            </Bar>
+            <XAxis dataKey="m" tick={{ fill: 'rgba(0,0,0,0.45)', fontSize: 8 }} axisLine={false} tickLine={false} />
+            <CartesianGrid vertical={false} stroke="rgba(0,0,0,0.05)" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div style={{ ...SEP, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 5 }}>
+        {([['Best month','+₹4.2L','#0F766E'],['Total gain','+₹18.2L','#0a2e2b'],['Win rate','87.5%','#0F766E']] as [string,string,string][]).map(([l,v,c]) => (
+          <div key={l} style={SCELL}>
+            <div style={{ ...LBL, marginBottom: 2 }}>{l}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: c }}>{v}</div>
           </div>
         ))}
       </div>
@@ -129,86 +151,78 @@ function Card3() {
   )
 }
 
-// ── Card 4 — Actual vs book stats (no chart) ───────────────────
+// ── Card 4 — Financial goals ────────────────────────────────────
 function Card4() {
-  const items = [
-    { label: 'Book invested',   val: '₹21.1L', sub: 'Avg price × qty',    color: '#D97706', icon: '📒' },
-    { label: 'Actual deployed', val: '₹19.3L', sub: 'Real cash put in',   color: '#99F6E4', icon: '💸' },
-    { label: 'Actual gain',     val: '+₹1.8L', sub: 'On cash deployed',   color: '#99F6E4', icon: '📈' },
-    { label: 'Actual return',   val: '9.3%',   sub: 'True ROI on cash',   color: '#A7F3D0', icon: '✦'  },
+  const goals = [
+    { name: 'Emergency Fund',    target: '₹5L',  saved: '₹3.8L',  pct: 76, color: '#0F766E', eta: '4 months'  },
+    { name: 'House Down Pmt',    target: '₹25L', saved: '₹11.2L', pct: 45, color: '#2563EB', eta: '18 months' },
+    { name: 'Retirement Corpus', target: '₹2Cr', saved: '₹21L',   pct: 10, color: '#7C3AED', eta: '22 years'  },
+    { name: 'Foreign Trip',      target: '₹2L',  saved: '₹1.6L',  pct: 80, color: '#D97706', eta: '2 months'  },
   ]
   return (
-    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
-      <div className="text-[9px] font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>BOOK VALUE VS ACTUAL CASH</div>
-      <div className="grid grid-cols-2 gap-3">
-        {items.map(item => (
-          <div key={item.label} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-base">{item.icon}</span>
-              <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.4)' }}>{item.label}</span>
+    <div style={CARD}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
+        <div style={LBL}>FINANCIAL GOALS</div>
+        <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.5)', color: 'rgba(0,0,0,0.5)' }}>4 active</span>
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        {goals.map(g => (
+          <div key={g.name}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: g.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#0a2e2b' }}>{g.name}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span style={{ fontSize: 10, color: 'rgba(0,0,0,0.45)' }}>{g.saved}</span>
+                <span style={{ fontSize: 8, color: 'rgba(0,0,0,0.25)' }}>/</span>
+                <span style={{ fontSize: 10, fontWeight: 900, color: '#0a2e2b' }}>{g.target}</span>
+              </div>
             </div>
-            <div className="text-[18px] font-black font-mono" style={{ color: item.color }}>{item.val}</div>
-            <div className="text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{item.sub}</div>
+            <div style={{ position: 'relative', height: 6, borderRadius: 999, background: 'rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${g.pct}%`, background: g.color, borderRadius: 999 }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: g.color }}>{g.pct}% saved</span>
+              <span style={{ fontSize: 9, color: 'rgba(0,0,0,0.45)' }}>ETA: {g.eta}</span>
+            </div>
           </div>
         ))}
-      </div>
-      <div className="mt-3 rounded-xl px-3 py-2 flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.05)' }}>
-        <span className="text-[11px]">💡</span>
-        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Actual invested differs from book value due to stock averaging and SIP timing.</span>
       </div>
     </div>
   )
 }
 
-// ── Card 5 — Target allocation targets (no chart) ──────────────
+// ── Card 5 — Portfolio snapshot tile grid ──────────────────────
 function Card5() {
-  const targets = [
-    { label: 'Equity',   actual: 38, target: 40, color: '#0F766E' },
-    { label: 'Debt',     actual: 30, target: 25, color: '#1D4ED8' },
-    { label: 'Gold',     actual: 14, target: 15, color: '#D97706' },
-    { label: 'Foreign',  actual: 10, target: 12, color: '#7C3AED' },
-    { label: 'Crypto',   actual: 8,  target: 8,  color: '#E11D48' },
+  const alloc = [
+    { label: 'Equity (IN)',  val: '₹11.5L', pct: '41%', gain: '+10.8%', color: '#0F766E' },
+    { label: 'Mutual Funds', val: '₹5.2L',  pct: '23%', gain: '+8.1%',  color: '#2563EB' },
+    { label: 'Fixed Income', val: '₹3.7L',  pct: '16%', gain: '+7.2%',  color: '#059669' },
+    { label: 'Gold',         val: '₹1.8L',  pct: '8%',  gain: '+5.3%',  color: '#D97706' },
+    { label: 'Crypto',       val: '₹1.2L',  pct: '5%',  gain: '+22.1%', color: '#7C3AED' },
+    { label: 'Cash & FD',    val: '₹0.8L',  pct: '4%',  gain: '+6.0%',  color: '#64748B' },
   ]
-  const getStatus = (a: number, t: number) => {
-    const d = a - t
-    if (Math.abs(d) <= 1) return { label: '✓', bg: '#0F766E20', color: '#99F6E4' }
-    if (d > 0)            return { label: `+${d}%`, bg: '#D9770620', color: '#FDE68A' }
-    return                       { label: `${d}%`,  bg: '#E11D4820', color: '#FCA5A5' }
-  }
   return (
-    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>ALLOCATION TARGETS</div>
-        <div className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>
-          actual / <strong className="text-white">target</strong>
+    <div style={CARD}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
+        <div>
+          <div style={{ ...LBL, marginBottom: 2 }}>PORTFOLIO SNAPSHOT</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#0a2e2b' }}>6 asset classes tracked</div>
         </div>
+        <Badge>₹24.2L total</Badge>
       </div>
-      <div className="space-y-3">
-        {targets.map(t => {
-          const status = getStatus(t.actual, t.target)
-          return (
-            <div key={t.label} className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 w-16 shrink-0">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color }} />
-                <span className="text-[11px] font-semibold text-white">{t.label}</span>
-              </div>
-              <div className="flex-1 relative h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                {/* target ghost */}
-                <div className="absolute inset-y-0 left-0 opacity-25 rounded-full" style={{ width: `${t.target * 2}%`, background: t.color }} />
-                {/* actual */}
-                <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-700" style={{ width: `${t.actual * 2}%`, background: t.color }} />
-                {/* target tick */}
-                <div className="absolute inset-y-0 w-0.5 rounded-full" style={{ left: `${t.target * 2}%`, background: 'rgba(255,255,255,0.5)' }} />
-              </div>
-              <div className="flex items-center gap-1.5 w-20 justify-end shrink-0">
-                <span className="text-[10px] font-mono text-white/60">{t.actual}%</span>
-                <span className="text-[8px] text-white/30">/</span>
-                <span className="text-[10px] font-mono font-bold text-white">{t.target}%</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: status.bg, color: status.color }}>{status.label}</span>
-              </div>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, alignContent: 'space-between' }}>
+        {alloc.map(a => (
+          <div key={a.label} style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.55)', borderRadius: 9, padding: '8px 10px', borderTop: `3px solid ${a.color}` }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(0,0,0,0.45)', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: '#0a2e2b', lineHeight: 1, marginBottom: 3 }}>{a.val}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(0,0,0,0.4)' }}>{a.pct}</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#0F766E' }}>{a.gain}</span>
             </div>
-          )
-        })}
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -224,25 +238,25 @@ const SLIDES = [
   },
   {
     title: 'Every asset class,\none dashboard.',
-    body: 'Zerodha, Aionion, AMC mutual funds, crypto, gold, cash and bonds — all summarised with live gain tracking.',
+    body: 'Stocks, mutual funds, gold, fixed income, crypto — tracked live with real-time NSE/BSE prices.',
     accent: '#0F766E', light: '#99F6E4',
     card: <Card2 />,
   },
   {
     title: 'Month-on-month\ngains, visualised.',
-    body: 'Know exactly which months were winners. Track P&L trends with colour-coded bars — green for gains, red for dips.',
-    accent: '#1D4ED8', light: '#BFDBFE',
+    body: 'Know exactly which months were winners. Teal for gains, red for dips.',
+    accent: '#0F766E', light: '#99F6E4',
     card: <Card3 />,
   },
   {
-    title: 'Book value vs\nactual invested.',
-    body: 'Know exactly how much cash you\'ve deployed vs what your broker shows. Track your true return on real money.',
-    accent: '#D97706', light: '#FDE68A',
+    title: 'Set goals.\nStay the course.',
+    body: 'Define financial goals and track how your portfolio is pacing toward each one.',
+    accent: '#1D4ED8', light: '#BFDBFE',
     card: <Card4 />,
   },
   {
-    title: 'Set targets.\nStay on track.',
-    body: 'Define your ideal allocation mix across equity, debt, gold and foreign. See at a glance where you\'re over or under.',
+    title: 'Your full portfolio,\nat a glance.',
+    body: 'See every asset class — value, allocation percentage, and gain — in one clean snapshot.',
     accent: '#7C3AED', light: '#DDD6FE',
     card: <Card5 />,
   },
