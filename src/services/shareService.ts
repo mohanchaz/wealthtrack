@@ -23,13 +23,16 @@ export async function fetchSharedProfiles(): Promise<SharedProfile[]> {
     .from('profile_access')
     .select('owner_id, owner_email, owner_name, created_at')
     .eq('viewer_email', user.email.toLowerCase())
+    .neq('owner_id', user.id)   // exclude own grants (self-share)
 
   if (error || !data) {
     console.error('[shareService] fetchSharedProfiles error:', error?.message)
     return []
   }
 
-  return data as SharedProfile[]
+  // Return all profiles — even if owner_email/owner_name are empty (old rows).
+  // The UI shows a fallback label. User should revoke & re-grant to populate fields.
+  return (data as SharedProfile[]).filter(p => !!p.owner_id)
 }
 
 // ── For the owner — list who they've granted access to ───────────────────────

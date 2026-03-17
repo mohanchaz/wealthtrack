@@ -29,7 +29,9 @@ export function Topbar({ onMenuClick }: Props) {
   const dropRef    = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
 
-  const activeProfile = sharedProfiles.find(p => p.owner_id === activeProfileId)
+  const activeProfile  = sharedProfiles.find(p => p.owner_id === activeProfileId)
+  const profileLabel   = (p: { owner_name: string; owner_email: string; owner_id: string }) =>
+    p.owner_name || p.owner_email || 'Shared portfolio'
   const isViewingShared = !!activeProfileId
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function Topbar({ onMenuClick }: Props) {
       {isViewingShared && (
         <div className="bg-amber-50 border-b border-amber-200 px-5 py-2 flex items-center gap-3 text-[12px] text-amber-800">
           <span className="text-base">👁</span>
-          <span>Viewing <strong>{activeProfile?.owner_name || activeProfile?.owner_email}'s</strong> portfolio — read-only mode</span>
+          <span>Viewing <strong>{activeProfile ? profileLabel(activeProfile) : 'shared'}'s</strong> portfolio — read-only mode</span>
           <button
             onClick={() => switchProfile(null)}
             className="ml-auto text-[11px] font-semibold px-3 py-1 rounded-lg border border-amber-300 hover:bg-amber-100 transition-colors"
@@ -93,7 +95,7 @@ export function Topbar({ onMenuClick }: Props) {
                     : 'border-border bg-surface2 text-textprim hover:bg-border'}`}
               >
                 <span className="hidden sm:inline">
-                  {isViewingShared ? activeProfile?.owner_name || activeProfile?.owner_email : 'My portfolio'}
+                  {isViewingShared && activeProfile ? profileLabel(activeProfile) : 'My portfolio'}
                 </span>
                 <svg width="12" height="12" viewBox="0 0 12 12" className={`transition-transform ${profileOpen ? 'rotate-180' : ''}`}>
                   <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>

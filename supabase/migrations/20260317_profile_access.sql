@@ -1,6 +1,16 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Profile Sharing — Read-only access
+--
+-- If you ran a previous version of this migration, run these ALTER statements
+-- to add the new columns to the existing table:
+--
+--   alter table public.profile_access
+--     add column if not exists owner_email text not null default '',
+--     add column if not exists owner_name  text not null default '';
+--
+-- Then revoke and re-grant any existing access so the columns get populated.
 -- ─────────────────────────────────────────────────────────────────────────────
+
 
 create table if not exists public.profile_access (
   id            uuid primary key default gen_random_uuid(),
