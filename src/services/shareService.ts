@@ -37,9 +37,13 @@ export async function fetchSharedProfiles(): Promise<SharedProfile[]> {
 
 // ── For the owner — list who they've granted access to ───────────────────────
 export async function fetchAccessGrants(): Promise<AccessGrant[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
   const { data, error } = await supabase
     .from('profile_access')
     .select('id, viewer_email, created_at')
+    .eq('owner_id', user.id)          // only rows THIS user created as owner
     .order('created_at', { ascending: false })
 
   if (error || !data) return []
