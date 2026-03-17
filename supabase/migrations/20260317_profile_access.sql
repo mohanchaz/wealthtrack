@@ -5,6 +5,8 @@
 create table if not exists public.profile_access (
   id            uuid primary key default gen_random_uuid(),
   owner_id      uuid references auth.users(id) on delete cascade not null,
+  owner_email   text not null default '',
+  owner_name    text not null default '',
   viewer_email  text not null,
   created_at    timestamptz default now(),
   unique(owner_id, viewer_email)

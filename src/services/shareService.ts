@@ -14,20 +14,22 @@ export interface AccessGrant {
 }
 
 // ── For the viewer — fetch all profiles shared with current user ──────────────
+// Reads owner_email/owner_name directly from profile_access — no auth.users join needed
 export async function fetchSharedProfiles(): Promise<SharedProfile[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user?.email) return []
+
   const { data, error } = await supabase
     .from('profile_access')
-    .select('owner_id, created_at, owner:owner_id(email, raw_user_meta_data)')
-    .neq('owner_id', (await supabase.auth.getUser()).data.user?.id ?? '')
+    .select('owner_id, owner_email, owner_name, created_at')
+    .eq('viewer_email', user.email.toLowerCase())
 
-  if (error || !data) return []
+  if (error || !data) {
+    console.error('[shareService] fetchSharedProfiles error:', error?.message)
+    return []
+  }
 
-  return data.map((row: any) => ({
-    owner_id:    row.owner_id,
-    owner_email: row.owner?.email ?? '',
-    owner_name:  row.owner?.raw_user_meta_data?.full_name ?? row.owner?.email ?? '',
-    created_at:  row.created_at,
-  }))
+  return data as SharedProfile[]
 }
 
 // ── For the owner — list who they've granted access to ───────────────────────
@@ -42,13 +44,22 @@ export async function fetchAccessGrants(): Promise<AccessGrant[]> {
 }
 
 // ── Grant access to a viewer ─────────────────────────────────────────────────
+// Stores the owner's own email and name so viewers can display it without a join
 export async function grantAccess(viewerEmail: string): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return 'Not authenticated'
 
+  const ownerEmail = user.email ?? ''
+  const ownerName  = user.user_metadata?.full_name ?? user.email ?? ''
+
   const { error } = await supabase
     .from('profile_access')
-    .insert({ owner_id: user.id, viewer_email: viewerEmail.toLowerCase().trim() })
+    .insert({
+      owner_id:     user.id,
+      owner_email:  ownerEmail,
+      owner_name:   ownerName,
+      viewer_email: viewerEmail.toLowerCase().trim(),
+    })
 
   if (error) {
     if (error.code === '23505') return 'This person already has access.'
