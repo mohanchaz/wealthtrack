@@ -29,9 +29,5 @@ create policy "User can check own allowlist status"
 -- ── Seed: add YOUR email here before running ──────────────────────────────────
 -- Replace the address below with the email you use to sign in.
 insert into public.allowed_users (email, label)
-values ('mohanchaz1095@gmail.com', 'Owner')
-on conflict (email) do nothing;
-
-insert into public.allowed_users (email, label)
-values ('mohanchaz@gmail.com', 'Owner')
+values ('your@email.com', 'Owner')
 on conflict (email) do nothing;
