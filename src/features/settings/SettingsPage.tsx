@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { deleteAllUserData } from '../../services/deleteDataService'
 import {
@@ -9,6 +9,10 @@ import {
 import { sendCSVByEmail } from '../../services/emailExportService'
 import { useQueryClient } from '@tanstack/react-query'
 import { getInitials } from '../../lib/utils'
+import {
+  fetchAccessGrants, grantAccess, revokeAccess,
+  type AccessGrant,
+} from '../../services/shareService'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -86,6 +90,133 @@ function ImportSummary({ results, onClose }: { results: ImportResult[]; onClose:
           Done
         </button>
       </div>
+    </div>
+  )
+}
+
+
+// ── Shared Access Section ──────────────────────────────────────────────────
+function SharedAccessSection() {
+  const [grants,  setGrants]  = useState<AccessGrant[]>([])
+  const [email,   setEmail]   = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving,  setSaving]  = useState(false)
+  const [error,   setError]   = useState('')
+  const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    fetchAccessGrants().then(g => { setGrants(g); setLoading(false) })
+  }, [])
+
+  async function handleGrant() {
+    if (!email.trim() || !email.includes('@')) {
+      setError('Please enter a valid email address.'); return
+    }
+    setSaving(true); setError(''); setSuccess('')
+    const err = await grantAccess(email.trim())
+    if (err) {
+      setError(err)
+    } else {
+      setSuccess(`Access granted to ${email.trim()}`)
+      setEmail('')
+      const updated = await fetchAccessGrants()
+      setGrants(updated)
+    }
+    setSaving(false)
+  }
+
+  async function handleRevoke(id: string, viewerEmail: string) {
+    const err = await revokeAccess(id)
+    if (!err) {
+      setGrants(g => g.filter(x => x.id !== id))
+      setSuccess(`Access revoked for ${viewerEmail}`)
+    }
+  }
+
+  function getInitialsFromEmail(e: string) {
+    return e.substring(0, 2).toUpperCase()
+  }
+
+  if (loading) {
+    return (
+      <div className="px-4 py-4 flex items-center gap-2 text-[12px] text-textmut">
+        <span className="w-3.5 h-3.5 rounded-full border-2 border-[#0F766E] border-t-transparent animate-spin inline-block" />
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 py-4">
+      <p className="text-[12px] text-textmut mb-4">
+        Let others view your portfolio in read-only mode. They cannot add, edit or delete any of your data.
+      </p>
+
+      {/* Grant input */}
+      <div className="flex gap-2 mb-4">
+        <input
+          type="email"
+          placeholder="Enter email address to grant access"
+          value={email}
+          onChange={e => { setEmail(e.target.value); setError(''); setSuccess('') }}
+          onKeyDown={e => e.key === 'Enter' && handleGrant()}
+          className="flex-1 h-10 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] text-[13px] text-[#1A1A1A] placeholder:text-[#ABABAB] outline-none px-3.5 focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 focus:bg-white transition-all"
+        />
+        <button
+          onClick={handleGrant}
+          disabled={saving}
+          className="h-10 px-4 rounded-xl bg-[#0F766E] text-white text-[13px] font-bold hover:bg-[#0D4F4A] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
+        >
+          {saving && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin inline-block" />}
+          Grant access
+        </button>
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-3">
+          <span className="text-red-500 text-xs">⚠</span>
+          <p className="text-[12px] text-[#C0392B]">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 mb-3">
+          <span className="text-green-600 text-xs">✓</span>
+          <p className="text-[12px] text-[#1A7A3C]">{success}</p>
+        </div>
+      )}
+
+      {/* People with access */}
+      {grants.length > 0 ? (
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-textmut mb-2">People with access</p>
+          <div className="space-y-1">
+            {grants.map(g => (
+              <div key={g.id} className="flex items-center gap-3 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] px-3 py-2.5">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-[11px] font-bold text-amber-800 shrink-0">
+                  {getInitialsFromEmail(g.viewer_email)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-semibold text-[#1A1A1A] truncate">{g.viewer_email}</div>
+                  <div className="text-[10px] text-textmut">
+                    Added {new Date(g.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
+                </div>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 shrink-0">read-only</span>
+                <button
+                  onClick={() => handleRevoke(g.id, g.viewer_email)}
+                  className="text-[11px] font-semibold text-[#C0392B] hover:bg-red-50 px-2 py-1 rounded-lg border border-red-200 transition-colors shrink-0"
+                >
+                  Revoke
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-4 text-[12px] text-textmut">
+          No one has access yet. Enter an email above to share your portfolio.
+        </div>
+      )}
     </div>
   )
 }
@@ -271,6 +402,10 @@ export default function SettingsPage() {
       </Section>
 
       {/* Danger */}
+      <Section title="Shared Access">
+        <SharedAccessSection />
+      </Section>
+
       <Section title="Danger Zone">
         <Row icon="🗑️" label="Delete all data" sub="Permanently removes all portfolio data. Your account is kept." danger onClick={() => setConfirm(true)}>
           <span className="text-[11px] font-bold text-[#C0392B] bg-red-50 border border-red-100 px-2 py-0.5 rounded-lg shrink-0">Irreversible</span>

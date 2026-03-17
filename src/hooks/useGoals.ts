@@ -6,7 +6,10 @@ import {
 } from '../services/goalService'
 
 export function useGoals() {
-  const userId = useAuthStore(s => s.user?.id)
+  const ownUserId       = useAuthStore(s => s.user?.id)
+  const activeProfileId  = useAuthStore(s => s.activeProfileId)
+  const isReadOnly       = !!activeProfileId
+  const userId           = activeProfileId ?? ownUserId
   const qc     = useQueryClient()
   const key    = ['goals', userId]
 
@@ -17,7 +20,10 @@ export function useGoals() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (input: GoalInput) => createGoal(userId!, input),
+    mutationFn: (input: GoalInput) => {
+      if (isReadOnly) return Promise.reject(new Error('Read-only mode'))
+      return createGoal(ownUserId!, input)
+    },
     onSuccess:  () => qc.invalidateQueries({ queryKey: key }),
   })
 
@@ -28,7 +34,10 @@ export function useGoals() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteGoal(id),
+    mutationFn: (id: string) => {
+      if (isReadOnly) return Promise.reject(new Error('Read-only mode'))
+      return deleteGoal(id)
+    },
     onSuccess:  () => qc.invalidateQueries({ queryKey: key }),
   })
 

@@ -9,7 +9,10 @@ import {
 } from '../services/actualInvestedService'
 
 export function useActualInvested(table: ActualTable) {
-  const userId = useAuthStore(s => s.user?.id)
+  const ownUserId       = useAuthStore(s => s.user?.id)
+  const activeProfileId  = useAuthStore(s => s.activeProfileId)
+  const isReadOnly       = !!activeProfileId
+  const userId           = activeProfileId ?? ownUserId
   const qc     = useQueryClient()
   const qKey   = [table, userId]
 

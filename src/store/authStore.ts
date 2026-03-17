@@ -1,23 +1,24 @@
 import { create } from 'zustand'
 import type { User, Session } from '../types'
 import { supabase } from '../lib/supabase'
+import { fetchSharedProfiles, type SharedProfile } from '../services/shareService'
 
 interface AuthState {
-  user:         User | null
-  session:      Session | null
-  loading:      boolean
-  accessDenied: boolean
+  user:           User | null
+  session:        Session | null
+  loading:        boolean
+  accessDenied:   boolean
+  sharedProfiles: SharedProfile[]
+  activeProfileId: string | null   // null = own profile
   signInWithGoogle:  () => Promise<void>
   signInWithEmail:   (email: string, password: string) => Promise<string | null>
   signOut:           () => Promise<void>
   clearAccessDenied: () => void
+  switchProfile:     (ownerId: string | null) => void
+  refreshSharedProfiles: () => Promise<void>
 }
 
 // ── Allowlist check ───────────────────────────────────────────────────────────
-// Returns true  → user is on the list, let them in
-// Returns false → user is not on the list, deny access
-// Returns null  → table doesn't exist yet (migration not run), fail open so
-//                 the app doesn't lock out everyone including the owner
 async function isEmailAllowed(email: string): Promise<boolean | null> {
   try {
     const { data, error } = await supabase
@@ -26,18 +27,14 @@ async function isEmailAllowed(email: string): Promise<boolean | null> {
       .eq('email', email)
       .maybeSingle()
 
-    // Table missing (42P01) → migration hasn't been run yet, fail open
     if (error?.code === '42P01') {
       console.warn('[allowlist] allowed_users table not found — run the migration. Failing open.')
       return null
     }
-
-    // Any other DB error → fail open to avoid locking out the owner
     if (error) {
       console.error('[allowlist] Error querying allowed_users:', error.message)
       return null
     }
-
     return data !== null
   } catch (err) {
     console.error('[allowlist] Unexpected error:', err)
@@ -45,11 +42,13 @@ async function isEmailAllowed(email: string): Promise<boolean | null> {
   }
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user:         null,
-  session:      null,
-  loading:      true,
-  accessDenied: false,
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user:            null,
+  session:         null,
+  loading:         true,
+  accessDenied:    false,
+  sharedProfiles:  [],
+  activeProfileId: null,
 
   signInWithGoogle: async () => {
     await supabase.auth.signInWithOAuth({
@@ -65,46 +64,54 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: async () => {
     await supabase.auth.signOut()
-    set({ user: null, session: null, accessDenied: false })
+    set({ user: null, session: null, accessDenied: false, sharedProfiles: [], activeProfileId: null })
   },
 
   clearAccessDenied: () => {
     set({ accessDenied: false })
   },
+
+  switchProfile: (ownerId) => {
+    set({ activeProfileId: ownerId })
+  },
+
+  refreshSharedProfiles: async () => {
+    const profiles = await fetchSharedProfiles()
+    set({ sharedProfiles: profiles })
+  },
 }))
 
 // ── Bootstrap: sync Supabase auth events → store ─────────────────────────────
-// NOTE: onAuthStateChange callbacks are NOT awaited by Supabase.
-// We fire-and-forget the async work but always guarantee loading → false,
-// even if something throws, so the app never hangs on the spinner.
 supabase.auth.onAuthStateChange((_event, session) => {
   if (session?.user) {
     const email = session.user.email ?? ''
+    const allowed = isEmailAllowed(email)
 
-    // Run the allowlist check asynchronously but catch everything
-    isEmailAllowed(email).then((allowed) => {
-      // null = table missing, fail open (let user through)
-      if (allowed === false) {
-        // Not on the list — sign out and show denied screen
+    allowed.then((result) => {
+      if (result === false) {
         supabase.auth.signOut().finally(() => {
           useAuthStore.setState({
-            user:         null,
-            session:      null,
-            loading:      false,
-            accessDenied: true,
+            user:            null,
+            session:         null,
+            loading:         false,
+            accessDenied:    true,
+            sharedProfiles:  [],
+            activeProfileId: null,
           })
         })
       } else {
-        // allowed === true or null (fail open)
         useAuthStore.setState({
           user:         session.user,
           session:      session,
           loading:      false,
           accessDenied: false,
         })
+        // Fetch shared profiles after successful login
+        fetchSharedProfiles().then(profiles => {
+          useAuthStore.setState({ sharedProfiles: profiles })
+        })
       }
     }).catch(() => {
-      // Last-resort catch — always resolve loading so app doesn't hang
       useAuthStore.setState({
         user:         session.user,
         session:      session,
@@ -113,12 +120,13 @@ supabase.auth.onAuthStateChange((_event, session) => {
       })
     })
   } else {
-    // No session (signed out)
     useAuthStore.setState({
-      user:         null,
-      session:      null,
-      loading:      false,
-      accessDenied: false,
+      user:            null,
+      session:         null,
+      loading:         false,
+      accessDenied:    false,
+      sharedProfiles:  [],
+      activeProfileId: null,
     })
   }
 })
