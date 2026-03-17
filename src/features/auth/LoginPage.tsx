@@ -258,15 +258,72 @@ const GoogleIcon = () => (
   </svg>
 )
 
+// ── Access Denied Screen ───────────────────────────────────────
+function AccessDeniedScreen() {
+  const { signOut, clearAccessDenied } = useAuthStore()
+
+  const handleTryAgain = async () => {
+    clearAccessDenied()
+    await signOut()
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F5F4F0] px-6">
+      <div className="w-full max-w-[400px] text-center animate-fade-up">
+        <div className="mb-8 flex justify-center">
+          <INFolioLogo variant="light" height={30} />
+        </div>
+
+        <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_12px_rgba(0,0,0,0.04)] p-8 mb-4">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+            style={{ background: '#FEF3C7', border: '1px solid #FDE68A' }}>
+            <span className="text-3xl">🔒</span>
+          </div>
+
+          <h2 className="text-[22px] font-black text-[#1A1A1A] tracking-tight mb-2">
+            Access Restricted
+          </h2>
+          <p className="text-[13px] text-[#767676] leading-relaxed mb-6">
+            This app is private. Your account hasn't been authorised to access WealthTrack.
+            Please contact the owner to request access.
+          </p>
+
+          <div className="bg-[#F5F4F0] rounded-xl px-4 py-3 mb-6 text-left">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#ABABAB] mb-1">Why am I seeing this?</p>
+            <p className="text-[12px] text-[#767676]">
+              Only pre-approved accounts can sign in. Your Google account or email address isn't on the access list yet.
+            </p>
+          </div>
+
+          <button
+            onClick={handleTryAgain}
+            className="w-full h-11 rounded-xl bg-[#1A1A1A] hover:bg-[#333333] text-white text-[13px] font-bold transition-all shadow-[0_4px_14px_rgba(0,0,0,0.18)] flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            ← Try a different account
+          </button>
+        </div>
+
+        <p className="text-[10px] text-[#BFBFBF]">
+          Developed by <span className="font-semibold text-[#767676]">Chaz Tech Ltd.</span>
+          {' · '}© {new Date().getFullYear()} All rights reserved.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ── Main ───────────────────────────────────────────────────────
 export default function LoginPage() {
-  const { signInWithGoogle, signInWithEmail } = useAuthStore()
+  const { signInWithGoogle, signInWithEmail, accessDenied } = useAuthStore()
   const [email, setEmail]         = useState('')
   const [password, setPass]       = useState('')
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [slide, setSlide]         = useState(0)
   const [animating, setAnimating] = useState(false)
+
+  // Show access denied screen if the user signed in but is not on the allowlist
+  if (accessDenied) return <AccessDeniedScreen />
 
   const goTo = useCallback((n: number) => {
     if (animating) return
