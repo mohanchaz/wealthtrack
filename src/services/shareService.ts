@@ -93,17 +93,20 @@ export interface AllowedUser {
   added_at:   string
 }
 
-// Check if current user is admin (label = 'Owner' in allowed_users)
+// Check if current user has Owner label in allowed_users.
+// A user can always read their own row (existing RLS policy), so this
+// works without any extra migration — just set label = 'Owner' in the DB.
 export async function isAdmin(): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user?.email) return false
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('allowed_users')
     .select('label')
     .eq('email', user.email.toLowerCase())
     .maybeSingle()
 
+  if (error) return false
   return data?.label === 'Owner'
 }
 

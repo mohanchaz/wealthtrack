@@ -331,6 +331,8 @@ function AllowedUsersSection() {
     return s.substring(0, 2).toUpperCase()
   }
 
+  const needsMigration = !loading && users.length <= 1
+
   if (loading) {
     return (
       <div className="px-4 py-4 flex items-center gap-2 text-[12px] text-textmut">
@@ -345,6 +347,18 @@ function AllowedUsersSection() {
       <p className="text-[12px] text-textmut mb-4">
         Only emails on this list can sign in to INFolio. You are the admin.
       </p>
+
+      {needsMigration && (
+        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 mb-4">
+          <span className="text-base shrink-0 mt-0.5">⚠️</span>
+          <div>
+            <p className="text-[12px] font-semibold text-amber-800 mb-1">Admin migration required</p>
+            <p className="text-[11px] text-amber-700 leading-relaxed">
+              Run <code className="bg-amber-100 px-1 rounded text-[10px]">20260318_allowed_users_admin.sql</code> in the Supabase SQL editor to enable full access control management.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Add form */}
       <div className="flex gap-2 mb-3">
