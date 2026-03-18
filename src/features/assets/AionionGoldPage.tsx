@@ -13,6 +13,7 @@ import { Input }             from '../../components/ui/Input'
 import { INR, calcGain }     from '../../lib/utils'
 import { GoldInstrumentInput } from '../../components/common/GoldInstrumentInput'
 import type { AionionGoldHolding } from '../../types/assets'
+import { AionionImportModal } from '../../components/common/AionionImportModal'
 
 // Derive yahoo symbol from instrument name — no DB column needed
 const GOLD_LOOKUP: { match: RegExp; yahoo: string }[] = [
@@ -100,7 +101,8 @@ export default function AionionGoldPage() {
     [...new Set(rows.map(r => resolveYahoo(r.instrument)).filter(Boolean))], [rows])
   const { data: priceMap = {}, isFetching: pf, refetch } = useYahooPrices(symbols)
 
-  const [editRow, setEditRow] = useState<Partial<AionionGoldHolding> | null>(null)
+  const [editRow,    setEditRow]    = useState<Partial<AionionGoldHolding> | null>(null)
+  const [showImport, setShowImport] = useState(false)
   const { upsertMutation, deleteMutation } = useAssets<AionionGoldHolding>('aionion_gold')
 
   const getLTP = (r: AionionGoldHolding) => {
@@ -245,6 +247,7 @@ export default function AionionGoldPage() {
       title="Aionion Gold"
       subtitle={`${rows.length} holding${rows.length !== 1 ? 's' : ''}`}
       actions={[
+        { label: '📥 Import', onClick: () => setShowImport(true), variant: 'import' },
         { label: 'Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
         { label: <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#fff'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh</span>, onClick: () => refetch(), variant: 'teal' },
       ]}
@@ -276,6 +279,7 @@ export default function AionionGoldPage() {
       {editRow !== null && (
         <EditModal row={editRow} name={editRow.id ? (editRow as AionionGoldHolding & { _liveName?: string })._liveName ?? getName(editRow as AionionGoldHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />
       )}
+      {showImport && <AionionImportModal onClose={() => setShowImport(false)} filter="gold" />}
     </PageShell>
   )
 }

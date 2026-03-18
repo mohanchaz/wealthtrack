@@ -14,7 +14,10 @@ import { Button }            from '../../components/ui/Button'
 import { Input }             from '../../components/ui/Input'
 import { NseSymbolInput }    from '../../components/common/NseSymbolInput'
 import { INR, calcGain }     from '../../lib/utils'
+import { replaceAssets }     from '../../services/assetService'
+import { useQueryClient }    from '@tanstack/react-query'
 import type { StockHolding } from '../../types/assets'
+import { AionionImportModal } from '../../components/common/AionionImportModal'
 
 function EditModal({ row, name, onClose, onSave }: {
   row: Partial<StockHolding>; name?: string | null; onClose: () => void; onSave: (d: Partial<StockHolding>) => Promise<void>
@@ -67,7 +70,8 @@ export default function AionionStocksPage() {
   const aiHook      = useActualInvested('aionion_actual_invested')
   const instruments = useMemo(() => rows.map(r => r.instrument), [rows])
   const { data: priceMap = {}, isFetching: pf, refetch } = useNsePrices(instruments)
-  const [editRow, setEditRow] = useState<Partial<StockHolding> | null>(null)
+  const [editRow,    setEditRow]    = useState<Partial<StockHolding> | null>(null)
+  const [showImport, setShowImport] = useState(false)
   const { upsertMutation, deleteMutation } = useAssets<StockHolding>('aionion_stocks')
   const getLTP  = (r: StockHolding) => priceMap[r.instrument]?.price ?? null
   const getName = (r: StockHolding) => priceMap[r.instrument]?.name  ?? null
@@ -154,6 +158,7 @@ export default function AionionStocksPage() {
   return (
     <PageShell title="Aionion Stocks" subtitle={`${rows.length} stock${rows.length !== 1 ? 's' : ''}`}
       actions={[
+        { label: '📥 Import', onClick: () => setShowImport(true), variant: 'import' },
         { label: 'Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
         { label: <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#fff'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh</span>, onClick: () => refetch(), variant: 'teal' },
       ]}
@@ -171,6 +176,7 @@ export default function AionionStocksPage() {
         actualInvested={<ActualInvestedPanel table="aionion_actual_invested" />}
       />
       {editRow !== null && <EditModal row={editRow} name={editRow.id ? getName(editRow as StockHolding) : null} onClose={() => setEditRow(null)} onSave={handleSave} />}
+      {showImport && <AionionImportModal onClose={() => setShowImport(false)} filter="stock" />}
     </PageShell>
   )
 }

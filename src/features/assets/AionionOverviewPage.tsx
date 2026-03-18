@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate }        from 'react-router-dom'
 import { useAssets }          from '../../hooks/useAssets'
 import { useNsePrices, useYahooPrices } from '../../hooks/useLivePrices'
@@ -7,6 +7,7 @@ import { useActualInvested }  from '../../hooks/useActualInvested'
 import { INR, calcGain }      from '../../lib/utils'
 import { GOLD_OPTIONS }       from '../../components/common/GoldInstrumentInput'
 import type { StockHolding, AionionGoldHolding } from '../../types/assets'
+import { AionionImportModal } from '../../components/common/AionionImportModal'
 
 function resolveYahoo(instrument: string): string {
   const match = GOLD_OPTIONS.find(o =>
@@ -112,8 +113,11 @@ export default function AionionOverviewPage() {
   const liveTag = (sf || gf) ? '⟳ Fetching…'
     : Object.keys(stockPrices).length > 0 ? `🟢 Live · ${new Date().toLocaleTimeString('en-IN')}` : undefined
 
+  const [showImport, setShowImport] = useState(false)
+
   return (
-    <PageShell title="Aionion" subtitle="Overview of all Aionion holdings">
+    <PageShell title="Aionion" subtitle="Overview of all Aionion holdings"
+      actions={[{ label: '📥 Import from Aionion', onClick: () => setShowImport(true), variant: 'import' }]}>
 
       <div className="bg-surface border border-border rounded-2xl p-4 mb-4 grid grid-cols-2 sm:flex sm:items-stretch sm:divide-x sm:divide-border gap-3 sm:gap-0 w-full">
         <div className="flex flex-col justify-center sm:pr-6 flex-1">
@@ -153,6 +157,7 @@ export default function AionionOverviewPage() {
           count={gold.filter(r => r.qty > 0).length} unit="holdings"
           live={Object.keys(goldPrices).length > 0} loading={l2} path="/assets/aionion-gold" />
       </div>
+      {showImport && <AionionImportModal onClose={() => setShowImport(false)} />}
     </PageShell>
   )
 }
