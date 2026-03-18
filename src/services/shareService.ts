@@ -96,18 +96,27 @@ export interface AllowedUser {
 // Check if current user has Owner label in allowed_users.
 // A user can always read their own row (existing RLS policy), so this
 // works without any extra migration — just set label = 'Owner' in the DB.
-export async function isAdmin(): Promise<boolean> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.email) return false
+export async function isAdmin(email?: string): Promise<boolean> {
+  let targetEmail = email
+  if (!targetEmail) {
+    const { data: { user } } = await supabase.auth.getUser()
+    targetEmail = user?.email
+  }
+  if (!targetEmail) return false
 
   const { data, error } = await supabase
     .from('allowed_users')
     .select('label')
-    .eq('email', user.email.toLowerCase())
+    .eq('email', targetEmail.toLowerCase())
     .maybeSingle()
 
-  if (error) return false
-  return data?.label === 'Owner'
+  if (error) {
+    console.error('[isAdmin] error:', error.message)
+    return false
+  }
+  const result = data?.label === 'Owner'
+  console.log('[isAdmin]', targetEmail, '→ label:', data?.label, '→ isAdmin:', result)
+  return result
 }
 
 // List all allowed users (admin only)

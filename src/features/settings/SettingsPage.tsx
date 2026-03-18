@@ -446,8 +446,10 @@ export default function SettingsPage() {
   const [adminUser, setAdminUser] = useState(false)
 
   useEffect(() => {
-    isAdmin().then(setAdminUser)
-  }, [user])
+    if (user?.email) {
+      isAdmin(user.email).then(setAdminUser)
+    }
+  }, [user?.email])
   const queryClient       = useQueryClient()
   const fileInputRef      = useRef<HTMLInputElement>(null)
 
