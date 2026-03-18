@@ -84,3 +84,59 @@ export async function revokeAccess(id: string): Promise<string | null> {
 
   return error?.message ?? null
 }
+
+// ── Allowed users (admin only) ────────────────────────────────────────────────
+
+export interface AllowedUser {
+  email:      string
+  label:      string | null
+  added_at:   string
+}
+
+// Check if current user is admin (label = 'Owner' in allowed_users)
+export async function isAdmin(): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user?.email) return false
+
+  const { data } = await supabase
+    .from('allowed_users')
+    .select('label')
+    .eq('email', user.email.toLowerCase())
+    .maybeSingle()
+
+  return data?.label === 'Owner'
+}
+
+// List all allowed users (admin only)
+export async function fetchAllowedUsers(): Promise<AllowedUser[]> {
+  const { data, error } = await supabase
+    .from('allowed_users')
+    .select('email, label, added_at')
+    .order('added_at', { ascending: false })
+
+  if (error || !data) return []
+  return data as AllowedUser[]
+}
+
+// Add a user to the allowlist (admin only)
+export async function addAllowedUser(email: string, label?: string): Promise<string | null> {
+  const { error } = await supabase
+    .from('allowed_users')
+    .insert({ email: email.toLowerCase().trim(), label: label || null })
+
+  if (error) {
+    if (error.code === '23505') return 'This email is already on the allowlist.'
+    return error.message
+  }
+  return null
+}
+
+// Remove a user from the allowlist (admin only)
+export async function removeAllowedUser(email: string): Promise<string | null> {
+  const { error } = await supabase
+    .from('allowed_users')
+    .delete()
+    .eq('email', email.toLowerCase())
+
+  return error?.message ?? null
+}

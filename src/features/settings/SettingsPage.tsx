@@ -11,7 +11,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { getInitials } from '../../lib/utils'
 import {
   fetchAccessGrants, grantAccess, revokeAccess,
-  type AccessGrant,
+  fetchSharedProfiles, fetchAllowedUsers, addAllowedUser, removeAllowedUser, isAdmin,
+  type AccessGrant, type SharedProfile, type AllowedUser,
 } from '../../services/shareService'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -221,9 +222,218 @@ function SharedAccessSection() {
   )
 }
 
+
+// ── Portfolios Shared With Me ─────────────────────────────────────────────────
+function SharedWithMeSection() {
+  const { sharedProfiles, switchProfile, activeProfileId } = useAuthStore()
+
+  if (sharedProfiles.length === 0) {
+    return (
+      <div className="px-4 py-4 text-center text-[12px] text-textmut">
+        No one has shared their portfolio with you yet.
+      </div>
+    )
+  }
+
+  function getInitialsFromStr(s: string) {
+    return s.substring(0, 2).toUpperCase()
+  }
+
+  return (
+    <div className="px-4 py-4">
+      <p className="text-[12px] text-textmut mb-4">
+        These portfolios have been shared with you in read-only mode.
+      </p>
+      <div className="space-y-2">
+        {sharedProfiles.map(p => {
+          const isActive = activeProfileId === p.owner_id
+          const label = p.owner_name || p.owner_email || 'Shared portfolio'
+          return (
+            <div key={p.owner_id} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors
+              ${isActive ? 'bg-amber-50 border-amber-200' : 'bg-[#F5F4F0] border-[#E0DDD6]'}`}>
+              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-[11px] font-bold text-amber-800 shrink-0">
+                {getInitialsFromStr(label)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-semibold text-textprim truncate">{label}</div>
+                {p.owner_email && p.owner_name && (
+                  <div className="text-[10px] text-textmut truncate">{p.owner_email}</div>
+                )}
+              </div>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 shrink-0">read-only</span>
+              {isActive ? (
+                <button
+                  onClick={() => switchProfile(null)}
+                  className="text-[11px] font-semibold px-3 py-1 rounded-lg border border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors shrink-0"
+                >
+                  Back to mine
+                </button>
+              ) : (
+                <button
+                  onClick={() => switchProfile(p.owner_id)}
+                  className="text-[11px] font-semibold px-3 py-1 rounded-lg border border-[#E0DDD6] bg-white text-textprim hover:bg-[#F5F4F0] transition-colors shrink-0"
+                >
+                  View →
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Allowed Users (Admin only) ────────────────────────────────────────────────
+function AllowedUsersSection() {
+  const { user } = useAuthStore()
+  const [users,    setUsers]    = useState<AllowedUser[]>([])
+  const [email,    setEmail]    = useState('')
+  const [label,    setLabel]    = useState('')
+  const [loading,  setLoading]  = useState(true)
+  const [saving,   setSaving]   = useState(false)
+  const [error,    setError]    = useState('')
+  const [success,  setSuccess]  = useState('')
+
+  useEffect(() => {
+    fetchAllowedUsers().then(u => { setUsers(u); setLoading(false) })
+  }, [])
+
+  async function handleAdd() {
+    if (!email.trim() || !email.includes('@')) { setError('Enter a valid email.'); return }
+    setSaving(true); setError(''); setSuccess('')
+    const err = await addAllowedUser(email.trim(), label.trim() || undefined)
+    if (err) {
+      setError(err)
+    } else {
+      setSuccess(`${email.trim()} added to allowlist`)
+      setEmail(''); setLabel('')
+      const updated = await fetchAllowedUsers()
+      setUsers(updated)
+    }
+    setSaving(false)
+  }
+
+  async function handleRemove(targetEmail: string) {
+    if (targetEmail.toLowerCase() === user?.email?.toLowerCase()) {
+      setError("You can't remove yourself from the allowlist."); return
+    }
+    const err = await removeAllowedUser(targetEmail)
+    if (!err) {
+      setUsers(u => u.filter(x => x.email !== targetEmail))
+      setSuccess(`${targetEmail} removed`)
+    } else {
+      setError(err)
+    }
+  }
+
+  function getInitialsFromStr(s: string) {
+    return s.substring(0, 2).toUpperCase()
+  }
+
+  if (loading) {
+    return (
+      <div className="px-4 py-4 flex items-center gap-2 text-[12px] text-textmut">
+        <span className="w-3.5 h-3.5 rounded-full border-2 border-[#0F766E] border-t-transparent animate-spin inline-block" />
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 py-4">
+      <p className="text-[12px] text-textmut mb-4">
+        Only emails on this list can sign in to INFolio. You are the admin.
+      </p>
+
+      {/* Add form */}
+      <div className="flex gap-2 mb-3">
+        <input
+          type="email"
+          placeholder="Email address"
+          value={email}
+          onChange={e => { setEmail(e.target.value); setError(''); setSuccess('') }}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          className="flex-1 h-10 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] text-[13px] text-[#1A1A1A] placeholder:text-[#ABABAB] outline-none px-3.5 focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 focus:bg-white transition-all"
+        />
+        <input
+          type="text"
+          placeholder="Label (optional)"
+          value={label}
+          onChange={e => setLabel(e.target.value)}
+          className="w-32 h-10 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] text-[13px] text-[#1A1A1A] placeholder:text-[#ABABAB] outline-none px-3.5 focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 focus:bg-white transition-all"
+        />
+        <button
+          onClick={handleAdd}
+          disabled={saving}
+          className="h-10 px-4 rounded-xl bg-[#0F766E] text-white text-[13px] font-bold hover:bg-[#0D4F4A] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
+        >
+          {saving && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin inline-block" />}
+          Add
+        </button>
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-3">
+          <span className="text-red-500 text-xs">⚠</span>
+          <p className="text-[12px] text-[#C0392B]">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 mb-3">
+          <span className="text-green-600 text-xs">✓</span>
+          <p className="text-[12px] text-[#1A7A3C]">{success}</p>
+        </div>
+      )}
+
+      {/* User list */}
+      <p className="text-[9px] font-bold uppercase tracking-widest text-textmut mb-2">
+        {users.length} user{users.length !== 1 ? 's' : ''} on allowlist
+      </p>
+      <div className="space-y-1.5">
+        {users.map(u => {
+          const isYou = u.email.toLowerCase() === user?.email?.toLowerCase()
+          return (
+            <div key={u.email} className="flex items-center gap-3 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] px-3 py-2.5">
+              <div className="w-8 h-8 rounded-full bg-[#E0DDD6] flex items-center justify-center text-[11px] font-bold text-[#5F5E5A] shrink-0">
+                {getInitialsFromStr(u.email)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-semibold text-textprim truncate">{u.email}</span>
+                  {isYou && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-[#0F766E]/10 text-[#0F766E]">you</span>}
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {u.label && <span className="text-[10px] font-semibold text-textmut">{u.label}</span>}
+                  <span className="text-[10px] text-textmut">
+                    Added {new Date(u.added_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+              </div>
+              {!isYou && (
+                <button
+                  onClick={() => handleRemove(u.email)}
+                  className="text-[11px] font-semibold text-[#C0392B] hover:bg-red-50 px-2 py-1 rounded-lg border border-red-200 transition-colors shrink-0"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
-  const { user, signOut, activeProfileId } = useAuthStore()
-  const isReadOnly = !!activeProfileId
+  const { user, signOut, activeProfileId, sharedProfiles } = useAuthStore()
+  const isReadOnly     = !!activeProfileId
+  const [adminUser, setAdminUser] = useState(false)
+
+  useEffect(() => {
+    isAdmin().then(setAdminUser)
+  }, [user])
   const queryClient       = useQueryClient()
   const fileInputRef      = useRef<HTMLInputElement>(null)
 
@@ -405,6 +615,12 @@ export default function SettingsPage() {
       </Section>
 
       {/* Shared Access */}
+      {sharedProfiles.length > 0 && (
+        <Section title="Shared with me">
+          <SharedWithMeSection />
+        </Section>
+      )}
+
       {!isReadOnly && (
         <Section title="Shared Access">
           <SharedAccessSection />
@@ -412,6 +628,12 @@ export default function SettingsPage() {
       )}
 
       {/* Danger */}
+      {adminUser && !isReadOnly && (
+        <Section title="Access Control">
+          <AllowedUsersSection />
+        </Section>
+      )}
+
       {!isReadOnly && (
         <Section title="Danger Zone">
           <Row icon="🗑️" label="Delete all data" sub="Permanently removes all portfolio data. Your account is kept." danger onClick={() => setConfirm(true)}>
