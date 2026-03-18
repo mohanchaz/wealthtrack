@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { PageSpinner } from '../../components/ui/Spinner'
 import { INR } from '../../lib/utils'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts'
+import type { StockHolding } from '../../types/assets'
 
 function fmt(n: number) {
   if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)}Cr`
@@ -170,13 +171,13 @@ function RebalanceSection({
     <div className="flex flex-col gap-4">
 
       {/* ── Drift chart ───────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm p-5">
+      <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm p-4">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-[12px] font-bold uppercase tracking-widest text-[#767676]">Allocation Drift</h2>
           <span className="text-[10px] text-[#767676]">actual − target (%)</span>
         </div>
         <p className="text-[11px] text-[#ABABAB] mb-3">Amber = overweight · teal = underweight</p>
-        <ResponsiveContainer width="100%" height={160}>
+        <ResponsiveContainer width="100%" height={110}>
           <BarChart data={barData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F0EEE9" vertical={false} />
             <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#767676' }} axisLine={false} tickLine={false} />
@@ -203,11 +204,8 @@ function RebalanceSection({
 
       {/* ── Full rebalance plan ───────────────────────────── */}
       <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-[#F0EEE9]">
+        <div className="px-4 py-2.5 border-b border-[#F0EEE9]">
           <h2 className="text-[12px] font-bold uppercase tracking-widest text-[#767676]">Full Rebalance Plan</h2>
-          <p className="text-[11px] text-[#ABABAB] mt-0.5">
-            Sell overweight positions and redeploy into underweight ones to hit your exact targets.
-          </p>
         </div>
 
         {/* Summary chips */}
@@ -352,6 +350,211 @@ function RebalanceSection({
         </div>
       </div>
 
+    </div>
+  )
+}
+
+
+// ── India Stocks Card ──────────────────────────────────────────
+type IndiaBroker = 'all' | 'zerodha' | 'aionion'
+
+interface IndiaStocksProps {
+  zStocks:    StockHolding[]
+  aiStocks:   StockHolding[]
+  nsePrices:  Record<string, { price: number; name: string | null; currency: string | null }>
+  anyLoading: boolean
+}
+
+interface IndiaMergedRow {
+  instrument: string
+  name:       string | null
+  qty:        number
+  avgCost:    number
+  value:      number
+  invested:   number
+  merged:     boolean
+  brokers:    IndiaBroker[]
+}
+
+function indiaAllocColor(pct: number): string {
+  return pct >= 10 || pct < 2 ? '#C0392B' : '#0F766E'
+}
+
+function indiaFmt(n: number) {
+  if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)}Cr`
+  if (n >= 1e5) return `₹${(n / 1e5).toFixed(2)}L`
+  return `₹${Math.round(n).toLocaleString('en-IN')}`
+}
+
+function IndiaStocksCard({ zStocks, aiStocks, nsePrices, anyLoading }: IndiaStocksProps) {
+  const [broker, setBroker] = useState<IndiaBroker>('all')
+
+  const rows = useMemo<IndiaMergedRow[]>(() => {
+    const src = broker === 'all'
+      ? [...zStocks.map(r => ({ ...r, _b: 'zerodha' as IndiaBroker })),
+         ...aiStocks.map(r => ({ ...r, _b: 'aionion' as IndiaBroker }))]
+      : broker === 'zerodha'
+        ? zStocks.map(r => ({ ...r, _b: 'zerodha' as IndiaBroker }))
+        : aiStocks.map(r => ({ ...r, _b: 'aionion' as IndiaBroker }))
+
+    if (broker !== 'all') {
+      return src.map(r => {
+        const ltp = nsePrices[r.instrument]?.price ?? null
+        return {
+          instrument: r.instrument,
+          name:       nsePrices[r.instrument]?.name ?? null,
+          qty:        Number(r.qty),
+          avgCost:    Number(r.avg_cost),
+          value:      Number(r.qty) * (ltp ?? Number(r.avg_cost)),
+          invested:   Number(r.qty) * Number(r.avg_cost),
+          merged:     false,
+          brokers:    [broker],
+        }
+      })
+    }
+
+    const map: Record<string, { instrument: string; totalQty: number; totalInv: number; brokers: IndiaBroker[] }> = {}
+    src.forEach(r => {
+      if (!map[r.instrument]) map[r.instrument] = { instrument: r.instrument, totalQty: 0, totalInv: 0, brokers: [] }
+      map[r.instrument].totalQty += Number(r.qty)
+      map[r.instrument].totalInv += Number(r.qty) * Number(r.avg_cost)
+      map[r.instrument].brokers.push(r._b)
+    })
+
+    return Object.values(map).map(m => {
+      const avgCost = m.totalInv / m.totalQty
+      const ltp     = nsePrices[m.instrument]?.price ?? null
+      return {
+        instrument: m.instrument,
+        name:       nsePrices[m.instrument]?.name ?? null,
+        qty:        m.totalQty,
+        avgCost,
+        value:      m.totalQty * (ltp ?? avgCost),
+        invested:   m.totalInv,
+        merged:     m.brokers.length > 1,
+        brokers:    m.brokers,
+      }
+    })
+  }, [broker, zStocks, aiStocks, nsePrices])
+
+  const sorted   = useMemo(() => [...rows].sort((a, b) => a.instrument.localeCompare(b.instrument)), [rows])
+  const totalVal  = sorted.reduce((s, r) => s + r.value, 0)
+  const totalInv  = sorted.reduce((s, r) => s + r.invested, 0)
+  const totalGain = totalVal - totalInv
+  const gainPct   = totalInv > 0 ? (totalGain / totalInv) * 100 : 0
+  const gainPos   = totalGain >= 0
+
+  if (anyLoading) {
+    return (
+      <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm overflow-hidden">
+        <div className="px-4 py-3.5 border-b border-[#F0EEE9]">
+          <h2 className="text-[12px] font-bold uppercase tracking-widest text-[#767676]">🇮🇳 India Stocks</h2>
+        </div>
+        <div className="divide-y divide-[#F5F4F0]">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="px-4 py-3 flex items-center gap-3">
+              <div className="flex-1">
+                <div className="h-3.5 w-24 bg-[#F0EEE9] rounded animate-pulse mb-1.5" />
+                <div className="h-2.5 w-36 bg-[#F5F4F0] rounded animate-pulse" />
+              </div>
+              <div className="h-4 w-20 bg-[#F0EEE9] rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E0DDD6] shadow-sm overflow-hidden flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#F0EEE9] gap-3 flex-wrap">
+        <div>
+          <h2 className="text-[12px] font-bold uppercase tracking-widest text-[#767676]">🇮🇳 India Stocks</h2>
+          <p className="text-[10px] text-[#ABABAB] mt-0.5">Zerodha + Aionion · sorted A–Z</p>
+        </div>
+        <div className="flex bg-[#F5F4F0] border border-[#E0DDD6] rounded-xl overflow-hidden text-[11px] font-bold shrink-0">
+          {(['all', 'zerodha', 'aionion'] as IndiaBroker[]).map(b => (
+            <button key={b} onClick={() => setBroker(b)}
+              className={`px-3 py-1.5 capitalize transition-colors ${broker === b ? 'bg-[#1A1A1A] text-white rounded-[10px]' : 'text-[#767676] hover:text-[#1A1A1A]'}`}>
+              {b === 'all' ? 'All' : b === 'zerodha' ? 'Zerodha' : 'Aionion'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 px-4 py-2 bg-[#FAFAF8] border-b border-[#F0EEE9] flex-wrap">
+        {[{ color: '#C0392B', label: '>10% concentrated' }, { color: '#0F766E', label: '2–10% healthy' }, { color: '#C0392B', label: '<2% negligible' }].map(l => (
+          <div key={l.label} className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: l.color }} />
+            <span className="text-[10px] text-[#767676] font-semibold">{l.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="overflow-y-auto flex-1" style={{ maxHeight: '420px' }}>
+        {sorted.length === 0 && <p className="text-[12px] text-[#ABABAB] text-center py-8">No holdings found.</p>}
+        {sorted.map(r => {
+          const gain     = r.value - r.invested
+          const gPct     = r.invested > 0 ? (gain / r.invested) * 100 : 0
+          const gPos     = gain >= 0
+          const allocPct = totalVal > 0 ? (r.value / totalVal) * 100 : 0
+          const aColor   = indiaAllocColor(allocPct)
+          const isHigh   = allocPct >= 10
+          const isLow    = allocPct < 2
+          return (
+            <div key={`${r.instrument}-${r.brokers.join('-')}`} className="border-b border-[#F5F4F0] last:border-0">
+              <div className="flex items-center gap-3 px-4 pt-2.5 pb-1">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-bold text-[#1A1A1A]">{r.instrument}</div>
+                  {r.name && <div className="text-[11px] text-[#767676] truncate mt-0.5">{r.name}</div>}
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    {r.merged ? (
+                      <>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">Zerodha</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F5F3FF] text-[#6D28D9]">Aionion</span>
+                        <span className="text-[10px] text-[#ABABAB]">blended avg</span>
+                      </>
+                    ) : r.brokers[0] === 'zerodha'
+                      ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">Zerodha</span>
+                      : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F5F3FF] text-[#6D28D9]">Aionion</span>
+                    }
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[14px] font-black font-mono text-[#1A1A1A]">{indiaFmt(r.value)}</div>
+                  <div className={`text-[11px] font-bold font-mono mt-0.5 ${gPos ? 'text-[#0F766E]' : 'text-[#C0392B]'}`}>
+                    {gPos ? '+' : ''}{indiaFmt(gain)} ({gPos ? '+' : ''}{gPct.toFixed(1)}%)
+                  </div>
+                </div>
+              </div>
+              <div className="px-4 pb-2.5 flex items-center gap-2">
+                <span className="text-[11px] font-black font-mono w-10 shrink-0" style={{ color: aColor }}>{allocPct.toFixed(1)}%</span>
+                <div className="flex-1 h-[4px] bg-[#F0EEE9] rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(allocPct, 100)}%`, background: aColor }} />
+                </div>
+                {(isHigh || isLow) && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FEE2E2] text-[#B91C1C] shrink-0">{isHigh ? 'high' : 'low'}</span>
+                )}
+                <span className="text-[10px] text-[#ABABAB] font-mono shrink-0 w-14 text-right">{indiaFmt(r.value)}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="grid grid-cols-4 border-t border-[#F0EEE9]">
+        {[
+          { label: 'Stocks',   value: String(sorted.length),                          color: undefined },
+          { label: 'Invested', value: indiaFmt(totalInv),                             color: undefined },
+          { label: 'Value',    value: indiaFmt(totalVal),                             color: undefined },
+          { label: 'Gain',     value: `${gainPos ? '+' : ''}${gainPct.toFixed(1)}%`, color: gainPos ? '#0F766E' : '#C0392B' },
+        ].map(s => (
+          <div key={s.label} className="flex flex-col items-center py-2.5 border-r border-[#F0EEE9] last:border-0">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-[#ABABAB] mb-1">{s.label}</span>
+            <span className="text-[12px] font-black font-mono" style={{ color: s.color ?? '#1A1A1A' }}>{s.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -559,13 +762,21 @@ export default function AllocationPage() {
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#767676]">Rebalancing</h2>
             <div className="flex-1 h-px bg-[#F0EEE9]" />
           </div>
-          <RebalanceSection
-            rows={rebalanceRows}
-            totalVal={p.totalVal}
-            topUpAmt={topUpAmt}
-            setTopUpAmt={setTopUpAmt}
-            loading={p.anyLoading}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <RebalanceSection
+              rows={rebalanceRows}
+              totalVal={p.totalVal}
+              topUpAmt={topUpAmt}
+              setTopUpAmt={setTopUpAmt}
+              loading={p.anyLoading}
+            />
+            <IndiaStocksCard
+              zStocks={p.zStocks}
+              aiStocks={p.aiStocks}
+              nsePrices={p.nsePrices}
+              anyLoading={p.anyLoading}
+            />
+          </div>
         </div>
       )}
 
