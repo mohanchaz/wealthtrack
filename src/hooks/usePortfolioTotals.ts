@@ -136,7 +136,7 @@ export interface PortfolioTotals {
 }
 
 export function usePortfolioTotals(): PortfolioTotals {
-  const userId = useAuthStore(s => s.user?.id)
+  const userId = useAuthStore(s => s.activeProfileId ?? s.user?.id)
 
   // ── Holdings ─────────────────────────────────────────────────
   const { data: zStocks   = [], isLoading: l1  } = useAssets<StockHolding>('zerodha_stocks')
