@@ -343,6 +343,195 @@ function EditModal({ row, name, onClose, onSave }: {
   )
 }
 
+
+// ── Trading212 Import Modal ───────────────────────────────────
+const T212_KEY_STORAGE = 'wealthtrack_t212_key'
+
+function Trading212ImportModal({ onClose, onImport, existingCurrencyMap }: {
+  onClose: () => void
+  onImport: (rows: Omit<ForeignHolding, 'id' | 'user_id'>[]) => Promise<void>
+  existingCurrencyMap: Map<string, string>
+}) {
+  const [apiKey,    setApiKey]    = useState(() => localStorage.getItem(T212_KEY_STORAGE) ?? '')
+  const [remember,  setRemember]  = useState(!!localStorage.getItem(T212_KEY_STORAGE))
+  const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState('')
+  const [preview,   setPreview]   = useState<{ symbol: string; quantity: number; avg_price: number; currency: string }[] | null>(null)
+  const [importing, setImporting] = useState(false)
+
+  async function handleFetch() {
+    if (!apiKey.trim()) { setError('Enter your Trading212 API key.'); return }
+    setLoading(true); setError(''); setPreview(null)
+    try {
+      const res = await fetch('/api/trading212', {
+        method: 'POST',
+        headers: { 'X-Trading212-Key': apiKey.trim() },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
+      if (remember) {
+        localStorage.setItem(T212_KEY_STORAGE, apiKey.trim())
+      } else {
+        localStorage.removeItem(T212_KEY_STORAGE)
+      }
+      setPreview(data.holdings ?? [])
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to fetch from Trading212')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleImport() {
+    if (!preview) return
+    setImporting(true)
+    const rows = preview.map(h => ({
+      symbol:    h.symbol,
+      qty:       h.quantity,
+      avg_price: h.avg_price,
+      // Preserve manually-set currency for existing symbols
+      currency:  (existingCurrencyMap.get(h.symbol) ?? h.currency) as 'USD' | 'GBP' | 'GBX',
+    }))
+    await onImport(rows)
+    setImporting(false)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
+      <div className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.18)] w-full max-w-lg flex flex-col max-h-[85vh]"
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0EEE9]">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-[#E8F4FD] flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h3 className="text-[15px] font-black text-[#1A1A1A]">Import from Trading212</h3>
+            </div>
+            <p className="text-[11px] text-[#767676] mt-0.5">Fetch your live portfolio directly — no CSV needed</p>
+          </div>
+          <button onClick={onClose}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#ABABAB] hover:text-[#1A1A1A] hover:bg-[#F5F4F0] transition-colors text-lg leading-none">
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {!preview ? (
+            <>
+              <div className="mb-4">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-1.5 block">
+                  Trading212 API Key
+                </label>
+                <input
+                  type="password"
+                  placeholder="Paste your API key here"
+                  value={apiKey}
+                  onChange={e => { setApiKey(e.target.value); setError('') }}
+                  onKeyDown={e => e.key === 'Enter' && handleFetch()}
+                  className="w-full h-10 rounded-xl bg-[#F5F4F0] border border-[#E0DDD6] text-[13px] text-[#1A1A1A] placeholder:text-[#ABABAB] outline-none px-3.5 focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 focus:bg-white transition-all font-mono"
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded accent-[#0F766E] cursor-pointer" />
+                    <span className="text-[11px] text-[#767676]">Remember key in this browser</span>
+                  </label>
+                  <a href="https://app.trading212.com/settings/api" target="_blank" rel="noopener noreferrer"
+                    className="text-[11px] text-[#0F766E] hover:underline">
+                    Get API key →
+                  </a>
+                </div>
+              </div>
+
+              {error && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 mb-4">
+                  <span className="text-red-500 text-xs mt-0.5">⚠</span>
+                  <p className="text-[12px] text-[#C0392B]">{error}</p>
+                </div>
+              )}
+
+              <div className="bg-[#F0FBF9] border border-[#D1FAE5] rounded-xl px-3.5 py-3 text-[11px] text-[#065F46]">
+                <p className="font-semibold mb-1">What gets imported</p>
+                <p className="text-[#047857] leading-relaxed">
+                  All your live positions — symbol, quantity, and average price. Symbols are auto-cleaned (same as your PowerShell script). Existing currency settings are preserved.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[13px] font-semibold text-[#1A1A1A]">
+                  {preview.length} holdings found
+                </p>
+                <button onClick={() => setPreview(null)}
+                  className="text-[11px] text-[#767676] hover:text-[#1A1A1A] underline underline-offset-2">
+                  ← Change key
+                </button>
+              </div>
+              <div className="rounded-xl border border-[#E0DDD6] overflow-hidden">
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 px-3 py-2 bg-[#F5F4F0] border-b border-[#E0DDD6]">
+                  {['Symbol', 'Currency', 'Qty', 'Avg Price'].map(h => (
+                    <span key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#767676]">{h}</span>
+                  ))}
+                </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-[#F0EEE9]">
+                  {preview.map((h, i) => (
+                    <div key={h.symbol} className={`grid grid-cols-[1fr_auto_auto_auto] gap-x-3 px-3 py-2 text-[12px] ${i % 2 === 1 ? 'bg-[#FAFAF8]' : ''}`}>
+                      <span className="font-bold text-[#1A1A1A] font-mono">{h.symbol}</span>
+                      <span className="text-[#767676] font-mono text-center">
+                        {existingCurrencyMap.has(h.symbol)
+                          ? <span className="text-amber-600">{existingCurrencyMap.get(h.symbol)}</span>
+                          : h.currency}
+                      </span>
+                      <span className="text-right text-[#1A1A1A] font-mono">{h.quantity.toFixed(4)}</span>
+                      <span className="text-right text-[#1A1A1A] font-mono">{h.avg_price.toFixed(4)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {Array.from(existingCurrencyMap.entries()).some(([sym]) => preview.some(h => h.symbol === sym)) && (
+                <p className="text-[10px] text-amber-600 mt-2">
+                  ⚠ Amber currency = preserved from your existing settings and won't be overwritten.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-[#F0EEE9] flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 h-10 rounded-xl border border-[#E0DDD6] bg-[#F5F4F0] text-[#767676] text-[13px] font-semibold hover:bg-[#EFEDE8] transition-all">
+            Cancel
+          </button>
+          {!preview ? (
+            <button onClick={handleFetch} disabled={loading}
+              className="flex-1 h-10 rounded-xl bg-[#0F766E] text-white text-[13px] font-bold hover:bg-[#0D4F4A] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+              {loading && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin inline-block" />}
+              {loading ? 'Fetching…' : 'Fetch portfolio'}
+            </button>
+          ) : (
+            <button onClick={handleImport} disabled={importing}
+              className="flex-1 h-10 rounded-xl bg-[#0F766E] text-white text-[13px] font-bold hover:bg-[#0D4F4A] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+              {importing && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin inline-block" />}
+              {importing ? 'Importing…' : `Import ${preview.length} holdings`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────
 export default function ForeignStocksPage() {
   const userId    = (useAuthStore(s => s.activeProfileId ?? s.user?.id))!
@@ -376,6 +565,7 @@ export default function ForeignStocksPage() {
   const { data: priceMap = {}, isFetching: priceFetching, refetch } = useYahooPrices(yahooSymbols)
   const [editRow,    setEditRow]    = useState<Partial<ForeignHolding> | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const [showT212,   setShowT212]   = useState(false)
   const { upsertMutation, deleteMutation } = useAssets<ForeignHolding>('foreign_stock_holdings')
 
   // ── Price helpers (from shared foreignPriceHelpers) ─────────
@@ -647,6 +837,7 @@ export default function ForeignStocksPage() {
       }
       actions={[
         { label: 'Import CSV', onClick: () => setShowImport(true), variant: 'import' },
+        { label: <span style={{display:'inline-flex',alignItems:'center',gap:5}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>Trading212</span>, onClick: () => setShowT212(true), variant: 'secondary' },
         { label: 'Add Holding', onClick: () => setEditRow({}), variant: 'primary' },
         { label: <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#fff'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh</span>, onClick: () => refetch(), variant: 'teal' },
       ]}
@@ -691,6 +882,19 @@ export default function ForeignStocksPage() {
 
       {editRow !== null && (
         <EditModal row={editRow} name={editRow.id ? (getForeignPriceEntry(editRow as ForeignHolding, priceMap)?.name ?? null) : null} onClose={() => setEditRow(null)} onSave={handleSave} />
+      )}
+
+      {showT212 && (
+        <Trading212ImportModal
+          onClose={() => setShowT212(false)}
+          existingCurrencyMap={new Map(rows.map(r => [r.symbol.toUpperCase(), r.currency]))}
+          onImport={async (parsed) => {
+            await replaceAssets('foreign_stock_holdings', userId, parsed.map(r => ({ ...r, user_id: userId })))
+            qc.invalidateQueries({ queryKey: ['foreign_stock_holdings', userId] })
+            qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+            toast(`${parsed.length} holdings imported from Trading212 ✅`, 'success')
+          }}
+        />
       )}
 
       <CsvImportModal
