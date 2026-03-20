@@ -19,8 +19,9 @@ import { INR, calcGain, formatDate } from '../../lib/utils'
 import { parseCsvRows, cleanNum } from '../../lib/csvParser'
 import { supabase }          from '../../lib/supabase'
 import type { ForeignHolding } from '../../types/assets'
-import { RedeemGuide } from '../../components/common/RedeemGuide'
 import {
+import { RedeemGuide } from '../../components/common/RedeemGuide'
+
   toForeignYahooSymbol, getForeignPriceEntry,
   isForeignGbxLive, getForeignLtpGbp, getForeignAvgGbp,
 } from '../../lib/foreignPriceHelpers'
@@ -836,9 +837,8 @@ export default function ForeignStocksPage() {
           <span style={{background:'#ECFDF5',color:'#065F46',padding:'2px 9px',fontFamily:'DM Mono,monospace',display:'flex',alignItems:'center'}}>₹{gbpInr.toFixed(2)}</span>
         </span>
       }
+      redeemGuide={<RedeemGuide assetType="foreign-stocks" />}
       actions={[
-        { label: <RedeemGuide assetType="foreign-stocks" />, onClick: () => {}, variant: 'secondary' as const },
-        
         { label: 'Import CSV', onClick: () => setShowImport(true), variant: 'import' },
         { label: <span style={{display:'inline-flex',alignItems:'center',gap:5}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>Trading212</span>, onClick: () => setShowT212(true), variant: 'secondary' },
         { label: 'Add Holding', onClick: () => setEditRow({}), variant: 'primary' },

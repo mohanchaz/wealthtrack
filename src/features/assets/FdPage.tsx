@@ -288,9 +288,8 @@ export default function FdPage() {
 
   return (
     <PageShell title="Fixed Deposits" subtitle={`${rows.length} FD${rows.length !== 1 ? 's' : ''} tracked`}
-      actions={[
-        { label: <RedeemGuide assetType="fd" />, onClick: () => {}, variant: 'secondary' as const },
-        { label: 'Add FD', onClick: () => setEditRow({}), variant: 'primary' }]}
+      redeemGuide={<RedeemGuide assetType="fd" />}
+      actions={[{ label: 'Add FD', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Upcoming maturities alert */}
       {upcoming.length > 0 && (

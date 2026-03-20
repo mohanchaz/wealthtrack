@@ -299,9 +299,8 @@ export default function EfPage() {
 
   return (
     <PageShell title="Emergency Fund" subtitle={`${rows.length} entr${rows.length !== 1 ? 'ies' : 'y'}`}
-      actions={[
-        { label: <RedeemGuide assetType="ef" />, onClick: () => {}, variant: 'secondary' as const },
-        { label: 'Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
+      redeemGuide={<RedeemGuide assetType="ef" />}
+      actions={[{ label: 'Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Coverage banner */}
       {coverageMonths !== null && (

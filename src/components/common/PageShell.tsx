@@ -8,14 +8,15 @@ interface Action {
 }
 
 interface Props {
-  title:     string
-  subtitle?: string
-  badge?:    ReactNode
-  actions?:  Action[]
-  children:  ReactNode
+  title:        string
+  subtitle?:    string
+  badge?:       ReactNode
+  actions?:     Action[]
+  redeemGuide?: ReactNode
+  children:     ReactNode
 }
 
-export function PageShell({ title, subtitle, badge, actions = [], children }: Props) {
+export function PageShell({ title, subtitle, badge, actions = [], redeemGuide, children }: Props) {
   return (
     <div className="flex flex-col gap-3 animate-fade-in">
       {/* Header */}
@@ -31,20 +32,24 @@ export function PageShell({ title, subtitle, badge, actions = [], children }: Pr
             {badge}
           </div>
         </div>
-        {actions.length > 0 && (
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
-            {actions.map((a, i) => (
-              <Button
-                key={i}
-                variant={a.variant ?? (i === actions.length - 1 ? 'primary' : 'secondary')}
-                size="sm"
-                onClick={a.onClick}
-              >
-                {a.label}
-              </Button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-3 flex-wrap justify-end">
+          {/* RedeemGuide sits here — before buttons, as plain teal text not inside button container */}
+          {redeemGuide}
+          {actions.length > 0 && (
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+              {actions.map((a, i) => (
+                <Button
+                  key={i}
+                  variant={a.variant ?? (i === actions.length - 1 ? 'primary' : 'secondary')}
+                  size="sm"
+                  onClick={a.onClick}
+                >
+                  {a.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {children}

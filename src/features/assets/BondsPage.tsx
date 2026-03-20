@@ -297,9 +297,8 @@ export default function BondsPage() {
 
   return (
     <PageShell title="Bonds & NCDs" subtitle={`${rows.length} bond${rows.length !== 1 ? 's' : ''}`}
-      actions={[
-        { label: <RedeemGuide assetType="bonds" />, onClick: () => {}, variant: 'secondary' as const },
-        { label: 'Add Bond', onClick: () => setEditRow({}), variant: 'primary' }]}
+      redeemGuide={<RedeemGuide assetType="bonds" />}
+      actions={[{ label: 'Add Bond', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Upcoming maturities alert */}
       {upcoming.length > 0 && (
