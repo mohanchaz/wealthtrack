@@ -160,7 +160,7 @@ export default function AionionStocksPage() {
   return (
     <PageShell title="Aionion Stocks" subtitle={`${rows.length} stock${rows.length !== 1 ? 's' : ''}`}
       actions={[
-        { label: <RedeemGuide assetType="aionion-stocks" />, onClick: () => {}, variant: 'ghost' as const },
+        { label: <RedeemGuide assetType="aionion-stocks" />, onClick: () => {}, variant: 'secondary' as const },
         
         { label: '📥 Import', onClick: () => setShowImport(true), variant: 'import' },
         { label: 'Add Holding', onClick: () => setEditRow({}), variant: 'primary' },

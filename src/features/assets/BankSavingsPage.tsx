@@ -431,7 +431,7 @@ export default function BankSavingsPage() {
   return (
     <PageShell title="Bank Savings" subtitle={`${rows.length} account${rows.length !== 1 ? 's' : ''}`}
       actions={[
-        { label: <RedeemGuide assetType="bank-savings" />, onClick: () => {}, variant: 'ghost' as const },
+        { label: <RedeemGuide assetType="bank-savings" />, onClick: () => {}, variant: 'secondary' as const },
         { label: 'Add Account', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Upcoming maturities alert */}
