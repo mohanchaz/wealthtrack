@@ -151,7 +151,8 @@ export function RedeemGuide({ assetType }: { assetType: RedeemAssetType }) {
         tabIndex={0}
         onClick={() => setOpen(o => !o)}
         onKeyDown={e => e.key === 'Enter' && setOpen(o => !o)}
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-teal hover:text-teal2 cursor-pointer select-none"
+        className="inline-flex items-center gap-1.5 text-xs font-bold cursor-pointer select-none"
+        style={{ color: '#0F766E' }}
       >
         {/* Curved arrow icon */}
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
