@@ -14,6 +14,8 @@ import { Button }              from '../../components/ui/Button'
 import { Input }               from '../../components/ui/Input'
 import { INR, calcGain }       from '../../lib/utils'
 import type { AmcMfHolding }   from '../../types/assets'
+import { RedeemGuide } from '../../components/common/RedeemGuide'
+
 
 const AMC_LIST = [
   'Aditya Birla Sun Life', 'Axis', 'Canara Robeco', 'DSP', 'Franklin Templeton',
@@ -319,6 +321,8 @@ export default function AmcMfPage() {
   return (
     <PageShell title="AMC Mutual Funds" subtitle={`${rows.length} fund${rows.length !== 1 ? 's' : ''}`}
       actions={[
+        { label: <RedeemGuide assetType="amc-mf" />, onClick: () => {}, variant: 'ghost' as const },
+        
         { label: <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#fff'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh</span>, onClick: () => refetch(), variant: 'teal' },
         { label: 'Add Fund', onClick: () => setEditRow({}), variant: 'primary' },
       ]}

@@ -14,6 +14,8 @@ import { Input }          from '../../components/ui/Input'
 import { INR, formatDate } from '../../lib/utils'
 import { supabase }       from '../../lib/supabase'
 import { useFxRates }     from '../../hooks/useLivePrices'
+import { RedeemGuide } from '../../components/common/RedeemGuide'
+
 
 // ── Types ────────────────────────────────────────────────────
 interface BankSaving {
@@ -428,7 +430,9 @@ export default function BankSavingsPage() {
 
   return (
     <PageShell title="Bank Savings" subtitle={`${rows.length} account${rows.length !== 1 ? 's' : ''}`}
-      actions={[{ label: 'Add Account', onClick: () => setEditRow({}), variant: 'primary' }]}
+      actions={[
+        { label: <RedeemGuide assetType="bank-savings" />, onClick: () => {}, variant: 'ghost' as const },
+        { label: 'Add Account', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Upcoming maturities alert */}
       {upcoming.length > 0 && (

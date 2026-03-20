@@ -13,6 +13,8 @@ import { Button }              from '../../components/ui/Button'
 import { Input }               from '../../components/ui/Input'
 import { INR, formatDate, calcGain } from '../../lib/utils'
 import type { EfAsset }        from '../../types/assets'
+import { RedeemGuide } from '../../components/common/RedeemGuide'
+
 
 // ── Constants ──────────────────────────────────────────────────
 const CATEGORIES = [
@@ -297,7 +299,9 @@ export default function EfPage() {
 
   return (
     <PageShell title="Emergency Fund" subtitle={`${rows.length} entr${rows.length !== 1 ? 'ies' : 'y'}`}
-      actions={[{ label: 'Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
+      actions={[
+        { label: <RedeemGuide assetType="ef" />, onClick: () => {}, variant: 'ghost' as const },
+        { label: 'Add Entry', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Coverage banner */}
       {coverageMonths !== null && (

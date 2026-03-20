@@ -12,6 +12,8 @@ import { Button }             from '../../components/ui/Button'
 import { Input }              from '../../components/ui/Input'
 import { INR, formatDate, calcGain } from '../../lib/utils'
 import type { BondAsset }     from '../../types/assets'
+import { RedeemGuide } from '../../components/common/RedeemGuide'
+
 
 // ── Constants ──────────────────────────────────────────────────
 const BOND_TYPES = [
@@ -295,7 +297,9 @@ export default function BondsPage() {
 
   return (
     <PageShell title="Bonds & NCDs" subtitle={`${rows.length} bond${rows.length !== 1 ? 's' : ''}`}
-      actions={[{ label: 'Add Bond', onClick: () => setEditRow({}), variant: 'primary' }]}
+      actions={[
+        { label: <RedeemGuide assetType="bonds" />, onClick: () => {}, variant: 'ghost' as const },
+        { label: 'Add Bond', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Upcoming maturities alert */}
       {upcoming.length > 0 && (

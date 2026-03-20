@@ -13,6 +13,8 @@ import { Button }              from '../../components/ui/Button'
 import { Input }               from '../../components/ui/Input'
 import { INR, formatDate, calcGain } from '../../lib/utils'
 import type { FdAsset }        from '../../types/assets'
+import { RedeemGuide } from '../../components/common/RedeemGuide'
+
 
 const CATEGORIES = [
   'Bank FD', 'Corporate FD', 'NBFC FD', 'Post Office TD',
@@ -286,7 +288,9 @@ export default function FdPage() {
 
   return (
     <PageShell title="Fixed Deposits" subtitle={`${rows.length} FD${rows.length !== 1 ? 's' : ''} tracked`}
-      actions={[{ label: 'Add FD', onClick: () => setEditRow({}), variant: 'primary' }]}
+      actions={[
+        { label: <RedeemGuide assetType="fd" />, onClick: () => {}, variant: 'ghost' as const },
+        { label: 'Add FD', onClick: () => setEditRow({}), variant: 'primary' }]}
     >
       {/* Upcoming maturities alert */}
       {upcoming.length > 0 && (
